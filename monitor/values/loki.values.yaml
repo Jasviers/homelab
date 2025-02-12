@@ -1,0 +1,4 @@
+fluent-bit:
+  enabled: true
+promtail:
+  enabled: false
