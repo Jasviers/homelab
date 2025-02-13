@@ -1,0 +1,37 @@
+fluent-bit:
+  enabled: true
+  image:
+    repository: fluent/fluent-bit
+    tag: "3.2.6-arm64"
+    #  config:
+    #service: |
+    #  [Service]
+    #  Flush         1
+    #  Log_Level     info
+    #inputs: |
+    #  [Input]
+    #  Name              tail
+    #  Path              /var/log/containers/*.log
+    #  Parser            docker
+    #  Tag               kube.*
+    #  Mem_Buf_Limit     5MB
+    #  Skip_Long_Lines   On
+    #filters: |
+    #  [Filter]
+    #  Name                kubernetes
+    #  Match               kube.*
+    #  Kube_URL            https://kubernetes.default.svc:443
+    #  Merge_Log           On
+    #  Keep_Log            Off
+    #  K8S-Logging.Parser  On
+    #  K8S-Logging.Exclude Off
+    #outputs: |
+    #  [Output]
+    #  Name    loki
+    #  Match   *
+    #  Host    loki
+    #  Port    3100
+    #  Labels  job=fluentbit
+    #  Auto_Kubernetes_Labels On
+promtail:
+  enabled: false
