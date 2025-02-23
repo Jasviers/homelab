@@ -1,0 +1,5 @@
+image:
+  repository: cr.fluentbit.io/fluent/fluent-bit
+  tag: 3.2.6-arm64
+  pullPolicy: IfNotPresent
+

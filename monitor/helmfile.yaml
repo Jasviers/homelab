@@ -3,7 +3,11 @@ repositories:
     url: https://prometheus-community.github.io/helm-charts
   - name: grafana
     url: https://grafana.github.io/helm-charts
+  - name: fluent
+    url: https://fluent.github.io/helm-charts
+
 ---
+
 releases:
   # Metrics
   - name: prometheus
@@ -21,9 +25,16 @@ releases:
     values:
       - ./values/loki.values.yaml
 
+  - name: fluent-bit
+    namespace: monitor
+    chart: fluent/fluent-bit
+    version: 0.48.6
+    values:
+      - ./values/fluent.values.yaml
+
   # traces
   - name: tempo
     namespace: monitor
     chart: grafana/tempo
     version: 1.18.1
-      
+ 
