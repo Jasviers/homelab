@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-loadbalancer
+  namespace: argo
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/instance: argo
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 8080
+  loadBalancerIP: 192.168.1.251
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-assistant-loadbalancer
+  namespace: home-assistant
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/instance: home-assistant
+    app.kubernetes.io/name: home-assistant 
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8123
+  loadBalancerIP: 192.168.1.252

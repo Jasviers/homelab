@@ -9,6 +9,13 @@ repositories:
     url: https://kubernetes.github.io/ingress-nginx
   - name: bitnami
     url: https://charts.bitnami.com/bitnami
+  - name: argo
+    url: https://argoproj.github.io/argo-helm
+  - name: pajikos # home-assistant
+    url: http://pajikos.github.io/home-assistant-helm-chart/
+  - name: jetstack
+    url: https://charts.jetstack.io
+
 ---
 releases:
   # Distributed storage
@@ -47,3 +54,20 @@ releases:
     values:
       - ./values/externaldns.values.yaml
 
+  # ArgoCD for continuous deployment 
+  - name: argo
+    namespace: argo
+    chart: argo/argo-cd
+    version: 7.8.2
+
+  - name: home-assistant
+    namespace: home-assistant
+    chart: pajikos/home-assistant
+    version: 0.2.106
+    values:
+      - ./values/home-assistant.values.yaml
+
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: 1.17.1
