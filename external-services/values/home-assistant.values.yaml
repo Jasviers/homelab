@@ -3,3 +3,9 @@ persistence:
   accessMode: ReadWriteOnce
   size: 5Gi
   storageClass: ""
+configuration:
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
+    - 10.42.0.0/16
+    - 192.168.1.0/24

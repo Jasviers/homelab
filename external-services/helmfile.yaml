@@ -60,12 +60,12 @@ releases:
     chart: argo/argo-cd
     version: 7.8.2
 
-  - name: home-assistant
-    namespace: home-assistant
-    chart: pajikos/home-assistant
-    version: 0.2.106
-    values:
-      - ./values/home-assistant.values.yaml
+  # - name: home-assistant
+  #   namespace: home-assistant
+  #   chart: pajikos/home-assistant
+  #   version: 0.2.106
+  #   values:
+  #     - ./values/home-assistant.values.yaml
 
   - name: cert-manager
     namespace: cert-manager
