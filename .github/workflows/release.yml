@@ -14,4 +14,4 @@ jobs:
           fetch-depth: 0
 
       - name: Make release with quality checks
-        uses: Jasviers/actions/actions/make-release@v1
+        uses: Jasviers/actions/make-release@v1
