@@ -1,0 +1,50 @@
+---
+- name: Check if k3s service exists and is active
+  systemd:
+    name: k3s
+  register: k3s_service_status
+  ignore_errors: true
+
+- name: Install K3s on principal node only
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage
+  when:
+    - inventory_hostname == groups['homelab'][0]
+    - k3s_service_status.status.ActiveState is not defined
+
+- name: Wait for k3s service to be ready on principal node
+  systemd:
+    name: k3s
+    state: started
+  when: inventory_hostname == groups['homelab'][0]
+
+- name: Get token from primary node
+  command: cat /var/lib/rancher/k3s/server/token
+  register: k3s_token
+  delegate_to: "{{ groups['homelab'][0] }}"
+  run_once: true
+
+- name: Install K3s on the rest of the nodes
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --server https://{{ hostvars[groups['homelab'][0]]['ansible_default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+  when:
+    - inventory_hostname != groups['homelab'][0]
+    - k3s_service_status.status.ActiveState is not defined
+
+- name: Fetch k3s config from primary node only
+  fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: ~/.kube/config
+    flat: yes
+  when:
+    - inventory_hostname == groups['homelab'][0]
+    - k3s_service_status.status.ActiveState is defined
+
+- name: Update kubeconfig server URL
+  lineinfile:
+    path: ~/.kube/config
+    regexp: '^\s*server:\s*https://127\.0\.0\.1:6443'
+    line: "    server: https://{{ hostvars[groups['homelab'][0]]['ansible_default_ipv4']['address'] }}:6443"
+  delegate_to: localhost
+  become: no
+  run_once: true
