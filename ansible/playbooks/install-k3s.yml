@@ -1,0 +1,8 @@
+---
+- name: Install and configure k3s
+  hosts: all
+  become: yes
+
+  roles:
+    - update-packages
+    - install-k3s

@@ -1,0 +1,7 @@
+---
+- name: Uninstall and configure k3s
+  hosts: all
+  become: yes
+
+  roles:
+    - uninstall-k3s
