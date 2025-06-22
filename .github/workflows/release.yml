@@ -22,4 +22,4 @@ jobs:
       - name: Make release with quality checks
         uses: Jasviers/actions/make-release@v1
         with:
-          token: ${{ secrest.release_token }}
+          token: ${{ secrets.release_token }}
