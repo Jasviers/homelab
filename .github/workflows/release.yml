@@ -21,3 +21,5 @@ jobs:
 
       - name: Make release with quality checks
         uses: Jasviers/actions/make-release@v1
+        with:
+          token: ${{ github.token }}
