@@ -12,10 +12,10 @@ repositories:
 ---
 releases:
   # Distributed storage
-  - name: longhorn
-    namespace: longhorn-system
-    chart: longhorn/longhorn
-    version: 1.6.2
+  # - name: longhorn
+  #   namespace: longhorn-system
+  #   chart: longhorn/longhorn
+  #   version: 1.6.2
 
   # Load balancer
   - name: metallb
@@ -23,27 +23,27 @@ releases:
     namespace: metallb-system
     version: 0.14.5
 
-  # pihole
-  - name: pihole
-    namespace: pihole-system
-    chart: mojo2600/pihole
-    version: 2.18.0
-    values:
-      - ./values/pihole.values.yaml
+  # # pihole
+  # - name: pihole
+  #   namespace: pihole-system
+  #   chart: mojo2600/pihole
+  #   version: 2.18.0
+  #   values:
+  #     - ./values/pihole.values.yaml
 
-  # Ingress for local network
-  - name: ingress-nginx-internal
-    namespace: nginx-system
-    chart: ingress-nginx/ingress-nginx
-    version: 4.10.1
-    values:
-      - ./values/nginx-internal.values.yaml
+  # # Ingress for local network
+  # - name: ingress-nginx-internal
+  #   namespace: nginx-system
+  #   chart: ingress-nginx/ingress-nginx
+  #   version: 4.10.1
+  #   values:
+  #     - ./values/nginx-internal.values.yaml
 
-  # Automatic DNS for pihole
-  - name: externaldns-pihole
-    namespace: pihole-system
-    chart: bitnami/external-dns
-    version: 8.0.1
-    values:
-      - ./values/externaldns.values.yaml
+  # # Automatic DNS for pihole
+  # - name: externaldns-pihole
+  #   namespace: pihole-system
+  #   chart: bitnami/external-dns
+  #   version: 8.0.1
+  #   values:
+  #     - ./values/externaldns.values.yaml
 
