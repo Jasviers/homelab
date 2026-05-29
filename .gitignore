@@ -7,3 +7,7 @@
 .terraform.lock.hcl
 *.tfvars
 !*.tfvars.example
+
+# Packer files
+packer_cache/
+output-*/
