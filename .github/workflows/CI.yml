@@ -13,8 +13,7 @@ jobs:
   CI:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       packages: write
       security-events: write
     steps:
