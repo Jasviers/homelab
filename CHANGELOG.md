@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/Jasviers/homelab/compare/v1.2.0...v1.2.1) (2026-06-02)
+
+
+### Bug Fixes
+
+* change trim to trimspace ([c2ac244](https://github.com/Jasviers/homelab/commit/c2ac2441885d0810734bb5e8c7e202dd0a8fc7e1))
+* change trim to trimspace ([fee3c27](https://github.com/Jasviers/homelab/commit/fee3c272a2e51a3bd9cafa9c11885e5e54807b78))
+
 ## [1.2.0](https://github.com/Jasviers/homelab/compare/v1.1.0...v1.2.0) (2026-06-02)
 
 
