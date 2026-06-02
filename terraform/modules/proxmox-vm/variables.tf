@@ -2,7 +2,7 @@ variable "vm_name" {
   type        = string
   description = "Nombre de la VM en Proxmox."
   validation {
-    condition     = length(trim(var.vm_name)) > 0
+    condition     = length(trimspace(var.vm_name)) > 0
     error_message = "vm_name no puede estar vacío."
   }
 }
@@ -11,7 +11,7 @@ variable "target_node" {
   type        = string
   description = "Nodo Proxmox donde se desplegará la VM."
   validation {
-    condition     = length(trim(var.target_node)) > 0
+    condition     = length(trimspace(var.target_node)) > 0
     error_message = "target_node no puede estar vacío."
   }
 }
@@ -20,7 +20,7 @@ variable "template" {
   type        = string
   description = "Nombre del template de Proxmox para clonar."
   validation {
-    condition     = length(trim(var.template)) > 0
+    condition     = length(trimspace(var.template)) > 0
     error_message = "template no puede estar vacío."
   }
 }
@@ -65,7 +65,7 @@ variable "storage" {
   type        = string
   description = "Storage de Proxmox para el disco."
   validation {
-    condition     = length(trim(var.storage)) > 0
+    condition     = length(trimspace(var.storage)) > 0
     error_message = "storage no puede estar vacío."
   }
 }
@@ -112,7 +112,7 @@ variable "ssh_keys" {
   description = "Lista de claves SSH públicas."
   default     = []
   validation {
-    condition     = length(var.ssh_keys) == 0 || alltrue([for key in var.ssh_keys : length(trim(key)) > 0])
+    condition     = length(var.ssh_keys) == 0 || alltrue([for key in var.ssh_keys : length(trimspace(key)) > 0])
     error_message = "ssh_keys no puede contener entradas vacías."
   }
 }
