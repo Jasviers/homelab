@@ -1,0 +1,32 @@
+name: CI pipeline
+
+on:
+  push:
+    branches:
+      - "feature/*"
+      - "bugfix/*"
+      - "hotfix/*"
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Quality
+        uses: Jasviers/actions/source-analysis/quality-checks@v1
+        with:
+          language: python
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Compliance
+        uses: Jasviers/actions/source-analysis/compliance-checks@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
