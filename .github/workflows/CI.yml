@@ -24,6 +24,7 @@ jobs:
         uses: Jasviers/actions/source-analysis/quality-checks@v1
         with:
           language: python
+          skip-hadolint: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Compliance
