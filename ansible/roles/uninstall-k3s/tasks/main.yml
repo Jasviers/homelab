@@ -1,0 +1,18 @@
+---
+- name: Stop k3s service
+  systemd:
+    name: k3s
+    state: stopped
+
+- name: Run k3s uninstall script
+  shell: /usr/local/bin/k3s-uninstall.sh
+
+- name: Remove k3s directories
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/rancher
+    - /var/lib/rancher
+    - /var/log/pods
+    - /var/log/containers
