@@ -2,6 +2,10 @@ packer {
   required_version = ">= 1.10.0"
 
   required_plugins {
+    ansible = {
+      source  = "github.com/hashicorp/ansible"
+      version = "~> 1"
+    }
     proxmox = {
       source  = "github.com/hashicorp/proxmox"
       version = ">= 1.2.3"
@@ -42,17 +46,16 @@ source "proxmox-iso" "ubuntu26" {
     unmount          = true
   }
 
-
   additional_iso_files {
     cd_content       = local.autoinstall_content
     cd_label         = "cidata"
     iso_storage_pool = "local"
   }
 
-  os                       = "l26"
-  cores                    = var.cores
-  sockets                  = var.sockets
-  memory                   = var.memory
+  os      = "l26"
+  cores   = var.cores
+  sockets = var.sockets
+  memory  = var.memory
 
   network_adapters {
     bridge = var.network_bridge
@@ -65,17 +68,17 @@ source "proxmox-iso" "ubuntu26" {
     storage_pool = var.storage_pool
   }
 
-  qemu_agent               = true
+  qemu_agent = true
 
-  cloud_init               = true
+  cloud_init              = true
   cloud_init_storage_pool = var.storage_pool
 
-  ssh_username             = var.ssh_username
-  ssh_private_key_file     = var.ssh_private_key_file
-  ssh_timeout              = var.ssh_timeout
+  ssh_username         = var.ssh_username
+  ssh_private_key_file = var.ssh_private_key_file
+  ssh_timeout          = var.ssh_timeout
 
-  boot = "order=virtio0;ide2;net0"
-  boot_wait                = "15s"
+  boot      = "order=virtio0;ide2;net0"
+  boot_wait = "15s"
   boot_command = [
     "<wait3s>c<wait3s>",
     "linux /casper/vmlinuz --- autoinstall ds=nocloud",
@@ -86,12 +89,21 @@ source "proxmox-iso" "ubuntu26" {
     "<enter>"
   ]
 
-  template_name            = var.template_name
-  template_description     = var.template_description
-  
-  tags                    = var.template_tags
+  template_name        = var.template_name
+  template_description = var.template_description
+
+  tags = var.template_tags
 }
 
 build {
   sources = ["source.proxmox-iso.ubuntu26"]
+
+  provisioner "ansible" {
+    playbook_file = "../../ansible/playbooks/packer-template.yml"
+    roles_path   = "../../ansible/roles"
+    ansible_env_vars = [
+      "ANSIBLE_CONFIG=${abspath("../../ansible/ansible.cfg")}"
+    ]
+    user         = var.ssh_username
+  }
 }

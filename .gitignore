@@ -11,3 +11,4 @@
 # Packer files
 packer_cache/
 output-*/
+downloaded_iso_path/
