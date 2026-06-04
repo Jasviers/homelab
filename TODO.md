@@ -2,7 +2,7 @@
 
 [x] Packer para templates de Proxmox
 
-[ ] Terraform para promox
+[x] Terraform para promox
 
 [ ] Ansible de bastionado (CIS hardening)
 
