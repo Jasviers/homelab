@@ -1,0 +1,56 @@
+---
+- name: "Installing additional packages."
+  apt:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - bash-completion
+    - ca-certificates
+    - curl
+    - unzip
+    - wget
+
+- name: 'Check if /etc/cloud/ exists'
+  ansible.builtin.stat:
+    path: '/etc/cloud/'
+  register: etc_cloud_folder
+
+- name: 'Generate /etc/cloud/cloud-init.disabled'
+  ansible.builtin.copy:
+    dest: '/etc/cloud/cloud-init.disabled'
+    content: "disabled by ansible\n"
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+- ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/cloud/cloud.cfg.d/subiquity-disable-cloudinit-networking.cfg
+    - /etc/cloud/cloud.cfg.d/99-installer.cfg
+    - /etc/netplan/00-installer-config.yaml
+    - /etc/udev/rules.d/70-persistent-net.rules
+
+- name: "Emptying the /etc/machine-id."
+  community.general.filesize:
+    path: /etc/machine-id
+    size: 0
+
+- name: "Removing /var/lib/dbus/machine-id."
+  ansible.builtin.file:
+    path: /var/lib/dbus/machine-id
+    state: absent
+
+- name: "Creating a symbolic link to /etc/machine-id."
+  ansible.builtin.file:
+    src: /etc/machine-id
+    dest: /var/lib/dbus/machine-id
+    state: link
+
+- ansible.builtin.copy:
+    content: "datasource_list: [ NoCloud, ConfigDrive ]"
+    dest: /etc/cloud/cloud.cfg.d/99_pve.cfg
+
+- name: "Clean cloud-init data"
+  command: cloud-init clean
