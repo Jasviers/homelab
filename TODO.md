@@ -4,27 +4,33 @@
 
 [x] Terraform para promox
 
-[ ] Ansible de bastionado (CIS hardening)
+[X] k3s
 
-[ ] k3s
-
-[ ] Samba AD
+[X] metallb
 
 [ ] Almacenamiento synology CSI
 
-[ ] Gitea, actions y mirrors a github
+[ ] Gitea, actions y mirrors a github (?)
 
 [ ] ArgoCD
 
 [ ] Monitorización (grafana, prometheus, loki y alloy)
+
+[ ] proxy + cert manager
+
+[ ] Homepage
+
+[ ] Jellyfin
+
+[ ] Ansible de bastionado (CIS hardening)
+
+[ ] Samba AD
 
 [ ] Istio
 
 [ ] Karpenter
 
 [ ] vault
-
-[ ] proxy + cert manager
 
 [ ] backups
 
@@ -33,7 +39,5 @@
 [ ] VPN mis padres
 
 [ ] Renovate para gestión de actualizaciones
-
-[ ] Homepage
 
 [ ] Netbot o nautobot (IPAM/DCIM)
