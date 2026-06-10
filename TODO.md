@@ -10,21 +10,31 @@
 
 [ ] Almacenamiento synology CSI
 
-[ ] Gitea, actions y mirrors a github (?)
+[X] ArgoCD
 
-[ ] ArgoCD
+[ ] Automatizar configuración proxmox y quorum
 
 [ ] Monitorización (grafana, prometheus, loki y alloy)
 
-[ ] proxy + cert manager
+[X] cert manager
+
+[ ] proxy
 
 [ ] Homepage
 
 [ ] Jellyfin
 
+[ ] Manual paso a paso para instalación y configuración de todo el homelab
+
+[ ] Mejos de documentación
+
+[ ] Endpoint HA para API de k8s (kubevip)
+
 [ ] Ansible de bastionado (CIS hardening)
 
 [ ] Samba AD
+
+[ ] SSO
 
 [ ] Istio
 
@@ -32,11 +42,11 @@
 
 [ ] vault
 
-[ ] backups
+[ ] backups (proxmox backups + velero)
 
 [ ] Enchufes y luces (home assistant)
 
-[ ] VPN mis padres
+[ ] VPN foosha
 
 [ ] Renovate para gestión de actualizaciones
 
