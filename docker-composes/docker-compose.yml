@@ -1,0 +1,26 @@
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8080:80/tcp"
+    environment:
+      TZ: "Europe/Madrid"
+      WEBPASSWORD: "SET_A_PASSWORD"
+      PIHOLE_DNS_: "1.1.1.1;1.0.0.1"
+    volumes:
+      - "./pihole:/etc/pihole"
+      - "./dnsmasq.d:/etc/dnsmasq.d"
+    restart: unless-stopped
+    network_mode: host
+
+  homeassistant:
+    container_name: homeassistant
+    image: "ghcr.io/home-assistant/home-assistant:stable"
+    volumes:
+      - "./homeassistant:/config"
+      - "/etc/localtime:/etc/localtime:ro"
+    restart: unless-stopped
+    network_mode: host
