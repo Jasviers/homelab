@@ -4,6 +4,8 @@ kind: IPAddressPool
 metadata:
   name: pool
   namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   addresses:
     - 192.168.1.128/25
@@ -13,6 +15,8 @@ kind: L2Advertisement
 metadata:
   name: pool
   namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   ipAddressPools:
     - pool

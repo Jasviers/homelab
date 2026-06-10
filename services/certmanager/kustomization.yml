@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: Kustomize
+
+resources:
+  - namespace.yaml
+  - cluster-issuers.yaml # Previo crear de momento: kubectl -n cert-manager create secret generic cloudflare-api-token --from-literal=api-token=XXXXXXXXXXXXXXXXX
+
+helmCharts:
+  - name: cert-manager
+    repo: https://charts.jetstack.io
+    version: v1.20.2
+    releaseName: cert-manager
+    namespace: cert-manager
+    valuesInline:
+      crds:
+        enabled: true
+      dns01RecursiveNameservers: 1.1.1.1:53,9.9.9.9:53
+      dns01RecursiveNameserversOnly: true

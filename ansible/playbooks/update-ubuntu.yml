@@ -1,7 +1,7 @@
 ---
 - name: Update Ubuntu packages
   hosts: all
-  become: yes
+  become: true
 
   roles:
     - update-packages
