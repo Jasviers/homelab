@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/Jasviers/homelab/compare/v1.2.1...v1.3.0) (2026-06-10)
+
+
+### Features
+
+* add argocd apps with a root app to manage all ([50f43bb](https://github.com/Jasviers/homelab/commit/50f43bbbaa9451eb92d85684dc9be085e9f60892))
+* argocd enable use helm ([d60c738](https://github.com/Jasviers/homelab/commit/d60c738b5ec1459a4500749bfafb6126c80cfbd5))
+* **argocd:** add argocd deploy files ([9a5176a](https://github.com/Jasviers/homelab/commit/9a5176aeb3e2b8ca76956aa0d81f6b7e7dd600dc))
+* backup docker compose file from raspberry pi ([573eb3b](https://github.com/Jasviers/homelab/commit/573eb3b53659692adc9db7f60b276c1ec78d7a86))
+* **certmanager:** create manifest to deploy certmanager ([8f99b44](https://github.com/Jasviers/homelab/commit/8f99b44ad7cde073ac4644958379d13caea009c2))
+* improve k3s deploy ([0e297c2](https://github.com/Jasviers/homelab/commit/0e297c2e79273cb3f48648cba8b84cb76b0d1cd2))
+* metallb deploy configuration ([76e8b22](https://github.com/Jasviers/homelab/commit/76e8b22368d2bc3a28e86aa2f8afcb76f809bf56))
+* **metallb:** remove helmfile and change to use helm with kustomize ([de0b697](https://github.com/Jasviers/homelab/commit/de0b6970e8d743e50375ce7dcc1be044479344e8))
+* script to configure firewall rules for IOT network ([ac2c5e7](https://github.com/Jasviers/homelab/commit/ac2c5e7e60ef2d4070bd9dac856df9a2b8900ed1))
+* terraform to deploy initial vms setup ([2e36643](https://github.com/Jasviers/homelab/commit/2e36643e9f11887b603abc485286edd2faf17486))
+* update k3s playbooks to use directly k8s ips ([7e97eea](https://github.com/Jasviers/homelab/commit/7e97eea882b69e212d8e24cc9562da74a822dfdb))
+* use ansible to configure packer template and cloud-init ([726ad93](https://github.com/Jasviers/homelab/commit/726ad9388463132df478cb0fe970ad9b67cdf130))
+
 ## [1.2.1](https://github.com/Jasviers/homelab/compare/v1.2.0...v1.2.1) (2026-06-02)
 
 
