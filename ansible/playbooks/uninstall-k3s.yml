@@ -1,6 +1,6 @@
 ---
 - name: Uninstall and configure k3s
-  hosts: all
+  hosts: k8s_cluster
   become: true
 
   roles:
