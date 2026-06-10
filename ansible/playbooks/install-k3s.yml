@@ -1,7 +1,7 @@
 ---
 - name: Install and configure k3s
-  hosts: all
-  become: yes
+  hosts: k8s_cluster
+  become: true
 
   roles:
     - update-packages

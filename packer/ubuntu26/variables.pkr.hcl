@@ -87,7 +87,7 @@ variable "boot_iso_download_pve" {
 variable "disk_size" {
   type        = string
   description = "Tamano del disco principal."
-  default     = "20G"
+  default     = "80G"
 }
 
 variable "memory" {
