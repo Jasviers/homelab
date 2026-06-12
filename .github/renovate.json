@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "All minor and patch updates",
+      "groupSlug": "minor-patch"
+    }
+  ],
+  "docker": {
+    "pinDigests": false
+  }
+}
