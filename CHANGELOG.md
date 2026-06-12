@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.1](https://github.com/Jasviers/homelab/compare/v1.4.0...v1.4.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* typo in certmanager config ([72c78ca](https://github.com/Jasviers/homelab/commit/72c78ca9f0e5721c6390dbdad2ad344dd4240968))
+* typo in certmanager config ([01c1c97](https://github.com/Jasviers/homelab/commit/01c1c9733bba79fbd7cf75f2b2763c3efa8e9e66))
+
 ## [1.4.0](https://github.com/Jasviers/homelab/compare/v1.3.0...v1.4.0) (2026-06-12)
 
 
