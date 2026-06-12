@@ -6,8 +6,8 @@ labels:
       app.kubernetes.io/managed-by: Kustomize
 
 resources:
-  - namespace.yaml
-  - gateway.yaml
+  - namespace.yml
+  - gateway.yml
 
 helmCharts:
   - name: gateway-helm
