@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.2](https://github.com/Jasviers/homelab/compare/v1.4.1...v1.4.2) (2026-06-12)
+
+
+### Bug Fixes
+
+* gateway kutomize files extension reference ([9b02beb](https://github.com/Jasviers/homelab/commit/9b02beb5c54de063d17c96572de84c8f60323410))
+* gateway kutomize files extension reference ([5dd85eb](https://github.com/Jasviers/homelab/commit/5dd85eb5ed1d88afd9ad23e9c006edee38bac274))
+
 ## [1.4.1](https://github.com/Jasviers/homelab/compare/v1.4.0...v1.4.1) (2026-06-12)
 
 
