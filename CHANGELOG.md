@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/Jasviers/homelab/compare/v1.3.0...v1.4.0) (2026-06-12)
+
+
+### Features
+
+* add gateway api with envoy ([bb47ce3](https://github.com/Jasviers/homelab/commit/bb47ce3b2d0bb246266cba5b8cb729efdb3d3ff8))
+* add renovate to check and update dependencies ([534cdf9](https://github.com/Jasviers/homelab/commit/534cdf942c7a5b33f7bdf9f56c4dea38a414f7d4))
+
 ## [1.3.0](https://github.com/Jasviers/homelab/compare/v1.2.1...v1.3.0) (2026-06-10)
 
 
