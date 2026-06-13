@@ -7,12 +7,13 @@
   ],
   "packageRules": [
     {
+      "matchCategories": ["docker"],
+      "pinDigests": false
+    },
+    {
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "All minor and patch updates",
       "groupSlug": "minor-patch"
     }
-  ],
-  "docker": {
-    "pinDigests": false
-  }
+  ]
 }
