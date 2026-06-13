@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.0](https://github.com/Jasviers/homelab/compare/v1.5.0...v1.6.0) (2026-06-13)
+
+
+### Features
+
+* add homepage portal ([e9a77d1](https://github.com/Jasviers/homelab/commit/e9a77d1b19ca2e4d89854f0d72eff7b84152282c))
+* inprove IOT network script and add whisper and piper for home ([cf544ef](https://github.com/Jasviers/homelab/commit/cf544ef5ab3752a1b2f8afbaa3eabb10f60e45d4))
+
+
+### Bug Fixes
+
+* change argocd to run as insecure to repair loop of DNS redirections ([359b3db](https://github.com/Jasviers/homelab/commit/359b3db426b58dfad73ed82fd86c0fd658f1f35a))
+* repair renovate analysis ([c873755](https://github.com/Jasviers/homelab/commit/c8737556703f85d9144f2cc12ce4302a8732ec46))
+
 ## [1.5.0](https://github.com/Jasviers/homelab/compare/v1.4.2...v1.5.0) (2026-06-13)
 
 
