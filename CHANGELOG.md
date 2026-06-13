@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/Jasviers/homelab/compare/v1.4.2...v1.5.0) (2026-06-13)
+
+
+### Features
+
+* change argocd deafault ip to gateway ([e9f59d7](https://github.com/Jasviers/homelab/commit/e9f59d7faed0f894e63bcec7dbd12fd4a6c02070))
+* change argocd deafault ip to gateway ([7b70f00](https://github.com/Jasviers/homelab/commit/7b70f0080f31ddad0520c97a75cf48cfe7c634e9))
+
 ## [1.4.2](https://github.com/Jasviers/homelab/compare/v1.4.1...v1.4.2) (2026-06-12)
 
 
