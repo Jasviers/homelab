@@ -15,3 +15,4 @@ helmCharts:
     version: v1.5.5
     releaseName: envoy-gateway
     namespace: envoy-gateway-system
+    includeCRDs: true
