@@ -24,3 +24,23 @@ services:
       - "/etc/localtime:/etc/localtime:ro"
     restart: unless-stopped
     network_mode: host
+
+  whisper:
+    container_name: whisper
+    image: "rhasspy/wyoming-whisper:latest"
+    command: --model base-int8 --language es --beam-size 1
+    volumes:
+      - "./whisper:/data"
+    ports:
+      - "10300:10300"
+    restart: unless-stopped
+
+  piper:
+    container_name: piper
+    image: "rhasspy/wyoming-piper:latest"
+    command: --voice es_ES-davefx-medium
+    volumes:
+      - "./piper:/data"
+    ports:
+      - "10200:10200"
+    restart: unless-stopped
