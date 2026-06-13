@@ -13,6 +13,7 @@ metadata:
   namespace: envoy-gateway-system
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt
+    metallb.io/loadBalancerIPs: 192.168.1.128
 spec:
   gatewayClassName: envoy
   listeners:
