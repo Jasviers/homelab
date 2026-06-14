@@ -38,10 +38,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            # Necesario para que las probes (IP del pod) y el acceso por dominio funcionen.
             - name: HOMEPAGE_ALLOWED_HOSTS
               value: "$(MY_POD_IP):3000,homepage.bonchan.org"
-            # Token de la API de ArgoCD para el widget en vivo (Secret creado a mano).
             - name: HOMEPAGE_VAR_ARGOCD_TOKEN
               valueFrom:
                 secretKeyRef:
@@ -82,6 +80,9 @@ spec:
             - mountPath: /app/config/docker.yaml
               name: homepage-config
               subPath: docker.yaml
+            - mountPath: /app/config/proxmox.yaml
+              name: homepage-config
+              subPath: proxmox.yaml
             - mountPath: /app/config/kubernetes.yaml
               name: homepage-config
               subPath: kubernetes.yaml

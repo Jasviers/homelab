@@ -6,7 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: homepage
 ---
-# Service account token usado por Homepage para autenticarse contra la API de k8s
 apiVersion: v1
 kind: Secret
 type: kubernetes.io/service-account-token

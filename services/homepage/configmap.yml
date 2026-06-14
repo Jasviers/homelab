@@ -6,8 +6,6 @@ metadata:
   labels:
     app.kubernetes.io/name: homepage
 data:
-  # Integracion con k8s en modo cluster: Homepage autodescubre los servicios
-  # leyendo las anotaciones gethomepage.dev/* de Ingresses y HTTPRoutes.
   kubernetes.yaml: |
     mode: cluster
 
@@ -46,8 +44,6 @@ data:
           timeStyle: short
           hourCycle: h23
 
-  # Con el autodescubrimiento de k8s no es necesario listar servicios aqui;
-  # se anaden anotando su HTTPRoute. Se deja vacio a proposito.
   services.yaml: |
     []
 
@@ -67,5 +63,6 @@ data:
               href: https://nas.bonchan.org
 
   docker.yaml: ""
+  proxmox.yaml: ""
   custom.css: ""
   custom.js: ""
