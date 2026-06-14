@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.2](https://github.com/Jasviers/homelab/compare/v1.6.1...v1.6.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* homepage autodiscovery for gateway api ([d285dea](https://github.com/Jasviers/homelab/commit/d285dea5ec276bb5f78411aabb389dec3c105a3b))
+* homepage autodiscovery for gateway api ([c7261fb](https://github.com/Jasviers/homelab/commit/c7261fbfab63843ffd5f5c10949f5d38c5e45406))
+
 ## [1.6.1](https://github.com/Jasviers/homelab/compare/v1.6.0...v1.6.1) (2026-06-14)
 
 
