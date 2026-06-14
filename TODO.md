@@ -24,13 +24,13 @@
 
 [ ] Desplegar Redis (para todos los servicios que lo requieran)
 
-[ ] Desplegar MinIO (para todos los servicios que lo requieran)
-
 [ ] SSO (authentik o similar)
 
-[ ] Endpoint HA para API de k8s (kubevip)
+[X] Endpoint HA para API de k8s (kubevip)
 
 [ ] Monitorización (grafana, prometheus, loki y alloy)
+
+[ ] Desplegar MinIO (para todos los servicios que lo requieran)
 
 [ ] Automatizar configuración proxmox y quorum
 
@@ -64,4 +64,4 @@
 
 [ ] Mejoras de red en k8s
 
-[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9)
+[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
