@@ -1,7 +1,7 @@
 module "vm" {
   for_each = var.vms
 
-  source = "git::git@github.com:Jasviers/homelab.git//terraform/modules/proxmox-vm?ref=v1.2.1"
+  source = "git::git@github.com:Jasviers/homelab.git//terraform/modules/proxmox-vm?ref=v1.6.1"
 
   vm_name     = each.value.vm_name
   target_node = each.value.target_node

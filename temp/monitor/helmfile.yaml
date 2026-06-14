@@ -9,7 +9,7 @@ releases:
   - name: prometheus
     namespace: monitor
     chart: prometheus-community/prometheus
-    version: 27.3.0
+    version: 27.52.0
     values:
       - ./values/prometheus.values.yaml
 
@@ -17,7 +17,7 @@ releases:
   - name: loki
     namespace: monitor
     chart: grafana/loki-stack
-    version: 2.10.2
+    version: 2.10.3
     values:
       - ./values/loki.values.yaml
 
@@ -25,5 +25,5 @@ releases:
   - name: tempo
     namespace: monitor
     chart: grafana/tempo
-    version: 1.18.1
+    version: 1.24.4
       
