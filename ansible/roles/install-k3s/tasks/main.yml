@@ -6,7 +6,7 @@
 
 - name: Install K3s on principal node only
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
   when:
     - inventory_hostname == groups['k8s_cluster'][0]
     - not k3s_unit.stat.exists
@@ -25,7 +25,7 @@
 
 - name: Install K3s on the rest of the nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --server https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
   when:
     - inventory_hostname != groups['k8s_cluster'][0]
     - not k3s_unit.stat.exists
