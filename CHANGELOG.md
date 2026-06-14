@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/Jasviers/homelab/compare/v1.6.2...v1.7.0) (2026-06-14)
+
+
+### Features
+
+* add synology-csi to manage volumens ([5ea970f](https://github.com/Jasviers/homelab/commit/5ea970ffd982e10fd504a12956377dbb00cab0d0))
+
+
+### Bug Fixes
+
+* homepage autodiscovery and routing to argocd ([8081147](https://github.com/Jasviers/homelab/commit/80811479bca41fd21f0aae1ca1beb2451cf44f5f))
+
 ## [1.6.2](https://github.com/Jasviers/homelab/compare/v1.6.1...v1.6.2) (2026-06-14)
 
 
