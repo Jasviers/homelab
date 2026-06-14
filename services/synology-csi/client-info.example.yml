@@ -1,0 +1,6 @@
+clients:
+  - host: 192.168.1.1
+    port: 5000
+    https: false
+    username: csi-user
+    password: PassWord
