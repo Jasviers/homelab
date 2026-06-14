@@ -8,37 +8,43 @@
 
 [X] metallb
 
-[ ] Almacenamiento synology CSI
-
 [X] ArgoCD
-
-[ ] Automatizar configuración proxmox y quorum
-
-[ ] Monitorización (grafana, prometheus, loki y alloy)
 
 [X] cert manager
 
-[ ] proxy
+[X] Renovate para gestión de actualizaciones
 
-[ ] Homepage
+[X] Gateway API
 
-[ ] Jellyfin
+[X] Homepage
 
-[ ] Manual paso a paso para instalación y configuración de todo el homelab
+[X] Almacenamiento synology CSI
 
-[ ] Mejos de documentación
+[ ] Desplegar posgresQL (para todos los servicios que lo requieran)
+
+[ ] Desplegar Redis (para todos los servicios que lo requieran)
+
+[ ] Desplegar MinIO (para todos los servicios que lo requieran)
+
+[ ] SSO (authentik o similar)
 
 [ ] Endpoint HA para API de k8s (kubevip)
 
+[ ] Monitorización (grafana, prometheus, loki y alloy)
+
+[ ] Automatizar configuración proxmox y quorum
+
+[ ] Automatizar despliegue de Pi-hole y Home Assistant
+
+[ ] Manual paso a paso para instalación y configuración de todo el homelab
+
+[ ] Mejoras de documentación
+
+[ ] Jellyfin
+
 [ ] Ansible de bastionado (CIS hardening)
 
-[ ] Samba AD
-
-[ ] SSO
-
-[ ] Istio
-
-[ ] Karpenter
+[ ] Istio o pasar a Cilium
 
 [ ] vault
 
@@ -48,6 +54,14 @@
 
 [ ] VPN foosha
 
-[ ] Renovate para gestión de actualizaciones
+[ ] Netbox o nautobot (IPAM/DCIM)
 
-[ ] Netbot o nautobot (IPAM/DCIM)
+[ ] Karpenter (karpenter-provider-proxmox)
+
+[ ] Mejoras de quorum para k8s
+
+[ ] Mejoras de seguridad
+
+[ ] Mejoras de red en k8s
+
+[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9)
