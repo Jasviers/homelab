@@ -21,7 +21,7 @@ releases:
   - name: metallb
     chart: metallb/metallb
     namespace: metallb-system
-    version: 0.14.5
+    version: 0.16.1
 
   # # pihole
   # - name: pihole
