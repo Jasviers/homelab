@@ -4,7 +4,6 @@ metadata:
   name: argocd
   namespace: argocd
   annotations:
-    # Autodescubrimiento + widget en vivo de Homepage.
     gethomepage.dev/enabled: "true"
     gethomepage.dev/name: ArgoCD
     gethomepage.dev/description: GitOps Continuous Delivery
