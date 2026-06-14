@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1](https://github.com/Jasviers/homelab/compare/v1.6.0...v1.6.1) (2026-06-14)
+
+
+### Bug Fixes
+
+* repair proxmox missing file errors ([b181b26](https://github.com/Jasviers/homelab/commit/b181b268d325a2a686025a0ee0a268f6f81ea8a1))
+* repair proxmox missing file errors ([8a99488](https://github.com/Jasviers/homelab/commit/8a994886e46b4a7edd5958acb7bc40e91b41273f))
+
 ## [1.6.0](https://github.com/Jasviers/homelab/compare/v1.5.0...v1.6.0) (2026-06-13)
 
 
