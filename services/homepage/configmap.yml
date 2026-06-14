@@ -8,13 +8,13 @@ metadata:
 data:
   kubernetes.yaml: |
     mode: cluster
+    gateway: true
 
   settings.yaml: |
     title: Lakasa Homelab
     favicon: https://gethomepage.dev/img/favicon.ico
     headerStyle: clean
     language: es
-    # Orden y estilo de los grupos (los grupos se crean desde las anotaciones).
     layout:
       Cluster Management:
         style: row
