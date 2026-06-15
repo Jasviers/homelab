@@ -1,0 +1,42 @@
+---
+- name: Create home services directory
+  file:
+    path: "{{ home_services_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create dnsmasq.d directory for Pi-hole
+  file:
+    path: "{{ home_services_dir }}/dnsmasq.d"
+    state: directory
+    mode: "0755"
+
+- name: Template dnsmasq records (servers and Gateway API)
+  template:
+    src: 02-homelab.conf.j2
+    dest: "{{ home_services_dir }}/dnsmasq.d/02-homelab.conf"
+    mode: "0644"
+  register: dnsmasq_records
+
+- name: Template docker-compose file
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ home_services_dir }}/docker-compose.yml"
+    mode: "0644"
+  register: compose_file
+
+- name: Deploy stack with docker compose
+  command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ home_services_dir }}"
+  register: compose_up
+  changed_when: >-
+    ('Started' in compose_up.stderr)
+    or ('Created' in compose_up.stderr)
+    or ('Recreated' in compose_up.stderr)
+    or ('Pulling' in compose_up.stderr)
+
+- name: Reload Pi-hole DNS to apply dnsmasq records
+  command: docker exec pihole pihole reloaddns
+  changed_when: true
+  when: dnsmasq_records.changed

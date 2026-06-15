@@ -1,0 +1,7 @@
+---
+- name: Configure Proxmox no-subscription repositories
+  hosts: proxmox
+  become: true
+
+  roles:
+    - proxmox-repos

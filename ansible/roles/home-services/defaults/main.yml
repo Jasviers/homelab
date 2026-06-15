@@ -1,0 +1,26 @@
+---
+# Directorio donde se despliega el stack en la Raspberry
+home_services_dir: /opt/home-services
+
+# Zona horaria de los contenedores
+home_services_timezone: "Europe/Madrid"
+
+# Pi-hole
+pihole_web_password: "changeme"
+pihole_dns_upstream: "1.1.1.1;1.0.0.1"
+
+# Asistente de voz (Wyoming)
+whisper_model: "base-int8"
+whisper_language: "es"
+piper_voice: "es_ES-davefx-medium"
+
+# Registros DNS de los servidores del homelab (host-record en dnsmasq)
+home_services_dns_servers:
+  - { name: "luffy", ip: "192.168.1.2" }
+  - { name: "zoro", ip: "192.168.1.3" }
+  - { name: "nami", ip: "192.168.1.4" }
+  - { name: "kubevip", ip: "192.168.1.20" }
+
+# Gateway API: dominio servido por el balanceador de MetalLB
+home_services_gateway_domain: "bonchan.org"
+home_services_gateway_ip: "192.168.1.128"
