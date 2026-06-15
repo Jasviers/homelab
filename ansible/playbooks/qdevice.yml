@@ -1,0 +1,10 @@
+---
+# Configura primero los repos gratuitos de Proxmox y luego el quorum
+- import_playbook: proxmox-repos.yml
+
+- name: Configure Proxmox QDevice quorum
+  hosts: proxmox:raspberry_pi
+  become: true
+
+  roles:
+    - qdevice

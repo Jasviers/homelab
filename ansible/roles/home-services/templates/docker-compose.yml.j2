@@ -1,3 +1,4 @@
+# Gestionado por Ansible (rol home-services). No editar a mano.
 services:
   pihole:
     container_name: pihole
@@ -7,9 +8,9 @@ services:
       - "53:53/udp"
       - "8080:80/tcp"
     environment:
-      TZ: "Europe/Madrid"
-      WEBPASSWORD: "SET_A_PASSWORD"
-      PIHOLE_DNS_: "1.1.1.1;1.0.0.1"
+      TZ: "{{ home_services_timezone }}"
+      WEBPASSWORD: "{{ pihole_web_password }}"
+      PIHOLE_DNS_: "{{ pihole_dns_upstream }}"
     volumes:
       - "./pihole:/etc/pihole"
       - "./dnsmasq.d:/etc/dnsmasq.d"
@@ -28,7 +29,7 @@ services:
   whisper:
     container_name: whisper
     image: "rhasspy/wyoming-whisper:latest"
-    command: --model base-int8 --language es --beam-size 1
+    command: --model {{ whisper_model }} --language {{ whisper_language }} --beam-size 1
     volumes:
       - "./whisper:/data"
     ports:
@@ -38,7 +39,7 @@ services:
   piper:
     container_name: piper
     image: "rhasspy/wyoming-piper:latest"
-    command: --voice es_ES-davefx-medium
+    command: --voice {{ piper_voice }}
     volumes:
       - "./piper:/data"
     ports:

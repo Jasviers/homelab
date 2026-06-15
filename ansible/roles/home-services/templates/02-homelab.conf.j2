@@ -1,0 +1,9 @@
+# Gestionado por Ansible (rol home-services). No editar a mano.
+
+# Servidores del homelab
+{% for server in home_services_dns_servers %}
+host-record={{ server.name }},{{ server.ip }}
+{% endfor %}
+
+# Gateway API: *.{{ home_services_gateway_domain }} -> balanceador (MetalLB)
+address=/{{ home_services_gateway_domain }}/{{ home_services_gateway_ip }}
