@@ -6,7 +6,7 @@
 
 - name: Install K3s on principal node only
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
   when:
     - inventory_hostname == groups['k8s_cluster'][0]
     - not k3s_unit.stat.exists
@@ -25,7 +25,7 @@
 
 - name: Install K3s on the rest of the nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
   when:
     - inventory_hostname != groups['k8s_cluster'][0]
     - not k3s_unit.stat.exists
@@ -35,9 +35,7 @@
     src: /etc/rancher/k3s/k3s.yaml
     dest: ~/.kube/config
     flat: yes
-  when:
-    - inventory_hostname == groups['k8s_cluster'][0]
-    - k3s_unit.stat.exists
+  when: inventory_hostname == groups['k8s_cluster'][0]
 
 - name: Update kubeconfig server URL
   lineinfile:
@@ -47,3 +45,47 @@
   delegate_to: localhost
   become: false
   run_once: true
+
+- name: Add Cilium Helm repository
+  command: helm repo add cilium {{ cilium_helm_repo_url }}
+  delegate_to: localhost
+  become: false
+  run_once: true
+  register: cilium_repo_add
+  changed_when: "'has been added' in cilium_repo_add.stdout"
+
+- name: Update Cilium Helm repository
+  command: helm repo update cilium
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+
+- name: Render Cilium values
+  template:
+    src: cilium-values.yaml.j2
+    dest: /tmp/cilium-values.yaml
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Install/upgrade Cilium via Helm
+  shell: >
+    helm upgrade --install cilium cilium/cilium
+    --version {{ cilium_chart_version }}
+    --namespace kube-system
+    --kubeconfig {{ cilium_kubeconfig }}
+    --values /tmp/cilium-values.yaml
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Wait for Cilium DaemonSet rollout
+  shell: >
+    kubectl --kubeconfig {{ cilium_kubeconfig }}
+    -n kube-system rollout status ds/cilium --timeout=300s
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false

@@ -20,7 +20,7 @@ La conexión usa `root` con la clave SSH `~/.ssh/id_ed25519` (ver `[homelab:vars
 | Playbook | Descripción |
 | --- | --- |
 | `playbooks/update-ubuntu.yml` | Actualiza paquetes apt (update, dist-upgrade, autoremove). |
-| `playbooks/install-k3s.yml` | Instala k3s en el grupo objetivo: inicializa el primer nodo con `--cluster-init`, recupera el token y une el resto de nodos. Deshabilita `servicelb`, `traefik` y `local-storage` (se sustituyen por MetalLB y el CSI de Synology). Al final descarga el kubeconfig a `~/.kube/config` y reescribe la URL del server. |
+| `playbooks/install-k3s.yml` | Instala k3s en el grupo objetivo: inicializa el primer nodo con `--cluster-init`, recupera el token y une el resto de nodos. Deshabilita `servicelb`, `traefik` y `local-storage` (se sustituyen por MetalLB y el CSI de Synology) y el networking integrado (`flannel`, `kube-proxy` y `network-policy`), que se sustituyen por **Cilium**. Descarga el kubeconfig a `~/.kube/config`, reescribe la URL del server e instala Cilium vía Helm desde localhost. |
 | `playbooks/uninstall-k3s.yml` | Para el servicio, ejecuta el script oficial de desinstalación y limpia directorios residuales. |
 | `playbooks/packer-template.yml` | Lo invoca Packer como provisioner durante el build del template: actualiza paquetes y prepara cloud-init (rol `cloud-init`). No está pensado para ejecutarse a mano. |
 
@@ -29,8 +29,8 @@ La conexión usa `root` con la clave SSH `~/.ssh/id_ed25519` (ver `[homelab:vars
 | Rol | Descripción |
 | --- | --- |
 | `update-packages` | Actualización de paquetes apt. |
-| `install-k3s` | Instalación de k3s multi-nodo (server con etcd embebido). |
-| `uninstall-k3s` | Desinstalación y limpieza de k3s. |
+| `install-k3s` | Instalación de k3s multi-nodo (server con etcd embebido) sin flannel ni kube-proxy + Cilium como CNI vía Helm. Variables en `defaults/main.yml` (versión del chart, endpoint del API). |
+| `uninstall-k3s` | Desinstalación y limpieza de k3s (incluye restos de red de Cilium). |
 | `cloud-init` | Preparación del template de Proxmox: instala paquetes base, resetea `machine-id`, limpia configuración del instalador y deja cloud-init listo (`datasource_list: [NoCloud, ConfigDrive]`, `cloud-init clean`). |
 
 ## Uso
