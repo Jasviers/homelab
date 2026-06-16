@@ -1,0 +1,57 @@
+---
+- name: Find enterprise repository files (.list)
+  find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - "pve-enterprise.list"
+      - "ceph.list"
+  register: enterprise_list
+
+- name: Disable enterprise repositories (.list)
+  replace:
+    path: "{{ item.path }}"
+    regexp: '^(deb\s+.*enterprise\.proxmox\.com.*)$'
+    replace: '# \1'
+  loop: "{{ enterprise_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Find enterprise repository files (.sources)
+  find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - "pve-enterprise.sources"
+      - "ceph.sources"
+  register: enterprise_sources
+
+- name: Disable enterprise repositories (.sources)
+  lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^Enabled:'
+    line: "Enabled: false"
+  loop: "{{ enterprise_sources.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Enable Proxmox VE no-subscription repository
+  copy:
+    dest: /etc/apt/sources.list.d/pve-no-subscription.list
+    content: "deb {{ proxmox_no_subscription_url }} {{ ansible_distribution_release }} {{ proxmox_no_subscription_component }}\n"
+    mode: "0644"
+  register: pve_no_subscription_repo
+
+- name: Enable Ceph no-subscription repository
+  copy:
+    dest: /etc/apt/sources.list.d/ceph-no-subscription.list
+    content: "deb {{ proxmox_ceph_url }}/{{ proxmox_ceph_release }} {{ ansible_distribution_release }} {{ proxmox_ceph_component }}\n"
+    mode: "0644"
+  register: ceph_no_subscription_repo
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  when: >-
+    pve_no_subscription_repo.changed
+    or ceph_no_subscription_repo.changed
+    or enterprise_list.matched > 0
+    or enterprise_sources.matched > 0

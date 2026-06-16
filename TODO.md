@@ -20,31 +20,29 @@
 
 [X] Almacenamiento synology CSI
 
-[ ] Desplegar posgresQL (para todos los servicios que lo requieran)
+[X] PostgreSQL: operador CloudNativePG (CNPG)
 
-[ ] Desplegar Redis (para todos los servicios que lo requieran)
+[X] SSO con Authentik
 
-[ ] Desplegar MinIO (para todos los servicios que lo requieran)
-
-[ ] SSO (authentik o similar)
-
-[ ] Endpoint HA para API de k8s (kubevip)
+[X] Endpoint HA para API de k8s (kubevip)
 
 [ ] Monitorización (grafana, prometheus, loki y alloy)
 
-[ ] Automatizar configuración proxmox y quorum
+[X] Automatizar configuración proxmox y quorum
 
-[ ] Automatizar despliegue de Pi-hole y Home Assistant
+[ ] Cilium como CNI
 
-[ ] Manual paso a paso para instalación y configuración de todo el homelab
+[X] Automatizar despliegue de Pi-hole y Home Assistant
+
+[ ] Manual paso a paso para instalación y configuración de todo el homelab (automatización de todo lo posib)
 
 [ ] Mejoras de documentación
+
+[ ] Desplegar MinIO (para todos los servicios que lo requieran)
 
 [ ] Jellyfin
 
 [ ] Ansible de bastionado (CIS hardening)
-
-[ ] Istio o pasar a Cilium
 
 [ ] vault
 
@@ -64,4 +62,4 @@
 
 [ ] Mejoras de red en k8s
 
-[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9)
+[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
