@@ -1,0 +1,51 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+helmCharts:
+  - name: kube-prometheus-stack
+    repo: https://prometheus-community.github.io/helm-charts
+    version: 86.2.3
+    releaseName: kube-prometheus-stack
+    namespace: monitoring
+    includeCRDs: true
+    valuesInline:
+      crds:
+        enabled: true
+
+      alertmanager:
+        enabled: false
+
+      grafana:
+        enabled: false
+
+      kube-state-metrics:
+        enabled: true
+
+      nodeExporter:
+        enabled: true
+
+      prometheus:
+        prometheusSpec:
+          retention: 30d
+          retentionSize: "30GB"
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+          ruleSelectorNilUsesHelmValues: false
+          probeSelectorNilUsesHelmValues: false
+          scrapeConfigSelectorNilUsesHelmValues: false
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          storageSpec:
+            volumeClaimTemplate:
+              spec:
+                storageClassName: synology-iscsi-storage
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 20Gi
