@@ -193,6 +193,22 @@ kubectl -n synology-csi create secret generic client-info-secret \
   --from-file=client-info.yml=services/synology-csi/client-info.yml
 ```
 
+**`secret_key` de Authentik:** la contraseña de su base de datos la genera CNPG;
+solo hay que crear la `secret_key`:
+
+```bash
+kubectl -n authentik create secret generic authentik-secret \
+  --from-literal=secret_key=$(openssl rand -base64 60 | tr -d '\n')
+```
+
+**Credenciales de admin de Grafana:**
+
+```bash
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin \
+  --from-literal=admin-password=<PASSWORD>
+```
+
 > Cuando se incorpore Vault (ver `TODO.md`), este paso debería desaparecer.
 
 ---

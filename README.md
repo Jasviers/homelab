@@ -13,18 +13,26 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 
 ## Hosts y roles
 
-| Host | IP | Rol/Descripción |
-| --- | --- | --- |
-| `nas.bonchan.org` | `192.168.1.1` | NAS Synology (almacenamiento) |
-| `luffy.bonchan.org` | `192.168.1.2` | Raspberry Pi 4B (Pi-hole, Home Assistant, quorum Proxmox) |
-| `zoro.bonchan.org` | `192.168.1.3` | Proxmox Nodo 1 |
-| `nami.bonchan.org` | `192.168.1.4` | Proxmox Nodo 2 |
+| Host | IP | Hardware | Rol/Descripción |
+| --- | --- | --- | --- |
+| `nas.bonchan.org` | `192.168.1.1` | Synology DS223J · 2 bahías (1×4 TB, 1 libre) | NAS: almacenamiento e iSCSI (LUNs para el CSI del clúster) |
+| `luffy.bonchan.org` | `192.168.1.2` | Raspberry Pi 4B · 8 GB RAM | Pi-hole, Home Assistant + asistente de voz, quorum (QDevice) de Proxmox |
+| `zoro.bonchan.org` | `192.168.1.3` | Geekom A5 · AMD Ryzen 5 7430U · 16 GB RAM | Proxmox Nodo 1 (hospeda `vm-ubuntu26-zoro-01`) |
+| `nami.bonchan.org` | `192.168.1.4` | Geekom A5 · AMD Ryzen 5 7430U · 16 GB RAM | Proxmox Nodo 2 (hospeda `vm-ubuntu26-nami-01`) |
+
+> El QDevice de quorum corre en `luffy`: permite que el clúster Proxmox de 2 nodos
+> mantenga quorum aunque caiga uno de ellos.
 
 ## Lista de servicios
 
 - **Pi-hole** en `luffy.bonchan.org` para DNS local y resolución de dominios internos.
 - **Home Assistant** en `luffy.bonchan.org`. Cerebro de la automatización del hogar.
+- **Asistente de voz** en `luffy.bonchan.org`: **Whisper** (STT) y **Piper** (TTS) vía
+  protocolo Wyoming, integrados con Home Assistant.
 - **Proxmox** con dos nodos (`zoro` y `nami`) y quorum que incluye el Raspberry Pi (`luffy`).
+- **Clúster k3s** sobre dos VMs Ubuntu 26 (ver sección siguiente) con todos los
+  servicios del homelab gestionados por GitOps (ArgoCD): SSO con Authentik,
+  PostgreSQL con CloudNativePG, monitorización (Grafana/Prometheus/Loki/Alloy), etc.
 
 ## Dominio y DNS
 
@@ -45,12 +53,17 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 | `vm-ubuntu26-zoro-01` | `192.168.1.21` | `zoro` | 210 |
 | `vm-ubuntu26-nami-01` | `192.168.1.22` | `nami` | 220 |
 
+- **kube-vip** publica una VIP de alta disponibilidad para el *control plane* de k3s en `192.168.1.20` (modo ARP, *leader election* entre los nodos control-plane). Es el endpoint estable del API de Kubernetes, registrado en Pi-hole como `kubevip`.
 - **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar).
 - **MetalLB** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255).
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
 - **ArgoCD** gestiona las aplicaciones del clúster vía GitOps desde este repositorio con un patrón *app-of-apps* y se expone a través del Gateway en `argocd.bonchan.org`.
 - **cert-manager** emite los certificados Let's Encrypt mediante challenge DNS-01 contra Cloudflare.
 - **Synology CSI** aprovisiona volúmenes persistentes (LUNs iSCSI) dinámicamente desde el NAS.
+- **CloudNativePG (CNPG)** es el operador de PostgreSQL: cada servicio que necesita base de datos declara su propio `Cluster` (p. ej. el de Authentik).
+- **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG.
+- **Monitorización**: **Prometheus** (métricas), **Loki** (logs), **Alloy** (recolección de logs) y **Grafana** (dashboards y alertas) en `grafana.bonchan.org`.
+- **Homepage** es el portal/dashboard del homelab en `homepage.bonchan.org`, con autodescubrimiento de servicios.
 
 ## Estructura del repositorio
 
@@ -58,21 +71,24 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 | --- | --- |
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
-| [ansible/](ansible/) | Playbooks y roles: actualización de paquetes, instalación/desinstalación de k3s y preparación del template de Packer. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (MetalLB, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI). |
-| [docker-composes/](docker-composes/) | Servicios que corren en `luffy` con Docker Compose (Pi-hole, Home Assistant). |
+| [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y asistente de voz) vía Docker Compose. |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, MetalLB, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
 | `temp/` | Material en transición, pendiente de migrar a `services/`. |
 
 ## Flujo de despliegue
 
-1. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
-2. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las dos VMs del clúster con cloud-init.
-3. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs y descarga el kubeconfig.
-4. **Servicios** (`services/`): se aplican manualmente MetalLB y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
+1. **Proxmox** (`ansible/playbooks/qdevice.yml`): configura los repos sin suscripción y el QDevice de quorum (árbitro en `luffy`).
+2. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
+3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las dos VMs del clúster con cloud-init.
+4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
+5. **Servicios** (`services/`): se aplican manualmente MetalLB y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
+6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y el asistente de voz en la Raspberry.
 
-Cada carpeta tiene su propio README con el detalle de uso.
+El procedimiento completo paso a paso está en el runbook
+[docs/runbooks/00-bootstrap-homelab.md](docs/runbooks/00-bootstrap-homelab.md).
+Cada carpeta tiene además su propio README con el detalle de uso.
 
 ## Diagrama de red
 
@@ -95,6 +111,7 @@ flowchart TB
         nami["nami · Proxmox 2<br/>192.168.1.4"]
         vm1["vm-zoro-01<br/>192.168.1.21"]
         vm2["vm-nami-01<br/>192.168.1.22"]
+        kvip["kube-vip<br/>VIP API k3s<br/>192.168.1.20"]
         gw["Envoy Gateway (MetalLB)<br/>192.168.1.128<br/>*.bonchan.org"]
     end
 
@@ -102,6 +119,7 @@ flowchart TB
     zoro -.->|hospeda| vm1
     nami -.->|hospeda| vm2
     vm1 & vm2 ==>|clúster k3s| gw
+    vm1 & vm2 -.->|VIP control-plane| kvip
     vm1 & vm2 -.->|iSCSI| nas
 
     subgraph iot["Red IOT 192.168.52.0/24 (br52, aislada)"]
@@ -124,20 +142,28 @@ flowchart TB
     subgraph k3s["Clúster k3s (vm-zoro-01 + vm-nami-01)"]
         subgraph argocd["ArgoCD (GitOps)"]
             root["Application: root<br/>(app-of-apps)"]
+            root --> appKubevip[kube-vip]
             root --> appMetallb[metallb]
             root --> appCert[cert-manager]
             root --> appGw[gateway]
-            root --> appHome[homepage]
             root --> appCsi[synology-csi]
+            root --> appCnpg[cnpg-operator]
+            root --> appAuth[authentik]
+            root --> appMon[monitor]
+            root --> appHome[homepage]
             root --> appArgo["argocd (self-managed)"]
         end
 
+        kubevip["kube-vip<br/>VIP API 192.168.1.20"]
         metallb["MetalLB<br/>IPAddressPool 192.168.1.128/25"]
         cert["cert-manager<br/>ClusterIssuer letsencrypt (DNS-01)"]
         gateway["Envoy Gateway<br/>192.168.1.128:443 · TLS *.bonchan.org"]
         homepage["Homepage<br/>homepage.bonchan.org"]
         argoUI["argocd-server<br/>argocd.bonchan.org"]
         csi["Synology CSI<br/>StorageClass por defecto"]
+        cnpg["CloudNativePG<br/>operador PostgreSQL"]
+        authentik["Authentik (SSO/IdP)<br/>authentik.bonchan.org"]
+        monitor["Monitorización<br/>Prometheus · Loki · Alloy<br/>Grafana · grafana.bonchan.org"]
     end
 
     nas[("NAS Synology<br/>LUNs iSCSI")]
@@ -145,18 +171,26 @@ flowchart TB
     users([Usuarios · *.bonchan.org])
 
     repo -->|sync| argocd
+    appKubevip -.->|gestiona| kubevip
     appMetallb -.->|gestiona| metallb
     appCert -.->|gestiona| cert
     appGw -.->|gestiona| gateway
     appHome -.->|gestiona| homepage
     appArgo -.->|gestiona| argoUI
     appCsi -.->|gestiona| csi
+    appCnpg -.->|gestiona| cnpg
+    appAuth -.->|gestiona| authentik
+    appMon -.->|gestiona| monitor
 
     users -->|HTTPS| gateway
     gateway -->|HTTPRoute| homepage
     gateway -->|HTTPRoute| argoUI
+    gateway -->|HTTPRoute| authentik
+    gateway -->|HTTPRoute| monitor
     metallb -->|IP LB| gateway
     cert <-->|valida dominio| cloudflare
     cert -->|wildcard TLS| gateway
+    cnpg -->|Cluster PG| authentik
     csi -->|aprovisiona PV| nas
+    monitor -->|PVC| csi
 ```
