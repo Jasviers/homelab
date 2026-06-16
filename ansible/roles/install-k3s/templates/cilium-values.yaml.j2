@@ -1,0 +1,7 @@
+# Cilium values para k3s sin kube-proxy (gestionado por el rol install-k3s).
+kubeProxyReplacement: true
+k8sServiceHost: "{{ cilium_k8s_service_host }}"
+k8sServicePort: {{ cilium_k8s_service_port }}
+
+operator:
+  replicas: 2

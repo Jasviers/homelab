@@ -1,6 +1,6 @@
 ---
 - name: Update Ubuntu packages
-  hosts: all
+  hosts: homelab
   become: true
 
   roles:
