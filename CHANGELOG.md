@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/Jasviers/homelab/compare/v1.7.0...v1.8.0) (2026-06-16)
+
+
+### Features
+
+* add cilium as CNI and modify instalation playbooks ([fcccbbc](https://github.com/Jasviers/homelab/commit/fcccbbc8ec39b7ec18e783e669baaca07d6e000a))
+* add monitoring stack with grafana, prometheus, loki and alloy ([f028ae5](https://github.com/Jasviers/homelab/commit/f028ae54c192fbca3cd1a61bbe34f5381363d835))
+
 ## [1.7.0](https://github.com/Jasviers/homelab/compare/v1.6.2...v1.7.0) (2026-06-14)
 
 
