@@ -16,3 +16,14 @@
     - /var/lib/rancher
     - /var/log/pods
     - /var/log/containers
+    - /etc/cni/net.d
+
+- name: Remove leftover Cilium network interfaces
+  command: ip link delete {{ item }}
+  loop:
+    - cilium_host
+    - cilium_net
+    - cilium_vxlan
+  register: cilium_iface_del
+  failed_when: false
+  changed_when: cilium_iface_del.rc == 0

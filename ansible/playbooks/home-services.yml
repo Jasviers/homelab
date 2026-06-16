@@ -1,0 +1,8 @@
+---
+- name: Deploy home services (Pi-hole and Home Assistant)
+  hosts: raspberry_pi
+  become: true
+
+  roles:
+    - install-docker
+    - home-services

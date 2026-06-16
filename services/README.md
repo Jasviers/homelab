@@ -4,7 +4,7 @@ Manifiestos y releases de Helm para los servicios que corren en el clúster k3s.
 
 ## Orden de bootstrap
 
-El clúster k3s se despliega sin `servicelb`, `traefik` ni `local-storage` (ver `ansible/playbooks/install-k3s.yml`), por lo que el orden importa. Todas las kustomizations usan `helmCharts` inline, así que requieren `kustomize build --enable-helm` (ArgoCD ya lo tiene activado vía `argocd-cm-patch.yaml`).
+El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el networking integrado de k3s (flannel/kube-proxy; el CNI es **Cilium**, instalado por el rol de Ansible `install-k3s`, ver `ansible/playbooks/install-k3s.yml`), por lo que el orden importa. Todas las kustomizations usan `helmCharts` inline, así que requieren `kustomize build --enable-helm` (ArgoCD ya lo tiene activado vía `argocd-cm-patch.yaml`).
 
 1. **MetalLB** (kustomize + Helm): proporciona IPs de tipo `LoadBalancer` en la red local. Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
@@ -58,6 +58,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `gateway.yml` | `gateway` | `services/gateway` |
 | `homepage.yml` | `homepage` | `services/homepage` |
 | `synology-csi.yml` | `synology-csi` | `services/synology-csi` |
+| `monitor.yml` | `monitor` | `services/monitor` (una sola Application para todo el stack de monitorización) |
 
 Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Application` aquí; ArgoCD lo recogerá en el siguiente sync de `root`.
 
@@ -146,4 +147,42 @@ Kustomization que despliega [Homepage](https://gethomepage.dev) como portal/dash
 - `httproute.yml`: `HTTPRoute` que enruta `homepage.bonchan.org` al Service.
 
 **Autodescubrimiento**: otros servicios aparecen automáticamente en el dashboard añadiendo anotaciones `gethomepage.dev/*` a su `HTTPRoute` (nombre, grupo, icono, href y, opcionalmente, un widget). El widget de ArgoCD necesita un token, que se inyecta vía el Secret opcional `homepage-secrets` (clave `argocd-token`).
+
+## monitor/
+
+Stack de monitorización (Grafana + Prometheus + Loki + Alloy) en el namespace `monitoring`. A diferencia del resto, **una sola `Application` de ArgoCD** (`monitor.yml`) sincroniza la carpeta `services/monitor/` completa: el `kustomization.yaml` raíz agrega cada componente, que vive en su propia subcarpeta como kustomization con `helmCharts` inline.
+
+Reparto de responsabilidades:
+
+- **kube-prometheus-stack/** (chart `kube-prometheus-stack`): el operador de Prometheus + `kube-state-metrics` + `node-exporter`. Prometheus scrapea todo vía `ServiceMonitor`/`PodMonitor` (de **todos** los namespaces) y almacena en un PVC del Synology CSI (`retention: 15d`).
+  - **Alertmanager desactivado**: el alerting local se gestiona desde Grafana (unified alerting trae su propio Alertmanager embebido).
+  - **Grafana del stack desactivada**: se despliega aparte (carpeta `grafana/`).
+  - `kube-state-metrics` es imprescindible (expone el estado de los objetos de k8s; Alloy no puede generar esas métricas, solo scrapearlas). `node-exporter` da las métricas de host.
+- **loki/** (chart `loki`): almacenamiento de logs en modo `SingleBinary` sobre filesystem (PVC del Synology CSI, retención 7 días). Cuando exista MinIO se puede migrar a object storage (S3).
+- **grafana/** (chart `grafana`): Grafana **local** para dashboards y alertas. Datasources de Prometheus y Loki preconfigurados, sidecar de dashboards activado y un par de dashboards de arranque (node-exporter, vistas de k8s, logs de Loki). Expuesta en `grafana.bonchan.org` vía `httproute.yml`.
+- **alloy/** (chart `alloy`): Alloy como **DaemonSet** que recoge los **logs** de los pods (vía la API de k8s) y los envía a Loki. Es el sucesor del Grafana Agent: no hace falta un agente aparte para hablar con Grafana Cloud.
+- **tempo/**: pendiente. Las trazas solo aportan valor con apps instrumentadas emitiendo OTLP; se añadirá cuando haya una.
+
+Secretos que **no se versionan** y hay que crear a mano tras el primer sync:
+
+```bash
+# Credenciales de admin de Grafana
+kubectl -n monitoring create secret generic grafana-admin \
+  --from-literal=admin-user=admin \
+  --from-literal=admin-password=<PASSWORD>
+```
+
+### Alerta de caída total (Grafana Cloud)
+
+Si Prometheus, Loki y Grafana viven **solo** en el clúster y el clúster se cae, no recibes la alerta justo cuando más la necesitas. Para que Grafana Cloud te avise de una caída total se hace `remoteWrite` de un subconjunto crítico de métricas (incluida la regla siempre activa `Watchdog`): si el latido deja de llegar, Cloud dispara la alerta (patrón DeadMansSwitch). Logs y trazas (lo caro de ingerir) se quedan en local.
+
+Para activarlo: descomenta el bloque `remoteWrite` en `kube-prometheus-stack/kustomization.yaml`, ajusta la URL de tu cuenta y crea el Secret:
+
+```bash
+kubectl -n monitoring create secret generic grafana-cloud-credentials \
+  --from-literal=prometheus-username=<INSTANCE_ID> \
+  --from-literal=prometheus-password=<API_TOKEN>
+```
+
+Como segunda red, conviene además una sonda externa (Synthetic Monitoring de Grafana Cloud) que pruebe los endpoints desde fuera del clúster.
 

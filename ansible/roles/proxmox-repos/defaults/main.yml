@@ -1,0 +1,6 @@
+---
+proxmox_no_subscription_url: "http://download.proxmox.com/debian/pve"
+proxmox_no_subscription_component: "pve-no-subscription"
+proxmox_ceph_release: "ceph-squid"
+proxmox_ceph_url: "http://download.proxmox.com/debian"
+proxmox_ceph_component: "no-subscription"

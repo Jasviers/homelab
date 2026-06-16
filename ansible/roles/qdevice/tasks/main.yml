@@ -1,0 +1,37 @@
+---
+- name: Install corosync-qnetd on the QDevice host
+  apt:
+    name: corosync-qnetd
+    state: present
+    update_cache: yes
+  when: inventory_hostname == qdevice_qnetd_host
+
+- name: Ensure corosync-qnetd is running and enabled
+  systemd:
+    name: corosync-qnetd
+    state: started
+    enabled: true
+  when: inventory_hostname == qdevice_qnetd_host
+
+- name: Install corosync-qdevice client on Proxmox nodes
+  apt:
+    name: corosync-qdevice
+    state: present
+    update_cache: yes
+  when: inventory_hostname in groups['proxmox']
+
+- name: Check current quorum status
+  command: pvecm status
+  register: pvecm_status
+  changed_when: false
+  failed_when: false
+  run_once: true
+  delegate_to: "{{ groups['proxmox'][0] }}"
+
+- name: Set up QDevice on the Proxmox cluster
+  command: "pvecm qdevice setup {{ hostvars[qdevice_qnetd_host].ansible_host | default(qdevice_qnetd_host) }} -f"
+  register: qdevice_setup
+  changed_when: "'success' in qdevice_setup.stdout | lower or qdevice_setup.rc == 0"
+  run_once: true
+  delegate_to: "{{ groups['proxmox'][0] }}"
+  when: "'Qdevice' not in pvecm_status.stdout"

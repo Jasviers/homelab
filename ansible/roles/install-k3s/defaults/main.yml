@@ -1,0 +1,8 @@
+---
+cilium_chart_version: "1.19.4"
+cilium_helm_repo_url: "https://helm.cilium.io/"
+
+cilium_k8s_service_host: "127.0.0.1"
+cilium_k8s_service_port: 6443
+
+cilium_kubeconfig: "~/.kube/config"

@@ -1,0 +1,22 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: authentik
+  namespace: authentik
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Authentik
+    gethomepage.dev/description: SSO / IdP del homelab
+    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/icon: authentik.png
+    gethomepage.dev/href: https://authentik.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - authentik.bonchan.org
+  rules:
+    - backendRefs:
+        - name: authentik-server
+          port: 80
