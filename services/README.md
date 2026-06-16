@@ -8,7 +8,7 @@ El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el n
 
 1. **MetalLB** (kustomize + Helm): proporciona IPs de tipo `LoadBalancer` en la red local. Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
-3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (cert-manager, gateway, homepage, synology-csi y el propio argocd).
+3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage y el propio argocd).
 
 ```bash
 # 1. MetalLB
@@ -53,14 +53,28 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | --- | --- | --- |
 | `root-app.yaml` | `root` | `services/argocd-apps` (se gestiona a sí misma y registra las demás) |
 | `argocd-app.yaml` | `argocd-app` | `services/argocd` (ArgoCD se gestiona a sí mismo) |
+| `kubevip.yml` | `kube-vip` | `services/kubevip` |
 | `metallb-app.yaml` | `metallb` | `services/metallb` |
 | `certmanager-app.yaml` | `cert-manager` | `services/certmanager` |
 | `gateway.yml` | `gateway` | `services/gateway` |
-| `homepage.yml` | `homepage` | `services/homepage` |
 | `synology-csi.yml` | `synology-csi` | `services/synology-csi` |
-| `monitor.yml` | `monitor` | `services/monitor` (una sola Application para todo el stack de monitorización) |
+| `cnpg-operator.yml` | `cnpg-operator` | `services/cnpg-operator` (sync-wave `-1`: antes que quien consuma PostgreSQL) |
+| `authentik.yml` | `authentik` | `services/authentik` (sync-wave `1`: tras el operador CNPG) |
+| `monitor.yml` | `monitor` | `services/monitor` (sync-wave `2`; una sola Application para todo el stack de monitorización) |
+| `homepage.yml` | `homepage` | `services/homepage` |
+
+Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
 Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Application` aquí; ArgoCD lo recogerá en el siguiente sync de `root`.
+
+## kubevip/
+
+Kustomization que instala [kube-vip](https://kube-vip.io) (chart oficial v0.6.6) para dar al *control plane* de k3s una **VIP de alta disponibilidad** en `192.168.1.20`:
+
+- `kustomization.yml`: chart `kube-vip` con `cp_enable: true` y `svc_enable: false` (solo control-plane; los `LoadBalancer` los gestiona MetalLB), modo **ARP** (`vip_arp`), *leader election* entre nodos y `vip_interface: eth0`.
+- Corre como DaemonSet en los nodos control-plane (nodeSelector + tolerations sobre `node-role.kubernetes.io/control-plane`).
+
+La VIP `192.168.1.20` es el endpoint estable del API de Kubernetes y está registrada en Pi-hole como `kubevip` (ver `ansible/roles/home-services/defaults/main.yml`). Aunque ArgoCD la gestiona vía GitOps, conviene tenerla en cuenta desde el bootstrap del clúster.
 
 ## certmanager/
 
@@ -147,6 +161,33 @@ Kustomization que despliega [Homepage](https://gethomepage.dev) como portal/dash
 - `httproute.yml`: `HTTPRoute` que enruta `homepage.bonchan.org` al Service.
 
 **Autodescubrimiento**: otros servicios aparecen automáticamente en el dashboard añadiendo anotaciones `gethomepage.dev/*` a su `HTTPRoute` (nombre, grupo, icono, href y, opcionalmente, un widget). El widget de ArgoCD necesita un token, que se inyecta vía el Secret opcional `homepage-secrets` (clave `argocd-token`).
+
+## cnpg-operator/
+
+Kustomization que instala el operador [CloudNativePG](https://cloudnative-pg.io) (chart `cloudnative-pg` v0.28.3) en el namespace `cnpg-system`. Es el operador que gestiona las bases de datos PostgreSQL del clúster mediante el CRD `Cluster`.
+
+- `kustomization.yml`: chart `cloudnative-pg` + `namespace.yaml`.
+- Se despliega con sync-wave `-1` para estar disponible **antes** de que cualquier servicio (p. ej. Authentik) declare su `Cluster`.
+
+Cada servicio que necesite PostgreSQL crea su propio `Cluster` en su namespace; el operador aprovisiona los pods, los Secrets de credenciales (`<cluster>-app`) y los Services de acceso (`<cluster>-rw` / `-ro`). El almacenamiento sale del Synology CSI.
+
+## authentik/
+
+Kustomization que despliega [Authentik](https://goauthentik.io) como proveedor de identidad (SSO/IdP) del homelab, expuesto en `authentik.bonchan.org`:
+
+- `kustomization.yml`: chart `authentik` v2026.5.3 con el PostgreSQL **embebido del chart desactivado** (`postgresql.enabled: false`); usa en su lugar el `Cluster` de CNPG. Variables de conexión y recursos (server/worker) en `valuesInline`.
+- `postgres-cluster.yml`: `Cluster` de CNPG `authentik-db` (1 instancia, 5Gi en `synology-iscsi-storage`) que crea la base de datos `authentik`. El chart se conecta al Service `authentik-db-rw` y toma la contraseña del Secret `authentik-db-app` que genera CNPG.
+- `redis.yml`: un Redis ligero (`redis:7-alpine`, sin persistencia, `maxmemory` 96 MB) para la caché/cola de Authentik.
+- `httproute.yml`: `HTTPRoute` que publica `authentik.bonchan.org` a través del Gateway, con anotaciones de autodescubrimiento de Homepage.
+
+Se despliega con sync-wave `1` (después del operador CNPG). Requiere un Secret **no versionado** con la `secret_key` de Authentik, que hay que crear a mano tras el primer sync:
+
+```bash
+kubectl -n authentik create secret generic authentik-secret \
+  --from-literal=secret_key=$(openssl rand -base64 60 | tr -d '\n')
+```
+
+La contraseña de la base de datos (`authentik-db-app`) la genera CNPG automáticamente; no hay que crearla.
 
 ## monitor/
 
