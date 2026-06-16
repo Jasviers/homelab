@@ -38,13 +38,14 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 
 ## Clúster k3s
 
-Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebido, desplegado sin `servicelb`, `traefik` ni `local-storage`:
+Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebido, desplegado sin `servicelb`, `traefik`, `local-storage` ni el networking integrado (`flannel`, `kube-proxy` y `network-policy`):
 
 | VM | IP | Nodo Proxmox | VMID |
 | --- | --- | --- | --- |
 | `vm-ubuntu26-zoro-01` | `192.168.1.21` | `zoro` | 210 |
 | `vm-ubuntu26-nami-01` | `192.168.1.22` | `nami` | 220 |
 
+- **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar).
 - **MetalLB** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255).
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
 - **ArgoCD** gestiona las aplicaciones del clúster vía GitOps desde este repositorio con un patrón *app-of-apps* y se expone a través del Gateway en `argocd.bonchan.org`.
@@ -61,6 +62,7 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 | [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (MetalLB, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI). |
 | [docker-composes/](docker-composes/) | Servicios que corren en `luffy` con Docker Compose (Pi-hole, Home Assistant). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
+| [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
 | `temp/` | Material en transición, pendiente de migrar a `services/`. |
 
 ## Flujo de despliegue
