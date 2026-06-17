@@ -15,5 +15,16 @@
       "groupName": "All minor and patch updates",
       "groupSlug": "minor-patch"
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Cilium chart version installed by the install-k3s Ansible role",
+      "managerFilePatterns": ["/ansible/roles/install-k3s/defaults/main\\.yml$/"],
+      "matchStrings": ["cilium_chart_version:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"],
+      "datasourceTemplate": "helm",
+      "depNameTemplate": "cilium",
+      "registryUrlTemplate": "https://helm.cilium.io/"
+    }
   ]
 }
