@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  bonchan.server: |
+    bonchan.org:53 {
+        errors
+        cache 30
+        hosts {
+            192.168.1.128 authentik.bonchan.org
+            192.168.1.128 grafana.bonchan.org
+            192.168.1.128 argocd.bonchan.org
+            192.168.1.128 homepage.bonchan.org
+            fallthrough
+        }
+        forward . /etc/resolv.conf
+    }

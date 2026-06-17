@@ -36,15 +36,15 @@
 
 [X] Monitorización (grafana, prometheus, loki y alloy)
 
-[ ] Asegurar que todos los logins vayan por authentik
+[X] Asegurar que todos los logins vayan por authentik (Solo Grafana y argoCD de momento)
 
-[ ] Mejoras de documentación
+[X] Mejoras de documentación
 
 ---
 
 [ ] Mejor control de cloudflare tunnels (cloudflared en k8s)
 
-[ ] Desplegar MinIO (para todos los servicios que lo requieran)
+[ ] Desplegar MinIO o alternativa
 
 [ ] Jellyfin
 
@@ -64,10 +64,6 @@
 
 [ ] VPN foosha
 
-[ ] Netbox o nautobot (IPAM/DCIM)
-
-[ ] Karpenter (karpenter-provider-proxmox)
-
 [ ] Mejoras de quorum para k8s
 
 [ ] Mejoras de seguridad
@@ -81,6 +77,12 @@
 [ ] Mejoras de red en k8s
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
+
+[ ] SSO para pihole y home assistant
+
+[ ] Netbox o nautobot (IPAM/DCIM)
+
+[ ] Karpenter (karpenter-provider-proxmox)
 
 [ ] Chaos engineering (litmuschaos, kube-monkey, gremlin, etc.)
 
