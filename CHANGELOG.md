@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.10.0](https://github.com/Jasviers/homelab/compare/v1.9.0...v1.10.0) (2026-06-17)
+
+
+### Features
+
+* add concurrency to whisper ([60e6fa7](https://github.com/Jasviers/homelab/commit/60e6fa76c19d7522263dabec78694933ec60fa7d))
+
+
+### Bug Fixes
+
+* add grant_types to authentik blueprints ([410096f](https://github.com/Jasviers/homelab/commit/410096f25d508e6a3e523f9484ec59d2b07ff1c9))
+* add grant_types to authentik blueprints ([4b36e76](https://github.com/Jasviers/homelab/commit/4b36e760948c7b1b20f621d9e8ae02c01729dab0))
+* argo resolve bad dns ([c0e0ebf](https://github.com/Jasviers/homelab/commit/c0e0ebf0d0acfd8078454d9e59b9401708b67286))
+* internal domain resolution to resolve authentik login ([a5f5115](https://github.com/Jasviers/homelab/commit/a5f5115850a4b2d26305ca53718b330299e381d2))
+
 ## [1.9.0](https://github.com/Jasviers/homelab/compare/v1.8.0...v1.9.0) (2026-06-17)
 
 
