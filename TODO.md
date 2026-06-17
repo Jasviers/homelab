@@ -26,27 +26,39 @@
 
 [X] Endpoint HA para API de k8s (kubevip)
 
-[ ] Monitorización (grafana, prometheus, loki y alloy)
-
 [X] Automatizar configuración proxmox y quorum
-
-[ ] Cilium como CNI
 
 [X] Automatizar despliegue de Pi-hole y Home Assistant
 
-[ ] Manual paso a paso para instalación y configuración de todo el homelab (automatización de todo lo posib)
+[x] Manual paso a paso para instalación y configuración de todo el homelab (automatización de todo lo posib)
+
+[x] Cilium como CNI
+
+[X] Monitorización (grafana, prometheus, loki y alloy)
+
+[ ] Asegurar que todos los logins vayan por authentik
 
 [ ] Mejoras de documentación
+
+---
+
+[ ] Mejor control de cloudflare tunnels (cloudflared en k8s)
 
 [ ] Desplegar MinIO (para todos los servicios que lo requieran)
 
 [ ] Jellyfin
 
-[ ] Ansible de bastionado (CIS hardening)
+[ ] Mejorar el homepage (más información, más servicios, etc.)
+
+[ ] Sustituir metallb por cilium
+
+[ ] Sustituir kube-vip por cilium VIP
 
 [ ] vault
 
 [ ] backups (proxmox backups + velero)
+
+[ ] Ansible de bastionado (CIS hardening)
 
 [ ] Enchufes y luces (home assistant)
 
@@ -60,6 +72,15 @@
 
 [ ] Mejoras de seguridad
 
+[ ] Mejoras en el CI
+
+[ ] Mejoras de monitorización
+
+[ ] Red de trabajo separada
+
 [ ] Mejoras de red en k8s
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
+
+[ ] Chaos engineering (litmuschaos, kube-monkey, gremlin, etc.)
+
