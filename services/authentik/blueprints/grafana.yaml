@@ -40,6 +40,9 @@ entries:
       client_type: confidential
       client_id: grafana
       client_secret: !Context grafana_client_secret
+      grant_types:
+        - authorization_code
+        - refresh_token
       authorization_flow:
         !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
       invalidation_flow:
