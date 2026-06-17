@@ -4,18 +4,15 @@ metadata:
   name: coredns-custom
   namespace: kube-system
 data:
-  # Split-horizon DNS: los pods no pueden resolver *.bonchan.org porque CoreDNS
-  # reenvia al resolver del nodo, que no conoce la zona. Resolvemos los subdominios
-  # al IP del gateway Envoy (192.168.1.128), que termina TLS para *.bonchan.org con
-  # un cert valido de Let's Encrypt. Asi el trafico server-side (p.ej. el intercambio
-  # de token OIDC de Grafana/ArgoCD contra Authentik) funciona via hairpin con TLS OK.
   bonchan.server: |
     bonchan.org:53 {
         errors
         cache 30
-        template IN A {
-            match "^.*\.bonchan\.org\.$"
-            answer "{{ .Name }} 60 IN A 192.168.1.128"
+        hosts {
+            192.168.1.128 authentik.bonchan.org
+            192.168.1.128 grafana.bonchan.org
+            192.168.1.128 argocd.bonchan.org
+            192.168.1.128 homepage.bonchan.org
             fallthrough
         }
         forward . /etc/resolv.conf
