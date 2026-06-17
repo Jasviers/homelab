@@ -13,6 +13,18 @@ resources:
   - redis.yml
   - httproute.yml
 
+configMapGenerator:
+  - name: authentik-blueprint-argocd
+    files:
+      - blueprints/argocd.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-grafana
+    files:
+      - blueprints/grafana.yaml
+    options:
+      disableNameSuffixHash: true
+
 helmCharts:
   - name: authentik
     repo: https://charts.goauthentik.io
@@ -34,6 +46,20 @@ helmCharts:
                 key: password
           - name: AUTHENTIK_REDIS__HOST
             value: authentik-redis
+          - name: ARGOCD_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: argocd-client-secret
+          - name: GRAFANA_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: grafana-client-secret
+      blueprints:
+        configMaps:
+          - authentik-blueprint-argocd
+          - authentik-blueprint-grafana
       authentik:
         postgresql:
           host: authentik-db-rw
