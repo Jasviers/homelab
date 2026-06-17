@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/Jasviers/homelab/compare/v1.8.0...v1.9.0) (2026-06-17)
+
+
+### Features
+
+* add control to cilium version with renovate ([174eae1](https://github.com/Jasviers/homelab/commit/174eae1ef1390326fe431c0c8e3bd3f65351458f))
+* add SSO config to argo and grafana ([b10ba20](https://github.com/Jasviers/homelab/commit/b10ba202e7f070b3b1b5b6af1f3499ccb2177a64))
+
 ## [1.8.0](https://github.com/Jasviers/homelab/compare/v1.7.0...v1.8.0) (2026-06-16)
 
 
