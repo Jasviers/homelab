@@ -4,3 +4,17 @@ metadata:
   name: argocd-cm
 data:
   kustomize.buildOptions: --enable-helm
+  url: https://argocd.bonchan.org
+  oidc.config: |
+    name: Authentik
+    issuer: https://authentik.bonchan.org/application/o/argocd/
+    clientID: argocd
+    clientSecret: $oidc.argocd.clientSecret
+    requestedScopes:
+      - openid
+      - profile
+      - email
+      - groups
+    requestedIDTokenClaims:
+      groups:
+        essential: true
