@@ -209,7 +209,45 @@ kubectl -n monitoring create secret generic grafana-admin \
   --from-literal=admin-password=<PASSWORD>
 ```
 
-> Cuando se incorpore Vault (ver `TODO.md`), este paso debería desaparecer.
+**SSO de ArgoCD con Authentik (OIDC):** el mismo `client_secret` lo conocen los
+dos lados. Authentik lo lee por entorno (`authentik-oidc-secrets`) para aplicar el
+blueprint; ArgoCD lo lee desde `argocd-secret` (clave `oidc.argocd.clientSecret`):
+
+```bash
+ARGOCD_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+# Authentik: lo consume el worker para reconciliar el blueprint del provider.
+kubectl -n authentik create secret generic authentik-oidc-secrets \
+  --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+
+# ArgoCD: lo resuelve oidc.config vía $oidc.argocd.clientSecret.
+kubectl -n argocd patch secret argocd-secret --type merge \
+  -p "{\"stringData\":{\"oidc.argocd.clientSecret\":\"$ARGOCD_OIDC_SECRET\"}}"
+```
+
+Tras el primer sync, asigna tu usuario al grupo `ArgoCD Admins` (creado por el
+blueprint) en Authentik para tener rol admin. Reinicia `argocd-server` si no
+aparece el botón de login con Authentik:
+`kubectl -n argocd rollout restart deploy/argocd-server`.
+
+**SSO de Grafana con Authentik (OIDC):** mismo esquema que ArgoCD. Authentik lee
+el secret por entorno (`authentik-oidc-secrets`, clave `grafana-client-secret`) y
+Grafana desde el secret `grafana-oidc`:
+
+```bash
+GRAFANA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+# Authentik: añade la clave al secret ya existente (lo recrea con ambas claves).
+kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+  -p "{\"stringData\":{\"grafana-client-secret\":\"$GRAFANA_OIDC_SECRET\"}}"
+
+# Grafana: secret que consume el contenedor vía GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET.
+kubectl -n monitoring create secret generic grafana-oidc \
+  --from-literal=client-secret="$GRAFANA_OIDC_SECRET"
+```
+
+Asigna tu usuario a `Grafana Admins` (o `Grafana Editors`) en Authentik; sin
+grupo se entra como `Viewer`. El admin local sigue disponible en `/login`.
 
 ---
 
