@@ -6,13 +6,13 @@ Manifiestos y releases de Helm para los servicios que corren en el clúster k3s.
 
 El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el networking integrado de k3s (flannel/kube-proxy; el CNI es **Cilium**, instalado por el rol de Ansible `install-k3s`, ver `ansible/playbooks/install-k3s.yml`), por lo que el orden importa. Todas las kustomizations usan `helmCharts` inline, así que requieren `kustomize build --enable-helm` (ArgoCD ya lo tiene activado vía `argocd-cm-patch.yaml`).
 
-1. **MetalLB** (kustomize + Helm): proporciona IPs de tipo `LoadBalancer` en la red local. Imprescindible antes de cualquier servicio expuesto.
+1. **Cilium LB IPAM** (kustomize): define el `CiliumLoadBalancerIPPool` y la `CiliumL2AnnouncementPolicy` que dan IPs de tipo `LoadBalancer` en la red local (el dataplane Cilium ya lo instala Ansible). Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
 3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage y el propio argocd).
 
 ```bash
-# 1. MetalLB
-kubectl apply -k services/metallb/ --enable-helm
+# 1. Cilium LB IPAM (pool + política L2)
+kubectl apply -k services/cilium-lb/
 
 # 2. ArgoCD
 kubectl apply -k services/argocd/ --enable-helm
@@ -23,19 +23,24 @@ kubectl apply -f services/argocd-apps/root-app.yaml
 
 > Tras el primer sync hay que crear a mano los Secrets que no se versionan: el token de Cloudflare para cert-manager y las credenciales del NAS para Synology CSI (ver secciones correspondientes).
 
-## metallb/
+## cilium-lb/
 
-Kustomization que instala el chart oficial de MetalLB (`metallb-system`) vía `helmCharts` inline.
+Kustomization con los recursos de **Cilium LB IPAM** (sustituye a MetalLB). Son CRDs
+cluster-scoped servidos por el chart de Cilium ya instalado en `kube-system` (vía Ansible);
+la habilitación de los anuncios L2 vive en `ansible/roles/install-k3s/templates/cilium-values.yaml.j2`
+(`l2announcements.enabled: true`).
 
-- `kustomization.yaml`: chart `metallb` v0.16.1 + los recursos `namespace.yaml` y `pool.yaml`.
-- `pool.yaml`: `IPAddressPool` (`pool`) con el rango `192.168.1.128/25` (192.168.1.128 – 192.168.1.255) y su `L2Advertisement`. Este rango está reservado para servicios `LoadBalancer` y queda fuera del DHCP del router.
+- `pool.yaml`:
+  - `CiliumLoadBalancerIPPool` (`pool`) con el bloque `192.168.1.128/25` (192.168.1.128 – 192.168.1.255). Este rango está reservado para servicios `LoadBalancer` y queda fuera del DHCP del router.
+  - `CiliumL2AnnouncementPolicy` (`pool`) que anuncia las IPs `LoadBalancer` por ARP sobre la interfaz `eth0`.
 
 ## argocd/
 
 Kustomization que instala ArgoCD desde los manifiestos estables upstream (`install.yaml`) con dos patches:
 
 - `namespace.yaml`: namespace `argocd`.
-- `argocd-cm-patch.yaml`: añade `kustomize.buildOptions: --enable-helm` para que ArgoCD pueda renderizar las kustomizations con `helmCharts` inline.
+- `argocd-cm-patch.yaml`
+: añade `kustomize.buildOptions: --enable-helm` para que ArgoCD pueda renderizar las kustomizations con `helmCharts` inline.
 - `argocd-cmd-params-patch.yaml`: pone `server.insecure: "true"`; el TLS lo termina el Gateway, así que el `argocd-server` corre en HTTP detrás de él.
 - `svc.yaml`: `HTTPRoute` que publica la UI de ArgoCD en `argocd.bonchan.org` a través del Gateway `homelab` (backend `argocd-server:80`). Incluye anotaciones de autodescubrimiento de Homepage (con widget de ArgoCD). ArgoCD ya **no** se expone con una IP `LoadBalancer` propia; el único punto de entrada HTTP/S es el Gateway (`192.168.1.128`).
 
@@ -54,7 +59,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `root-app.yaml` | `root` | `services/argocd-apps` (se gestiona a sí misma y registra las demás) |
 | `argocd-app.yaml` | `argocd-app` | `services/argocd` (ArgoCD se gestiona a sí mismo) |
 | `kubevip.yml` | `kube-vip` | `services/kubevip` |
-| `metallb-app.yaml` | `metallb` | `services/metallb` |
+| `cilium-lb.yml` | `cilium-lb` | `services/cilium-lb` |
 | `certmanager-app.yaml` | `cert-manager` | `services/certmanager` |
 | `gateway.yml` | `gateway` | `services/gateway` |
 | `synology-csi.yml` | `synology-csi` | `services/synology-csi` |
@@ -71,7 +76,7 @@ Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Applicati
 
 Kustomization que instala [kube-vip](https://kube-vip.io) (chart oficial v0.6.6) para dar al *control plane* de k3s una **VIP de alta disponibilidad** en `192.168.1.20`:
 
-- `kustomization.yml`: chart `kube-vip` con `cp_enable: true` y `svc_enable: false` (solo control-plane; los `LoadBalancer` los gestiona MetalLB), modo **ARP** (`vip_arp`), *leader election* entre nodos y `vip_interface: eth0`.
+- `kustomization.yml`: chart `kube-vip` con `cp_enable: true` y `svc_enable: false` (solo control-plane; los `LoadBalancer` los gestiona Cilium LB IPAM), modo **ARP** (`vip_arp`), *leader election* entre nodos y `vip_interface: eth0`.
 - Corre como DaemonSet en los nodos control-plane (nodeSelector + tolerations sobre `node-role.kubernetes.io/control-plane`).
 
 La VIP `192.168.1.20` es el endpoint estable del API de Kubernetes y está registrada en Pi-hole como `kubevip` (ver `ansible/roles/home-services/defaults/main.yml`). Aunque ArgoCD la gestiona vía GitOps, conviene tenerla en cuenta desde el bootstrap del clúster.
@@ -147,7 +152,7 @@ Kustomization que instala **Envoy Gateway** (implementación de la Gateway API) 
 - `kustomization.yml`: chart `gateway-helm` v1.5.5 (OCI `docker.io/envoyproxy`) con sus CRDs, en el namespace `envoy-gateway-system`.
 - `gateway.yml`:
   - `GatewayClass` `envoy` (controller `gateway.envoyproxy.io/gatewayclass-controller`).
-  - `Gateway` `homelab` con un listener HTTPS (443) para `*.bonchan.org`. Recibe la IP fija `192.168.1.128` vía anotación de MetalLB (`metallb.io/loadBalancerIPs`) y un certificado wildcard emitido por cert-manager (anotación `cert-manager.io/cluster-issuer: letsencrypt`, secret `bonchan-org-tls`). Acepta `HTTPRoute` desde **todos** los namespaces.
+  - `Gateway` `homelab` con un listener HTTPS (443) para `*.bonchan.org`. Recibe la IP fija `192.168.1.128` vía anotación de Cilium LB IPAM (`lbipam.cilium.io/ips`) y un certificado wildcard emitido por cert-manager (anotación `cert-manager.io/cluster-issuer: letsencrypt`, secret `bonchan-org-tls`). Acepta `HTTPRoute` desde **todos** los namespaces.
 
 Cada servicio se publica creando un `HTTPRoute` con `parentRefs` al Gateway `homelab` y un hostname bajo `bonchan.org` (ver ejemplos en `argocd/svc.yaml` y `homepage/httproute.yml`).
 
