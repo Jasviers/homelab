@@ -1,0 +1,21 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: proxmox-zoro
+  namespace: proxmox
+spec:
+  endpoints:
+    - ip:
+        address: 192.168.1.3
+        port: 8006
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: proxmox-nami
+  namespace: proxmox
+spec:
+  endpoints:
+    - ip:
+        address: 192.168.1.4
+        port: 8006

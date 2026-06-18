@@ -1,0 +1,74 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: proxmox
+  namespace: proxmox
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Proxmox
+    gethomepage.dev/description: Virtualizacion (clúster Proxmox VE)
+    gethomepage.dev/group: Infraestructura
+    gethomepage.dev/icon: proxmox.png
+    gethomepage.dev/href: https://proxmox.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - proxmox.bonchan.org
+  rules:
+    - backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: proxmox-zoro
+          port: 8006
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zoro
+  namespace: proxmox
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Proxmox zoro
+    gethomepage.dev/description: Nodo Proxmox zoro
+    gethomepage.dev/group: Infraestructura
+    gethomepage.dev/icon: proxmox.png
+    gethomepage.dev/href: https://zoro.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - zoro.bonchan.org
+  rules:
+    - backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: proxmox-zoro
+          port: 8006
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: nami
+  namespace: proxmox
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Proxmox nami
+    gethomepage.dev/description: Nodo Proxmox nami
+    gethomepage.dev/group: Infraestructura
+    gethomepage.dev/icon: proxmox.png
+    gethomepage.dev/href: https://nami.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - nami.bonchan.org
+  rules:
+    - backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: proxmox-nami
+          port: 8006

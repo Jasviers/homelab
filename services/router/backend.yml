@@ -1,0 +1,10 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: router
+  namespace: router
+spec:
+  endpoints:
+    - ip:
+        address: 192.168.0.1
+        port: 80

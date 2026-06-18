@@ -29,6 +29,16 @@ configMapGenerator:
       - blueprints/hubble.yaml
     options:
       disableNameSuffixHash: true
+  - name: authentik-blueprint-proxmox
+    files:
+      - blueprints/proxmox.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-router
+    files:
+      - blueprints/router.yaml
+    options:
+      disableNameSuffixHash: true
 
 helmCharts:
   - name: authentik
@@ -66,11 +76,23 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: hubble-client-secret
+          - name: PROXMOX_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: proxmox-client-secret
+          - name: ROUTER_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: router-client-secret
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
           - authentik-blueprint-grafana
           - authentik-blueprint-hubble
+          - authentik-blueprint-proxmox
+          - authentik-blueprint-router
       authentik:
         postgresql:
           host: authentik-db-rw

@@ -1,0 +1,35 @@
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: proxmox-zoro
+  namespace: proxmox
+spec:
+  targetRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: proxmox-zoro
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: proxmox-ca
+    # Debe coincidir con un SAN del cert del nodo (firmado por pve-root-ca).
+    hostname: zoro
+---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: BackendTLSPolicy
+metadata:
+  name: proxmox-nami
+  namespace: proxmox
+spec:
+  targetRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: proxmox-nami
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: proxmox-ca
+    # Debe coincidir con un SAN del cert del nodo (firmado por pve-root-ca).
+    hostname: nami
