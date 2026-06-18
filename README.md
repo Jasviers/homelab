@@ -7,7 +7,7 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 - CIDR principal: `192.168.0.0/23` (192.168.0.0 – 192.168.1.255), red plana sobre el router ASUS.
 - Router ASUS: `192.168.0.1` (gateway por defecto).
 - DHCP: `192.168.0.2 - 192.168.0.254`.
-- Rango reservado para `LoadBalancer` (MetalLB): `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), fuera del DHCP.
+- Rango reservado para `LoadBalancer` (Cilium LB IPAM): `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), fuera del DHCP.
 - Hosts e infraestructura usan IPs estáticas en `192.168.1.0/24` (ver tablas siguientes).
 - Red IOT aislada: `192.168.52.0/24` (bridge `br52` en el router ASUS), separada del resto por firewall (ver [scripts/](scripts/)).
 
@@ -55,7 +55,7 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 
 - **kube-vip** publica una VIP de alta disponibilidad para el *control plane* de k3s en `192.168.1.20` (modo ARP, *leader election* entre los nodos control-plane). Es el endpoint estable del API de Kubernetes, registrado en Pi-hole como `kubevip`.
 - **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar).
-- **MetalLB** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255).
+- **Cilium LB IPAM + L2 announcements** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), sustituyendo a MetalLB. El pool y la política L2 se definen en `services/cilium-lb/`.
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
 - **ArgoCD** gestiona las aplicaciones del clúster vía GitOps desde este repositorio con un patrón *app-of-apps* y se expone a través del Gateway en `argocd.bonchan.org`.
 - **cert-manager** emite los certificados Let's Encrypt mediante challenge DNS-01 contra Cloudflare.
@@ -72,7 +72,8 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
 | [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y asistente de voz) vía Docker Compose. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, MetalLB, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización). |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización). |
+| [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
 | `temp/` | Material en transición, pendiente de migrar a `services/`. |
@@ -83,7 +84,7 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 2. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
 3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las dos VMs del clúster con cloud-init.
 4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
-5. **Servicios** (`services/`): se aplican manualmente MetalLB y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
+5. **Servicios** (`services/`): se aplican manualmente el pool de Cilium LB (`services/cilium-lb`) y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
 6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y el asistente de voz en la Raspberry.
 
 El procedimiento completo paso a paso está en el runbook
@@ -112,7 +113,7 @@ flowchart TB
         vm1["vm-zoro-01<br/>192.168.1.21"]
         vm2["vm-nami-01<br/>192.168.1.22"]
         kvip["kube-vip<br/>VIP API k3s<br/>192.168.1.20"]
-        gw["Envoy Gateway (MetalLB)<br/>192.168.1.128<br/>*.bonchan.org"]
+        gw["Envoy Gateway (Cilium LB)<br/>192.168.1.128<br/>*.bonchan.org"]
     end
 
     asus --- lan
@@ -143,7 +144,7 @@ flowchart TB
         subgraph argocd["ArgoCD (GitOps)"]
             root["Application: root<br/>(app-of-apps)"]
             root --> appKubevip[kube-vip]
-            root --> appMetallb[metallb]
+            root --> appCiliumLb[cilium-lb]
             root --> appCert[cert-manager]
             root --> appGw[gateway]
             root --> appCsi[synology-csi]
@@ -155,7 +156,7 @@ flowchart TB
         end
 
         kubevip["kube-vip<br/>VIP API 192.168.1.20"]
-        metallb["MetalLB<br/>IPAddressPool 192.168.1.128/25"]
+        ciliumLb["Cilium LB IPAM + L2<br/>pool 192.168.1.128/25"]
         cert["cert-manager<br/>ClusterIssuer letsencrypt (DNS-01)"]
         gateway["Envoy Gateway<br/>192.168.1.128:443 · TLS *.bonchan.org"]
         homepage["Homepage<br/>homepage.bonchan.org"]
@@ -172,7 +173,7 @@ flowchart TB
 
     repo -->|sync| argocd
     appKubevip -.->|gestiona| kubevip
-    appMetallb -.->|gestiona| metallb
+    appCiliumLb -.->|gestiona| ciliumLb
     appCert -.->|gestiona| cert
     appGw -.->|gestiona| gateway
     appHome -.->|gestiona| homepage
@@ -187,7 +188,7 @@ flowchart TB
     gateway -->|HTTPRoute| argoUI
     gateway -->|HTTPRoute| authentik
     gateway -->|HTTPRoute| monitor
-    metallb -->|IP LB| gateway
+    ciliumLb -->|IP LB| gateway
     cert <-->|valida dominio| cloudflare
     cert -->|wildcard TLS| gateway
     cnpg -->|Cluster PG| authentik
