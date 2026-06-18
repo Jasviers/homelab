@@ -5,3 +5,10 @@ k8sServicePort: {{ cilium_k8s_service_port }}
 
 operator:
   replicas: 2
+
+l2announcements:
+  enabled: true
+
+k8sClientRateLimit:
+  qps: 10
+  burst: 20
