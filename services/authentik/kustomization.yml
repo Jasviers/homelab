@@ -24,6 +24,11 @@ configMapGenerator:
       - blueprints/grafana.yaml
     options:
       disableNameSuffixHash: true
+  - name: authentik-blueprint-hubble
+    files:
+      - blueprints/hubble.yaml
+    options:
+      disableNameSuffixHash: true
 
 helmCharts:
   - name: authentik
@@ -56,10 +61,16 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: grafana-client-secret
+          - name: HUBBLE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: hubble-client-secret
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
           - authentik-blueprint-grafana
+          - authentik-blueprint-hubble
       authentik:
         postgresql:
           host: authentik-db-rw
