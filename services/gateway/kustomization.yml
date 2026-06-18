@@ -16,3 +16,8 @@ helmCharts:
     releaseName: envoy-gateway
     namespace: envoy-gateway-system
     includeCRDs: true
+    valuesInline:
+      config:
+        envoyGateway:
+          extensionApis:
+            enableBackend: true

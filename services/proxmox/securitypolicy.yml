@@ -1,0 +1,56 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: proxmox-oidc
+  namespace: proxmox
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: proxmox
+  oidc:
+    provider:
+      issuer: "https://authentik.bonchan.org/application/o/proxmox/"
+    clientID: proxmox
+    clientSecret:
+      name: proxmox-oidc-secret
+    redirectURL: "https://proxmox.bonchan.org/oauth2/callback"
+    logoutPath: "/logout"
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: zoro-oidc
+  namespace: proxmox
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: zoro
+  oidc:
+    provider:
+      issuer: "https://authentik.bonchan.org/application/o/proxmox/"
+    clientID: proxmox
+    clientSecret:
+      name: proxmox-oidc-secret
+    redirectURL: "https://zoro.bonchan.org/oauth2/callback"
+    logoutPath: "/logout"
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: nami-oidc
+  namespace: proxmox
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: nami
+  oidc:
+    provider:
+      issuer: "https://authentik.bonchan.org/application/o/proxmox/"
+    clientID: proxmox
+    clientSecret:
+      name: proxmox-oidc-secret
+    redirectURL: "https://nami.bonchan.org/oauth2/callback"
+    logoutPath: "/logout"
