@@ -1,4 +1,3 @@
-# services/gateway/gateway.yaml
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
@@ -13,7 +12,7 @@ metadata:
   namespace: envoy-gateway-system
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt
-    metallb.io/loadBalancerIPs: 192.168.1.128
+    lbipam.cilium.io/ips: 192.168.1.128
 spec:
   gatewayClassName: envoy
   listeners:
