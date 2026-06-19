@@ -1,0 +1,18 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: router-oidc
+  namespace: router
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: router
+  oidc:
+    provider:
+      issuer: "https://authentik.bonchan.org/application/o/router/"
+    clientID: router
+    clientSecret:
+      name: router-oidc-secret
+    redirectURL: "https://router.bonchan.org/oauth2/callback"
+    logoutPath: "/logout"

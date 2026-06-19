@@ -41,8 +41,23 @@
 [X] Mejoras de documentación
 
 ---
+[X] Sustituir metallb por cilium
 
 [ ] Mejor control de cloudflare tunnels (cloudflared en k8s)
+
+[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
+
+[ ] VPN foosha
+
+[ ] Red de trabajo separada
+
+[ ] Mejoras de red en k8s
+
+[ ] Netbox o nautobot (IPAM/DCIM)
+
+[ ] Monitorización de la red
+
+---
 
 [ ] Desplegar MinIO o alternativa
 
@@ -50,37 +65,23 @@
 
 [ ] Mejorar el homepage (más información, más servicios, etc.)
 
-[ ] Sustituir metallb por cilium
-
-[ ] Sustituir kube-vip por cilium VIP
-
 [ ] vault
 
 [ ] backups (proxmox backups + velero)
 
-[ ] Ansible de bastionado (CIS hardening)
-
 [ ] Enchufes y luces (home assistant)
-
-[ ] VPN foosha
 
 [ ] Mejoras de quorum para k8s
 
 [ ] Mejoras de seguridad
 
+[ ] Ansible de bastionado (CIS hardening)
+
 [ ] Mejoras en el CI
 
 [ ] Mejoras de monitorización
 
-[ ] Red de trabajo separada
-
-[ ] Mejoras de red en k8s
-
-[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
-
 [ ] SSO para pihole y home assistant
-
-[ ] Netbox o nautobot (IPAM/DCIM)
 
 [ ] Karpenter (karpenter-provider-proxmox)
 

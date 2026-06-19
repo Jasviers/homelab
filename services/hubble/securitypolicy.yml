@@ -1,0 +1,18 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: hubble-ui-oidc
+  namespace: kube-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: hubble-ui
+  oidc:
+    provider:
+      issuer: "https://authentik.bonchan.org/application/o/hubble/"
+    clientID: hubble
+    clientSecret:
+      name: hubble-oidc-secret
+    redirectURL: "https://hubble.bonchan.org/oauth2/callback"
+    logoutPath: "/logout"

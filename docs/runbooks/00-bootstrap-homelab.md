@@ -26,7 +26,7 @@ plazo es minimizar los ✋ (ver `TODO.md`).
   - Raspberry Pi 4B (`luffy`, `192.168.1.2`) con Ubuntu/Debian y SSH.
   - Dos nodos Proxmox VE (`zoro` `192.168.1.3`, `nami` `192.168.1.4`).
 - **Red:** red plana `192.168.0.0/23`, router ASUS en `192.168.0.1`, rango
-  `192.168.1.128/25` reservado para MetalLB (fuera del DHCP). Ver `README.md`.
+  `192.168.1.128/25` reservado para `LoadBalancer` (Cilium LB IPAM, fuera del DHCP). Ver `README.md`.
 - **DNS de la zona:** `bonchan.org` gestionada en Cloudflare.
 - **Acceso SSH** por clave a `luffy`, `zoro` y `nami` como `root`
   (clave `~/.ssh/id_ed25519`, ver `ansible/inventory.ini`).
@@ -119,11 +119,12 @@ terraform output ipv4_addresses
 
 Instala k3s en las dos VMs: inicializa el primer nodo con `--cluster-init`,
 recupera el token y une el segundo. Se despliega sin `servicelb`, `traefik` ni
-`local-storage` (se sustituyen por MetalLB y el CSI de Synology) y sin el
-networking integrado (`flannel`, `kube-proxy`, `network-policy`), que se
-sustituye por **Cilium**. El propio rol instala Cilium vía Helm desde tu máquina
-(requiere `helm` y `kubectl` locales) usando el endpoint `127.0.0.1:6443` del
-apiserver. Al final descarga el kubeconfig a `~/.kube/config`.
+`local-storage` (el `LoadBalancer` lo da Cilium y el almacenamiento el CSI de
+Synology) y sin el networking integrado (`flannel`, `kube-proxy`,
+`network-policy`), que se sustituye por **Cilium**. El propio rol instala Cilium
+vía Helm desde tu máquina (requiere `helm` y `kubectl` locales) usando el
+endpoint `127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados.
+Al final descarga el kubeconfig a `~/.kube/config`.
 
 ```bash
 cd ansible
@@ -137,14 +138,18 @@ ansible-playbook playbooks/install-k3s.yml
 El orden importa porque el clúster no trae LoadBalancer ni ingress por defecto.
 Detalle completo en `services/README.md`.
 
-### 5.1 MetalLB (🤖)
+### 5.1 Cilium LB IPAM (🤖)
+
+El dataplane de Cilium (con LB IPAM y L2 habilitados) ya lo instaló la Fase 4;
+aquí solo se aplica el pool de IPs y la política de anuncio L2.
 
 ```bash
-kustomize build --enable-helm services/metallb | kubectl apply -f -
+kustomize build services/cilium-lb | kubectl apply -f -
 ```
 
-*Resultado esperado:* pods de `metallb-system` en `Running` y el
-`IPAddressPool` con el rango `192.168.1.128/25`.
+*Resultado esperado:* `CiliumLoadBalancerIPPool` `pool` con el rango
+`192.168.1.128/25` y la `CiliumL2AnnouncementPolicy` `pool` (sobre `eth0`).
+Comprobar: `kubectl get ciliumloadbalancerippool,ciliuml2announcementpolicy`.
 
 ### 5.2 ArgoCD (🤖)
 

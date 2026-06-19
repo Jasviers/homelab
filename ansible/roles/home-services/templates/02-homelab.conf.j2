@@ -5,5 +5,5 @@
 host-record={{ server.name }},{{ server.ip }}
 {% endfor %}
 
-# Gateway API: *.{{ home_services_gateway_domain }} -> balanceador (MetalLB)
+# Gateway API: *.{{ home_services_gateway_domain }} -> balanceador (Cilium LB IPAM)
 address=/{{ home_services_gateway_domain }}/{{ home_services_gateway_ip }}
