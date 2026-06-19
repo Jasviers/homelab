@@ -5,3 +5,36 @@ k8sServicePort: {{ cilium_k8s_service_port }}
 
 operator:
   replicas: 2
+  prometheus:
+    enabled: true
+
+l2announcements:
+  enabled: true
+
+k8sClientRateLimit:
+  qps: 10
+  burst: 20
+
+encryption:
+  enabled: true
+  type: wireguard
+
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+  metrics:
+    enableOpenMetrics: true
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - httpV2
+
+prometheus:
+  enabled: true

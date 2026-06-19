@@ -6,9 +6,5 @@ labels:
       app.kubernetes.io/managed-by: Kustomize
 
 resources:
-  - namespace.yaml
-  - kube-prometheus-stack
-  - loki
-  - grafana
-  - alloy
-  - cilium
+  - httproute.yml
+  - securitypolicy.yml
