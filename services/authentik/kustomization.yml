@@ -39,6 +39,11 @@ configMapGenerator:
       - blueprints/router.yaml
     options:
       disableNameSuffixHash: true
+  - name: authentik-blueprint-home-assistant
+    files:
+      - blueprints/home-assistant.yaml
+    options:
+      disableNameSuffixHash: true
 
 helmCharts:
   - name: authentik
@@ -86,6 +91,11 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: router-client-secret
+          - name: HOMEASSISTANT_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: home-assistant-client-secret
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
@@ -93,6 +103,7 @@ helmCharts:
           - authentik-blueprint-hubble
           - authentik-blueprint-proxmox
           - authentik-blueprint-router
+          - authentik-blueprint-home-assistant
       authentik:
         postgresql:
           host: authentik-db-rw
