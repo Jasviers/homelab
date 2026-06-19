@@ -67,6 +67,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `authentik.yml` | `authentik` | `services/authentik` (sync-wave `1`: tras el operador CNPG) |
 | `monitor.yml` | `monitor` | `services/monitor` (sync-wave `2`; una sola Application para todo el stack de monitorización) |
 | `homepage.yml` | `homepage` | `services/homepage` |
+| `cloudflared.yml` | `cloudflared` | `services/cloudflared` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -231,4 +232,82 @@ kubectl -n monitoring create secret generic grafana-cloud-credentials \
 ```
 
 Como segunda red, conviene además una sonda externa (Synthetic Monitoring de Grafana Cloud) que pruebe los endpoints desde fuera del clúster.
+
+## cloudflared/
+
+Kustomization que despliega [`cloudflared`](https://developers.cloudflare.com/cloudflare-tunnel/) como **Cloudflare Tunnel** para exponer servicios del homelab a internet **sin abrir puertos** en el router: el pod abre una conexión saliente a la red de Cloudflare y esta enruta el tráfico de los hostnames públicos al túnel.
+
+A diferencia del resto, el túnel es **locally-managed**: las reglas de ingress se versionan en git (`configmap.yml`), no en el panel de Cloudflare. Esto da el control GitOps que pedía el TODO.
+
+- `namespace.yml`: namespace `cloudflared`.
+- `configmap.yml`: el `config.yaml` de cloudflared. Define el `tunnel` (UUID), el `credentials-file` y las reglas de `ingress`. La primera regla enruta `hs-lakasa.bonchan.org` → `http://192.168.1.2:8123` (**Home Assistant**, que corre en Docker sobre `luffy` con `network_mode: host`); la última (`http_status:404`) es el *catch-all* obligatorio.
+- `deployment.yml`: Deployment de `cloudflared` con **2 réplicas** (anti-afinidad por nodo para no perder el túnel si cae uno), `securityContext` sin privilegios y métricas en `:2000` (probes `/ready`).
+
+**Importante**: el túnel apunta **directo** a Home Assistant, **no** pasa por el Gateway. Es deliberado: el SSO de HA lo hace el propio Home Assistant vía OIDC contra Authentik (ver más abajo), no el forward-auth del Gateway (que rompería la app móvil, los webhooks y los tokens de API de HA).
+
+### Bootstrap del túnel (pasos manuales)
+
+El UUID del túnel y sus credenciales **no se versionan**. Tras crear el túnel hay que rellenar el UUID en `configmap.yml` y crear el Secret a mano:
+
+```bash
+# 1. Autenticar y crear el túnel (genera ~/.cloudflared/<UUID>.json)
+cloudflared tunnel login
+cloudflared tunnel create homelab
+
+# 2. Secret con las credenciales del túnel (clave fija credentials.json)
+kubectl -n cloudflared create secret generic tunnel-credentials \
+  --from-file=credentials.json=$HOME/.cloudflared/<UUID>.json
+
+# 3. Registrar el DNS público (CNAME a <UUID>.cfargotunnel.com en bonchan.org)
+cloudflared tunnel route dns homelab hs-lakasa.bonchan.org
+
+# 4. Editar services/cloudflared/configmap.yml y poner el UUID en `tunnel:`
+```
+
+Para añadir más servicios al túnel basta con una nueva regla en `ingress:` (antes del `http_status:404`) y su `route dns` correspondiente.
+
+Verificación:
+
+```bash
+kubectl -n cloudflared get pods                       # 2 réplicas Running
+kubectl -n cloudflared logs deploy/cloudflared        # "Registered tunnel connection"
+```
+
+### Home Assistant detrás del proxy
+
+Como HA queda detrás de cloudflared, hay que declararlo como proxy de confianza en su `configuration.yaml` (volumen de HA en `luffy`, **fuera de este repo**) y reiniciar HA:
+
+```yaml
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.1.21/32   # nodos k8s donde corre cloudflared (origen del tráfico tras SNAT)
+    - 192.168.1.22/32
+
+# Recomendado para que los enlaces y el redirect OIDC usen la URL pública
+external_url: "https://hs-lakasa.bonchan.org"
+```
+
+### SSO sobre Home Assistant (OIDC contra Authentik)
+
+El blueprint `authentik/blueprints/home-assistant.yaml` crea un provider OAuth2/OIDC **confidential** (`client_id: home-assistant`, callback `https://hs-lakasa.bonchan.org/auth/oidc/callback`) y la aplicación correspondiente. El `client_secret` se inyecta vía la variable `HOMEASSISTANT_CLIENT_SECRET` desde el Secret **no versionado** `authentik-oidc-secrets` (clave `home-assistant-client-secret`); añádela igual que el resto de clientes OIDC:
+
+```bash
+kubectl -n authentik create secret generic authentik-oidc-secrets \
+  --from-literal=home-assistant-client-secret=$(openssl rand -base64 60 | tr -d '\n') \
+  # ... junto al resto de claves (argocd/grafana/hubble/proxmox/router)
+```
+
+> Si el Secret ya existe, edítalo (`kubectl -n authentik edit secret authentik-oidc-secrets`) para añadir la clave en lugar de recrearlo.
+
+En el lado de Home Assistant se usa el componente [`hass-oidc-auth`](https://github.com/christiaangoossens/hass-oidc-auth) (instalable vía HACS). Configúralo en `configuration.yaml` (mismo `client_secret` que en Authentik, idealmente en `secrets.yaml`) y reinicia HA:
+
+```yaml
+auth_oidc:
+  client_id: home-assistant
+  client_secret: !secret oidc_client_secret
+  discovery_url: "https://authentik.bonchan.org/application/o/home-assistant/.well-known/openid-configuration"
+```
+
+Tras esto, la pantalla de login de HA ofrece la opción de entrar con Authentik. La app móvil y la API siguen funcionando con el login nativo de HA, ya que el OIDC se añade como proveedor adicional y no como forward-auth.
 
