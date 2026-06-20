@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.11.0](https://github.com/Jasviers/homelab/compare/v1.10.0...v1.11.0) (2026-06-20)
+
+
+### Features
+
+* add cilium pod cipher and http routes to proxmox and router ([7413798](https://github.com/Jasviers/homelab/commit/7413798792b14c343618cab05b6a307de8cdfeee))
+* add clouflared and create tunnel to expose home assistant and give ([e435987](https://github.com/Jasviers/homelab/commit/e43598781633de59d6c11611993ce3111e385f23))
+* add hubble to monitor k8s network ([40a63f4](https://github.com/Jasviers/homelab/commit/40a63f4397a15059ff06c7a702af91778d40a478))
+* add new work network's firewall rules ([5e6daf7](https://github.com/Jasviers/homelab/commit/5e6daf7a25390f97ba57ab03e164aaae8ec50dba))
+* improvement to gateway api. Headers and tls restrictions ([5779719](https://github.com/Jasviers/homelab/commit/577971985f5a7fd7b8042728659eb1a18cc3aba7))
+
 ## [1.10.0](https://github.com/Jasviers/homelab/compare/v1.9.0...v1.10.0) (2026-06-17)
 
 
