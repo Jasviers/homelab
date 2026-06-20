@@ -43,21 +43,33 @@
 ---
 [X] Sustituir metallb por cilium
 
-[ ] Mejor control de cloudflare tunnels (cloudflared en k8s)
+[X] Mejor control de cloudflare tunnels (cloudflared en k8s)
+
+[X] Ruta y DNS al router (añadirlo a homepage)
+
+[X] Red de trabajo separada (Solo acceso a internet y no al resto de la red)
+
+[X] Activar hubble en cilium
+
+[X] Activar cifrado pod-to-pod en cilium
+
+[X] Mejorar el gateway api
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
-[ ] VPN foosha
+[ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
-[ ] Red de trabajo separada
+[ ] VPN foosha (Otra lozalización)
 
-[ ] Mejoras de red en k8s
+[ ] Netbox (IPAM/DCIM)
 
-[ ] Netbox o nautobot (IPAM/DCIM)
+[ ] Network policies para aislar servicios
 
-[ ] Monitorización de la red
+[ ] Mejora de gateway api (HA, Politicas de trafico, health checks, etc.)
 
 ---
+
+[ ] vault
 
 [ ] Desplegar MinIO o alternativa
 
@@ -65,13 +77,17 @@
 
 [ ] Mejorar el homepage (más información, más servicios, etc.)
 
-[ ] vault
-
 [ ] backups (proxmox backups + velero)
 
-[ ] Enchufes y luces (home assistant)
+[ ] Convertidor de medios
 
-[ ] Mejoras de quorum para k8s
+[ ] Servicio de descarga de videos de youtube
+
+[ ] SSO para pihole
+
+---
+
+[ ] Enchufes y luces (home assistant)
 
 [ ] Mejoras de seguridad
 
@@ -81,7 +97,7 @@
 
 [ ] Mejoras de monitorización
 
-[ ] SSO para pihole y home assistant
+[ ] Mejoras de quorum para k8s
 
 [ ] Karpenter (karpenter-provider-proxmox)
 

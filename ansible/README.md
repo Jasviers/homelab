@@ -35,7 +35,7 @@ La conexión usa `root` con la clave SSH `~/.ssh/id_ed25519` (ver `[homelab:vars
 | `qdevice` | Instala y configura el QDevice de quorum (corosync-qnetd en `luffy`, cliente en los nodos Proxmox). |
 | `update-packages` | Actualización de paquetes apt. |
 | `install-docker` | Instala Docker Engine + Compose plugin (usado en `luffy` para los servicios del hogar). |
-| `install-k3s` | Instalación de k3s multi-nodo (server con etcd embebido) sin flannel ni kube-proxy + Cilium como CNI vía Helm. Variables en `defaults/main.yml` (versión del chart, endpoint del API). |
+| `install-k3s` | Instalación de k3s multi-nodo (server con etcd embebido) sin flannel ni kube-proxy + Cilium como CNI vía Helm (con cifrado pod-to-pod WireGuard y Hubble habilitados). Variables en `defaults/main.yml` (versión del chart, endpoint del API). |
 | `uninstall-k3s` | Desinstalación y limpieza de k3s (incluye restos de red de Cilium). |
 | `home-services` | Despliega el stack Docker Compose de `luffy` (Pi-hole, Home Assistant, Whisper, Piper) y los `host-record` de DNS local. Variables en `defaults/main.yml`. |
 | `cloud-init` | Preparación del template de Proxmox: instala paquetes base, resetea `machine-id`, limpia configuración del instalador y deja cloud-init listo (`datasource_list: [NoCloud, ConfigDrive]`, `cloud-init clean`). |
