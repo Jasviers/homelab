@@ -16,6 +16,16 @@ metadata:
 spec:
   gatewayClassName: envoy
   listeners:
+    # Listener HTTP solo para redirigir a HTTPS (ver https-redirect.yml).
+    # Solo admite rutas del propio namespace del Gateway, de modo que
+    # ninguna app pueda servir tráfico en claro por el puerto 80.
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.bonchan.org"
+      allowedRoutes:
+        namespaces:
+          from: Same
     - name: https
       protocol: HTTPS
       port: 443
@@ -24,6 +34,21 @@ spec:
         mode: Terminate
         certificateRefs:
           - name: bonchan-org-tls
+      # Solo los namespaces listados pueden adjuntar HTTPRoutes al Gateway.
+      # Se usa el label kubernetes.io/metadata.name (lo añade k8s a cada
+      # namespace automáticamente), así no hay que etiquetarlos a mano.
       allowedRoutes:
         namespaces:
-          from: All
+          from: Selector
+          selector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - authentik
+                  - monitoring
+                  - argocd
+                  - homepage
+                  - kube-system
+                  - proxmox
+                  - router

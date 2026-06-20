@@ -8,6 +8,9 @@ labels:
 resources:
   - namespace.yml
   - gateway.yml
+  - https-redirect.yml
+  - clienttrafficpolicy.yml
+  - security-headers.yml
 
 helmCharts:
   - name: gateway-helm
