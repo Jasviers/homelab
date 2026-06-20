@@ -254,6 +254,26 @@ kubectl -n monitoring create secret generic grafana-oidc \
 Asigna tu usuario a `Grafana Admins` (o `Grafana Editors`) en Authentik; sin
 grupo se entra como `Viewer`. El admin local sigue disponible en `/login`.
 
+**SSO de Hubble UI con Authentik (OIDC):** Hubble UI no tiene login propio, así
+que la protege Envoy Gateway como Relying Party OIDC (ver `services/hubble`).
+Authentik lee el secret por entorno (`authentik-oidc-secrets`, clave
+`hubble-client-secret`) y Envoy desde el secret `hubble-oidc-secret` en
+`kube-system` (clave `client-secret`):
+
+```bash
+HUBBLE_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+# Authentik: añade la clave al secret ya existente (lo recrea con todas las claves).
+kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+  -p "{\"stringData\":{\"hubble-client-secret\":\"$HUBBLE_OIDC_SECRET\"}}"
+
+# Envoy Gateway: secret que consume la SecurityPolicy OIDC de la ruta de Hubble.
+kubectl -n kube-system create secret generic hubble-oidc-secret \
+  --from-literal=client-secret="$HUBBLE_OIDC_SECRET"
+```
+
+La UI es de solo lectura; basta con que el usuario autentique en Authentik.
+
 ---
 
 ## Fase 6 — Servicios en `luffy` (Pi-hole y Home Assistant) (🤖)
