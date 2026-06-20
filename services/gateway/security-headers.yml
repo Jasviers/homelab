@@ -1,0 +1,20 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: security-headers
+  namespace: envoy-gateway-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: homelab
+  lua:
+    - type: Inline
+      inline: |
+        function envoy_on_response(response_handle)
+          local headers = response_handle:headers()
+          headers:replace("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+          headers:replace("X-Content-Type-Options", "nosniff")
+          headers:replace("X-Frame-Options", "SAMEORIGIN")
+          headers:replace("Referrer-Policy", "strict-origin-when-cross-origin")
+        end
