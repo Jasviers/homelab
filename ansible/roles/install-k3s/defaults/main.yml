@@ -1,5 +1,5 @@
 ---
-cilium_chart_version: "1.19.4"
+cilium_chart_version: "1.19.5"
 cilium_helm_repo_url: "https://helm.cilium.io/"
 
 cilium_k8s_service_host: "127.0.0.1"
