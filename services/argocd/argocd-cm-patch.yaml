@@ -9,7 +9,7 @@ data:
     name: Authentik
     issuer: https://authentik.bonchan.org/application/o/argocd/
     clientID: argocd
-    clientSecret: $oidc.argocd.clientSecret
+    clientSecret: $argocd-oidc:clientSecret
     requestedScopes:
       - openid
       - profile

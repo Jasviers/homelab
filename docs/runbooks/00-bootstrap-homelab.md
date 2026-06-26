@@ -175,104 +175,62 @@ kubectl apply -f services/argocd-apps/root-app.yaml
 ```
 
 *Resultado esperado:* las `Application` aparecen en ArgoCD. Algunas quedarán
-`Degraded`/`Progressing` hasta crear los secrets manuales del paso 5.4.
+`Degraded`/`Progressing` hasta completar el bootstrap de Vault del paso 5.4.
 
-### 5.4 Secrets manuales (✋ — imprescindible)
+### 5.4 Bootstrap de Vault + External Secrets (✋ — imprescindible)
 
-Estos secrets **no se versionan en git**; sin ellos cert-manager y Synology CSI
-no funcionan.
+Todos los secretos del cluster viven en **Vault** y se materializan como `Secret`
+de k8s mediante **External Secrets Operator (ESO)**. En git solo hay manifiestos
+`ExternalSecret` (sin texto plano); el valor real solo existe en Vault. Las
+`Application` `vault` (sync-wave `-3`) y `external-secrets` (`-2`) las despliega el
+app-of-apps del paso 5.3 antes que el resto.
 
-**Cloudflare (cert-manager):**
-
-```bash
-kubectl -n cert-manager create secret generic cloudflare-api-token \
-  --from-literal=api-token=<CLOUDFLARE_API_TOKEN>
-```
-
-**Credenciales del NAS (Synology CSI):**
+El init y la siembra son un **paso único** que automatiza
+[`scripts/vault-bootstrap.sh`](../../scripts/vault-bootstrap.sh) (requiere
+`kubectl`, `jq` y `openssl`):
 
 ```bash
-cp services/synology-csi/client-info.example.yml services/synology-csi/client-info.yml
-# edita client-info.yml con IP/usuario/contraseña del DSM, luego:
-kubectl -n synology-csi create secret generic client-info-secret \
-  --from-file=client-info.yml=services/synology-csi/client-info.yml
+# Espera a que los pods de Vault estén Running (aún sealed):
+kubectl -n vault get pods
+
+# Inicializa transit + principal, configura ESO y siembra los secretos.
+# Pide por consola los tokens/passwords; GUARDA las unseal/recovery keys que imprime.
+./scripts/vault-bootstrap.sh
 ```
 
-**`secret_key` de Authentik:** la contraseña de su base de datos la genera CNPG;
-solo hay que crear la `secret_key`:
+El script siembra estas rutas en `kv/` (KV v2):
 
-```bash
-kubectl -n authentik create secret generic authentik-secret \
-  --from-literal=secret_key=$(openssl rand -base64 60 | tr -d '\n')
-```
+| Ruta Vault | Secret k8s resultante (ns) | Consumidor |
+| --- | --- | --- |
+| `kv/cert-manager/cloudflare` | `cloudflare-api-token` (cert-manager) | `ClusterIssuer letsencrypt` |
+| `kv/synology/client-info` | `client-info-secret` (synology-csi) | Synology CSI |
+| `kv/authentik/secret-key` | `authentik-secret` (authentik) | Authentik |
+| `kv/authentik/oidc` | `authentik-oidc-secrets` (authentik) | Blueprints OIDC |
+| `kv/grafana/admin` | `grafana-admin` (monitoring) | Grafana |
+| `kv/grafana/oidc` | `grafana-oidc` (monitoring) | Grafana SSO |
+| `kv/hubble/oidc` | `hubble-oidc-secret` (kube-system) | Envoy `SecurityPolicy` |
+| `kv/argocd/oidc` | `argocd-oidc` (argocd) | `oidc.config` de ArgoCD |
+| `kv/cloudflared/tunnel` | `tunnel-credentials` (cloudflared) | cloudflared |
 
-**Credenciales de admin de Grafana:**
+> El `client_secret` de cada proveedor OIDC es **compartido**: la misma cadena
+> está en `kv/authentik/oidc` (clave `<app>-client-secret`, que reconcilia el
+> blueprint en Authentik) y en la ruta que consume cada relying party
+> (`kv/argocd/oidc`, `kv/grafana/oidc`, `kv/hubble/oidc`). Al sembrar usa el mismo
+> valor en ambos sitios.
 
-```bash
-kubectl -n monitoring create secret generic grafana-admin \
-  --from-literal=admin-user=admin \
-  --from-literal=admin-password=<PASSWORD>
-```
+Synology y el túnel de Cloudflare usan **ficheros** completos como valor; el
+script imprime cómo sembrarlos (`vault kv put ... =@fichero`). El
+`client-info.yml` sigue el formato de
+[`services/synology-csi/client-info.example.yml`](../../services/synology-csi/client-info.example.yml).
 
-**SSO de ArgoCD con Authentik (OIDC):** el mismo `client_secret` lo conocen los
-dos lados. Authentik lo lee por entorno (`authentik-oidc-secrets`) para aplicar el
-blueprint; ArgoCD lo lee desde `argocd-secret` (clave `oidc.argocd.clientSecret`):
+Tras la siembra, ESO crea cada `Secret` en segundos (`refreshInterval: 1h`).
+Comprueba: `kubectl get externalsecret -A` → todos `SyncedReady=True`.
 
-```bash
-ARGOCD_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
-
-# Authentik: lo consume el worker para reconciliar el blueprint del provider.
-kubectl -n authentik create secret generic authentik-oidc-secrets \
-  --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
-
-# ArgoCD: lo resuelve oidc.config vía $oidc.argocd.clientSecret.
-kubectl -n argocd patch secret argocd-secret --type merge \
-  -p "{\"stringData\":{\"oidc.argocd.clientSecret\":\"$ARGOCD_OIDC_SECRET\"}}"
-```
-
-Tras el primer sync, asigna tu usuario al grupo `ArgoCD Admins` (creado por el
-blueprint) en Authentik para tener rol admin. Reinicia `argocd-server` si no
-aparece el botón de login con Authentik:
-`kubectl -n argocd rollout restart deploy/argocd-server`.
-
-**SSO de Grafana con Authentik (OIDC):** mismo esquema que ArgoCD. Authentik lee
-el secret por entorno (`authentik-oidc-secrets`, clave `grafana-client-secret`) y
-Grafana desde el secret `grafana-oidc`:
-
-```bash
-GRAFANA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
-
-# Authentik: añade la clave al secret ya existente (lo recrea con ambas claves).
-kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
-  -p "{\"stringData\":{\"grafana-client-secret\":\"$GRAFANA_OIDC_SECRET\"}}"
-
-# Grafana: secret que consume el contenedor vía GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET.
-kubectl -n monitoring create secret generic grafana-oidc \
-  --from-literal=client-secret="$GRAFANA_OIDC_SECRET"
-```
-
-Asigna tu usuario a `Grafana Admins` (o `Grafana Editors`) en Authentik; sin
-grupo se entra como `Viewer`. El admin local sigue disponible en `/login`.
-
-**SSO de Hubble UI con Authentik (OIDC):** Hubble UI no tiene login propio, así
-que la protege Envoy Gateway como Relying Party OIDC (ver `services/hubble`).
-Authentik lee el secret por entorno (`authentik-oidc-secrets`, clave
-`hubble-client-secret`) y Envoy desde el secret `hubble-oidc-secret` en
-`kube-system` (clave `client-secret`):
-
-```bash
-HUBBLE_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
-
-# Authentik: añade la clave al secret ya existente (lo recrea con todas las claves).
-kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
-  -p "{\"stringData\":{\"hubble-client-secret\":\"$HUBBLE_OIDC_SECRET\"}}"
-
-# Envoy Gateway: secret que consume la SecurityPolicy OIDC de la ruta de Hubble.
-kubectl -n kube-system create secret generic hubble-oidc-secret \
-  --from-literal=client-secret="$HUBBLE_OIDC_SECRET"
-```
-
-La UI es de solo lectura; basta con que el usuario autentique en Authentik.
+**Roles OIDC:** asigna tu usuario en Authentik a `ArgoCD Admins`, `Grafana Admins`
+(o `Editors`) según corresponda; sin grupo entras como `Viewer`. Reinicia
+`argocd-server` si no aparece el botón de login con Authentik:
+`kubectl -n argocd rollout restart deploy/argocd-server`. Hubble UI es de solo
+lectura: basta con autenticarse en Authentik.
 
 ---
 
@@ -330,10 +288,20 @@ en `READY=True`, y los servicios responden por HTTPS bajo `*.bonchan.org`.
 - **`kubectl` no conecta tras Ansible:** revisa que `~/.kube/config` apunte a la
   IP correcta del server (el playbook reescribe la URL).
 - **`ClusterIssuer` no pasa a `READY`:** casi siempre es el token de Cloudflare
-  (permisos o secret mal creado). `kubectl -n cert-manager describe clusterissuer letsencrypt`.
+  (permisos o valor mal sembrado en `kv/cert-manager/cloudflare`).
+  `kubectl -n cert-manager describe clusterissuer letsencrypt`.
 - **PVCs en `Pending`:** revisa el secret `client-info-secret`, que el usuario
   del DSM esté en `administrators` y que iSCSI esté activo en el NAS.
   `kubectl -n synology-csi logs sts/synology-csi-controller -c csi-plugin`.
+- **Vault `Sealed`:** tras un reinicio del cluster el transit hay que desellarlo a
+  mano (`kubectl -n vault exec -it vault-transit-0 -- vault operator unseal <key>`);
+  el principal se auto-desella. Comprueba con
+  `kubectl -n vault exec vault-0 -- vault status`.
+- **`ExternalSecret` en `SecretSyncError`:** Vault sellado/sin sembrar o el
+  `ClusterSecretStore vault-backend` no `Valid`. Revisa
+  `kubectl describe externalsecret <nombre> -n <ns>` y
+  `kubectl get clustersecretstore vault-backend -o wide`. ESO reintenta solo en
+  cuanto Vault esté listo.
 - **Desinstalar k3s** (deja las VMs limpias para reintentar):
 
   ```bash

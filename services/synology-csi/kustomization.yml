@@ -5,13 +5,10 @@ labels:
   - pairs:
       app.kubernetes.io/managed-by: Kustomize
 
-# Manifiestos oficiales de SynologyOpenSource/synology-csi v1.3.0 (deploy/kubernetes/v1.20).
-# Antes del primer sync hay que crear a mano el Secret con las credenciales del NAS
-# (no se versiona en git, ver client-info.example.yml):
-#   kubectl -n synology-csi create secret generic client-info-secret --from-file=client-info.yml=./client-info.yml
 resources:
   - namespace.yml
   - csi-driver.yml
   - controller.yml
   - node.yml
   - storage-class.yml
+  - externalsecret-client-info.yml

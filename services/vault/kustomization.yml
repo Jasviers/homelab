@@ -1,0 +1,95 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: vault
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: Kustomize
+
+resources:
+  - namespace.yml
+
+helmCharts:
+  - name: vault
+    repo: https://helm.releases.hashicorp.com
+    version: 0.33.0
+    releaseName: vault-transit
+    namespace: vault
+    valuesInline:
+      global:
+        enabled: true
+      injector:
+        enabled: false
+      server:
+        standalone:
+          enabled: true
+          config: |
+            ui = true
+            listener "tcp" {
+              tls_disable = 1
+              address = "[::]:8200"
+              cluster_address = "[::]:8201"
+            }
+            storage "file" {
+              path = "/vault/data"
+            }
+        dataStorage:
+          enabled: true
+          storageClass: synology-iscsi-storage
+          size: 1Gi
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+
+  - name: vault
+    repo: https://helm.releases.hashicorp.com
+    version: 0.33.0
+    releaseName: vault
+    namespace: vault
+    valuesInline:
+      global:
+        enabled: true
+      injector:
+        enabled: false
+      server:
+        extraSecretEnvironmentVars:
+          - envName: VAULT_TOKEN
+            secretName: vault-transit-token
+            secretKey: token
+        ha:
+          enabled: true
+          replicas: 1
+          raft:
+            enabled: true
+            setNodeId: true
+            config: |
+              ui = true
+              listener "tcp" {
+                tls_disable = 1
+                address = "[::]:8200"
+                cluster_address = "[::]:8201"
+              }
+              storage "raft" {
+                path = "/vault/data"
+              }
+              service_registration "kubernetes" {}
+              seal "transit" {
+                address     = "http://vault-transit.vault.svc:8200"
+                key_name    = "autounseal"
+                mount_path  = "transit/"
+                tls_disable = "true"
+              }
+        dataStorage:
+          enabled: true
+          storageClass: synology-iscsi-storage
+          size: 2Gi
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
