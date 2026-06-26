@@ -12,6 +12,7 @@ resources:
   - postgres-cluster.yml
   - redis.yml
   - httproute.yml
+  - externalsecrets.yml
 
 configMapGenerator:
   - name: authentik-blueprint-argocd

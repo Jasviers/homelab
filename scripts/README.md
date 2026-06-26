@@ -25,4 +25,12 @@ Reglas de iptables para aislar la red de IOT (`192.168.52.0/24`, bridge `br52`) 
 
 Se instala como script de arranque del firewall en el router (`/jffs/scripts/firewall-start` en ASUS Merlin).
 
-> Aviso: el script usa `iptables -I` sin comprobar si las reglas ya existen; ejecutarlo varias veces duplica reglas.
+## vault-bootstrap.sh
+
+Bootstrap **único** de Vault (se ejecuta una vez, tras desplegar `services/vault` y `services/external-secrets` con ArgoCD):
+
+- Inicializa y desella el Vault transit, habilita el motor `transit` y crea el token de auto-unseal (`vault-transit-token`) para el Vault principal.
+- Inicializa el Vault principal (auto-unseal vía transit), habilita KV v2 en `kv/` y el método Kubernetes auth con un rol de solo-lectura para External Secrets Operator.
+- Siembra en `kv/` todos los secretos del cluster (pide los valores por consola).
+
+Requiere `kubectl` (con acceso al cluster), `jq` y `openssl`.

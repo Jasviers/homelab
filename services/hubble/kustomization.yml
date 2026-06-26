@@ -8,3 +8,4 @@ labels:
 resources:
   - httproute.yml
   - securitypolicy.yml
+  - externalsecret-oidc.yml

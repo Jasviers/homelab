@@ -7,7 +7,8 @@ labels:
 
 resources:
   - namespace.yaml
-  - cluster-issuers.yaml # Previo crear de momento: kubectl -n cert-manager create secret generic cloudflare-api-token --from-literal=api-token=XXXXXXXXXXXXXXXXX
+  - cluster-issuers.yaml
+  - externalsecret-cloudflare.yml
 
 helmCharts:
   - name: cert-manager
