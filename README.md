@@ -63,6 +63,7 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 - **cert-manager** emite los certificados Let's Encrypt mediante challenge DNS-01 contra Cloudflare.
 - **Synology CSI** aprovisiona volúmenes persistentes (LUNs iSCSI) dinámicamente desde el NAS.
 - **CloudNativePG (CNPG)** es el operador de PostgreSQL: cada servicio que necesita base de datos declara su propio `Cluster` (p. ej. el de Authentik).
+- **Vault + External Secrets Operator (ESO)** centralizan la gestión de secretos: Vault (con auto-unseal vía motor *transit*) es la única fuente de verdad y en git solo se versionan manifiestos `ExternalSecret`; ESO los materializa como `Secret` nativos en cada namespace. Ningún secreto se guarda en texto plano en el repositorio.
 - **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG.
 - **Monitorización**: **Prometheus** (métricas), **Loki** (logs), **Alloy** (recolección de logs) y **Grafana** (dashboards y alertas) en `grafana.bonchan.org`.
 - **Homepage** es el portal/dashboard del homelab en `homepage.bonchan.org`, con autodescubrimiento de servicios.
@@ -74,7 +75,7 @@ Dos VMs Ubuntu 26 (una por nodo Proxmox) forman un clúster k3s con etcd embebid
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
 | [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y asistente de voz) vía Docker Compose. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización). |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, Vault, External Secrets, monitorización). |
 | [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |

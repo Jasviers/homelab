@@ -69,7 +69,7 @@
 
 ---
 
-[ ] vault
+[X] vault
 
 [ ] Desplegar MinIO o alternativa
 
@@ -78,6 +78,8 @@
 [ ] Mejorar el homepage (más información, más servicios, etc.)
 
 [ ] backups (proxmox backups + velero)
+
+[ ] Gestion de usuarios de synology por authentik (si es posible)
 
 [ ] Convertidor de medios
 
