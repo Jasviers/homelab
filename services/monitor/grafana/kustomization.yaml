@@ -5,6 +5,7 @@ namespace: monitoring
 
 resources:
   - httproute.yml
+  - externalsecrets.yml
 
 helmCharts:
   - name: grafana
