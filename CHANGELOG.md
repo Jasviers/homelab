@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.0](https://github.com/Jasviers/homelab/compare/v1.11.0...v1.12.0) (2026-07-10)
+
+
+### Features
+
+* add vault service ([80a9bed](https://github.com/Jasviers/homelab/commit/80a9bedcdc730d7610c62209afd1131a97e512c2))
+* add vault service ([bec8505](https://github.com/Jasviers/homelab/commit/bec8505efee37d31598ad948201cfd9a5cf67cb1))
+
 ## [1.11.0](https://github.com/Jasviers/homelab/compare/v1.10.0...v1.11.0) (2026-06-20)
 
 
