@@ -55,11 +55,17 @@
 
 [X] Mejorar el gateway api
 
+[X] Mejorar infraestructura de maquinas virtuales y k8s
+
+[ ] Despliegue de modelo de IA local
+
+[ ] Despliegue de whisper en el cluster
+
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
-[ ] VPN foosha (Otra lozalización)
+[X] VPN foosha (Otra lozalización)
 
 [ ] Netbox (IPAM/DCIM)
 
