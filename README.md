@@ -10,6 +10,7 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 - Rango reservado para `LoadBalancer` (Cilium LB IPAM): `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), fuera del DHCP.
 - Hosts e infraestructura usan IPs estáticas en `192.168.1.0/24` (ver tablas siguientes).
 - Red IOT aislada: `192.168.52.0/24` (bridge `br52` en el router ASUS), separada del resto por firewall (ver [scripts/](scripts/)).
+- Red remota aislada (otra ubicación física): `192.168.20.0/24`, ver [Red remota (site B)](#red-remota-site-b) más abajo.
 
 ## Hosts y roles
 
@@ -17,7 +18,7 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 | --- | --- | --- | --- |
 | `nas.bonchan.org` | `192.168.1.1` | Synology DS223J · 2 bahías (1×4 TB, 1 libre) | NAS: almacenamiento e iSCSI (LUNs para el CSI del clúster) |
 | `luffy.bonchan.org` | `192.168.1.2` | Raspberry Pi 4B · 8 GB RAM | Pi-hole, Home Assistant + asistente de voz, quorum (QDevice) de Proxmox |
-| `zoro.bonchan.org` | `192.168.1.3` | Geekom A5 · AMD Ryzen 5 7430U · 16 GB RAM | Proxmox Nodo 1 (hospeda `vm-ubuntu26-zoro-01`) |
+| `zoro.bonchan.org` | `192.168.1.3` | Geekom A5 · AMD Ryzen 5 7430U · 64 GB RAM | Proxmox Nodo 1 (hospeda `vm-ubuntu26-zoro-01`) |
 | `nami.bonchan.org` | `192.168.1.4` | Geekom A5 · AMD Ryzen 5 7430U · 16 GB RAM | Proxmox Nodo 2 (hospeda `vm-ubuntu26-nami-01`) |
 
 > El QDevice de quorum corre en `luffy`: permite que el clúster Proxmox de 2 nodos
@@ -38,6 +39,21 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 
 - Dominio principal: `bonchan.org` (gestionado en Cloudflare).
 - Los dominios locales se resuelven mediante Pi-hole.
+
+## Red remota (site B)
+
+Segunda ubicación física, independiente del domicilio principal, pensada como
+futura extensión de la LAN (`192.168.0.0/23`) mediante un túnel VPN site-to-site
+(aún no implementado). De momento es una red aislada, sin conexión con el resto
+del homelab.
+
+- **Hardware**: Raspberry Pi 2B.
+- **Software**: PiVPN con servidor OpenVPN propio, independiente del servidor
+  OpenVPN del router ASUS del site principal.
+- **Red**: `192.168.20.0/24`.
+- **IP de la Raspberry**: `192.168.20.134`.
+- **Estado**: sin clientes/peers configurados todavía; sin nombre de host ni
+  subdominio `bonchan.org` asignado.
 
 ## Acceso remoto
 
@@ -132,9 +148,15 @@ flowchart TB
     luffy <-->|"único acceso permitido (firewall)"| iot
 
     cf -.->|*.bonchan.org| gw
+
+    subgraph siteb["Site B · 192.168.20.0/24 (aislada, sin conexión aún)"]
+        pivpn["Raspberry Pi 2B<br/>192.168.20.134<br/>PiVPN · servidor OpenVPN propio"]
+    end
 ```
 
 > El acceso a internet de la IOT y el tráfico desde/hacia el resto de la LAN están bloqueados por iptables en el router; solo Home Assistant (`luffy`) puede comunicarse con ella (ver [scripts/firewall-start.sh](scripts/firewall-start.sh)).
+>
+> El **Site B** (`192.168.20.0/24`) es una segunda ubicación física con su propio servidor OpenVPN (PiVPN), sin ningún enlace todavía con el resto del homelab; ver [Red remota (site B)](#red-remota-site-b).
 
 ## Diagrama del clúster y servicios
 
