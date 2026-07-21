@@ -1,47 +1,67 @@
 ---
-- name: Check if k3s service unit exists
+- name: Check if k3s server service unit exists (control-plane)
   stat:
     path: /etc/systemd/system/k3s.service
-  register: k3s_unit
+  register: k3s_server_unit
 
-- name: Install K3s on principal node only
+- name: Check if k3s-agent service unit exists (workers/IA)
+  stat:
+    path: /etc/systemd/system/k3s-agent.service
+  register: k3s_agent_unit
+
+- name: Install k3s on init control-plane node
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
+    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
   when:
-    - inventory_hostname == groups['k8s_cluster'][0]
-    - not k3s_unit.stat.exists
+    - inventory_hostname == groups['k3s_control_plane'][0]
+    - not k3s_server_unit.stat.exists
 
-- name: Wait for k3s service to be ready on principal node
+- name: Wait for k3s service to be ready on init control-plane node
   systemd:
     name: k3s
     state: started
-  when: inventory_hostname == groups['k8s_cluster'][0]
+  when: inventory_hostname == groups['k3s_control_plane'][0]
 
-- name: Get token from primary node
+- name: Get token from init control-plane node
   command: cat /var/lib/rancher/k3s/server/token
   register: k3s_token
-  delegate_to: "{{ groups['k8s_cluster'][0] }}"
+  delegate_to: "{{ groups['k3s_control_plane'][0] }}"
   run_once: true
 
-- name: Install K3s on the rest of the nodes
+- name: Install k3s on the rest of the control-plane nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode "0644" --cluster-init --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
   when:
-    - inventory_hostname != groups['k8s_cluster'][0]
-    - not k3s_unit.stat.exists
+    - inventory_hostname in groups['k3s_control_plane']
+    - inventory_hostname != groups['k3s_control_plane'][0]
+    - not k3s_server_unit.stat.exists
 
-- name: Fetch k3s config from primary node only
+- name: Install k3s on worker nodes
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+  when:
+    - inventory_hostname in groups['k3s_workers']
+    - not k3s_agent_unit.stat.exists
+
+- name: Install k3s on the AI node (tainted, workloads by allowlist only)
+  shell: |
+    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}" --node-taint dedicated=ai:NoSchedule --node-label workload-type=ai
+  when:
+    - inventory_hostname in groups['k3s_ai']
+    - not k3s_agent_unit.stat.exists
+
+- name: Fetch k3s config from init control-plane node only
   fetch:
     src: /etc/rancher/k3s/k3s.yaml
     dest: ~/.kube/config
     flat: yes
-  when: inventory_hostname == groups['k8s_cluster'][0]
+  when: inventory_hostname == groups['k3s_control_plane'][0]
 
 - name: Update kubeconfig server URL
   lineinfile:
     path: ~/.kube/config
     regexp: '^\s*server:\s*https://127\.0\.0\.1:6443'
-    line: "    server: https://{{ hostvars[groups['k8s_cluster'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443"
+    line: "    server: https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443"
   delegate_to: localhost
   become: false
   run_once: true
@@ -69,6 +89,8 @@
   delegate_to: localhost
   become: false
   run_once: true
+  vars:
+    cilium_k8s_service_host: "{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}"
 
 - name: Install/upgrade Cilium via Helm
   shell: >

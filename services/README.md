@@ -73,6 +73,34 @@ Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despli
 
 Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Application` aquí; ArgoCD lo recogerá en el siguiente sync de `root`.
 
+## Taints de nodos
+
+El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
+instalar k3s, no GitOps):
+
+- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
+  `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
+  kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
+  (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
+- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/48 GB): taint
+  `dedicated=ai:NoSchedule` + label `workload-type=ai`. Es el patrón a seguir
+  para cualquier servicio de IA futuro (Ollama, vLLM, etc.): su manifiesto debe
+  incluir
+
+  ```yaml
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: ai
+      effect: NoSchedule
+  nodeSelector:
+    workload-type: ai
+  ```
+
+  Sin esta toleration + selector, el pod nunca se programa ahí; el resto de
+  servicios (que no la declaran) nunca aterrizan en este nodo aunque haya
+  hueco, por el taint.
+
 ## kubevip/
 
 Kustomization que instala [kube-vip](https://kube-vip.io) (chart oficial v0.6.6) para dar al *control plane* de k3s una **VIP de alta disponibilidad** en `192.168.1.20`:
@@ -281,8 +309,8 @@ Como HA queda detrás de cloudflared, hay que declararlo como proxy de confianza
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    - 192.168.1.21/32   # nodos k8s donde corre cloudflared (origen del tráfico tras SNAT)
-    - 192.168.1.22/32
+    - 192.168.1.30/32
+    - 192.168.1.31/32
 
 # Recomendado para que los enlaces y el redirect OIDC usen la URL pública
 external_url: "https://hs-lakasa.bonchan.org"
