@@ -25,6 +25,28 @@ spec:
                 labelSelector:
                   matchLabels:
                     app.kubernetes.io/name: cloudflared
+      initContainers:
+        - name: decode-token
+          image: busybox:1.37
+          command: ['sh', '-c']
+          args:
+            - |
+              PAYLOAD=$(echo "$TUNNEL_TOKEN" | cut -d'.' -f2)
+              UUID=$(echo "$PAYLOAD" | tr '_-' '/+' | base64 -d | sed 's/.*"t":"\([^"]*\)".*/\1/')
+              sed "s/<TUNNEL_ID>/$UUID/" /etc/cloudflared/configmap.yaml > /shared/config.yaml
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-credentials
+                  key: token
+          volumeMounts:
+            - name: configmap
+              mountPath: /etc/cloudflared/configmap.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: shared
+              mountPath: /shared
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.6.1
@@ -70,11 +92,13 @@ spec:
             limits:
               memory: 128Mi
           volumeMounts:
-            - name: config
+            - name: shared
               mountPath: /etc/cloudflared/config.yaml
               subPath: config.yaml
               readOnly: true
       volumes:
-        - name: config
+        - name: configmap
           configMap:
             name: cloudflared
+        - name: shared
+          emptyDir: {}
