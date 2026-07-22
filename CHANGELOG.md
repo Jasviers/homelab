@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.1](https://github.com/Jasviers/homelab/compare/v1.13.0...v1.13.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* HA for cilium lease and envoy api gateway ([b030138](https://github.com/Jasviers/homelab/commit/b03013847b26e92c2acfe9e2281465b79a5f3428))
+* update automaticaly uuid of cloudflare tunnel ([eec7d6b](https://github.com/Jasviers/homelab/commit/eec7d6bf5271247c83b224ad69a2778eb22f7fda))
+
 ## [1.13.0](https://github.com/Jasviers/homelab/compare/v1.12.0...v1.13.0) (2026-07-22)
 
 
