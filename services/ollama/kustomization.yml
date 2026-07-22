@@ -10,3 +10,4 @@ resources:
   - service.yml
   - httproute.yml
   - job-pull-models.yml
+  - backendtrafficpolicy.yml

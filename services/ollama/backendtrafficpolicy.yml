@@ -1,0 +1,14 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: ollama
+  namespace: ollama
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: ollama
+  timeout:
+    http:
+      requestTimeout: 10m
+      connectionIdleTimeout: 10m
