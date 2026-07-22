@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.2](https://github.com/Jasviers/homelab/compare/v1.13.1...v1.13.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* ollama exposed and cloudflared automatic deploy ([fcac3e3](https://github.com/Jasviers/homelab/commit/fcac3e3a849bacc9a4a34d091160a03c76f0c91f))
+* ollama exposed and cloudflared automatic deploy ([6e85aa0](https://github.com/Jasviers/homelab/commit/6e85aa076b699ae5c5007ce466719a7a287c22cb))
+
 ## [1.13.1](https://github.com/Jasviers/homelab/compare/v1.13.0...v1.13.1) (2026-07-22)
 
 
