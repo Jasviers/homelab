@@ -285,28 +285,31 @@ Kustomization que despliega [`cloudflared`](https://developers.cloudflare.com/cl
 A diferencia del resto, el túnel es **locally-managed**: las reglas de ingress se versionan en git (`configmap.yml`), no en el panel de Cloudflare. Esto da el control GitOps que pedía el TODO.
 
 - `namespace.yml`: namespace `cloudflared`.
-- `configmap.yml`: el `config.yaml` de cloudflared. Define el `tunnel` (UUID), el `credentials-file` y las reglas de `ingress`. La primera regla enruta `hs-lakasa.bonchan.org` → `http://192.168.1.2:8123` (**Home Assistant**, que corre en Docker sobre `luffy` con `network_mode: host`); la última (`http_status:404`) es el *catch-all* obligatorio.
-- `deployment.yml`: Deployment de `cloudflared` con **2 réplicas** (anti-afinidad por nodo para no perder el túnel si cae uno), `securityContext` sin privilegios y métricas en `:2000` (probes `/ready`).
+- `configmap.yml`: el `config.yaml` de cloudflared. Define el `tunnel` (UUID) y las reglas de `ingress`. La primera regla enruta `hs-lakasa.bonchan.org` → `http://192.168.1.2:8123` (**Home Assistant**, que corre en Docker sobre `luffy` con `network_mode: host`); la última (`http_status:404`) es el *catch-all* obligatorio.
+- `deployment.yml`: Deployment de `cloudflared` con **2 réplicas** (anti-afinidad por nodo para no perder el túnel si cae uno), `securityContext` sin privilegios y métricas en `:2000` (probes `/ready`). La autenticación del túnel se hace vía `TUNNEL_TOKEN` (env var desde el Secret `tunnel-credentials`), no con un fichero de credenciales montado.
 
 **Importante**: el túnel apunta **directo** a Home Assistant, **no** pasa por el Gateway. Es deliberado: el SSO de HA lo hace el propio Home Assistant vía OIDC contra Authentik (ver más abajo), no el forward-auth del Gateway (que rompería la app móvil, los webhooks y los tokens de API de HA).
 
 ### Bootstrap del túnel (pasos manuales)
 
-El UUID del túnel y sus credenciales **no se versionan**. Tras crear el túnel hay que rellenar el UUID en `configmap.yml` y crear el Secret a mano:
+El UUID del túnel y su token **no se versionan**. Tras crear el túnel hay que rellenar el UUID en `configmap.yml` y crear el Secret a mano:
 
 ```bash
 # 1. Autenticar y crear el túnel (genera ~/.cloudflared/<UUID>.json)
 cloudflared tunnel login
 cloudflared tunnel create homelab
 
-# 2. Secret con las credenciales del túnel (clave fija credentials.json)
-kubectl -n cloudflared create secret generic tunnel-credentials \
-  --from-file=credentials.json=$HOME/.cloudflared/<UUID>.json
+# 2. Obtener el token del túnel (misma credencial que el .json, en base64)
+cloudflared tunnel token homelab
 
-# 3. Registrar el DNS público (CNAME a <UUID>.cfargotunnel.com en bonchan.org)
+# 3. Secret con el token (clave fija `token`, leída como TUNNEL_TOKEN)
+kubectl -n cloudflared create secret generic tunnel-credentials \
+  --from-literal=token=<TOKEN_DEL_PASO_2>
+
+# 4. Registrar el DNS público (CNAME a <UUID>.cfargotunnel.com en bonchan.org)
 cloudflared tunnel route dns homelab hs-lakasa.bonchan.org
 
-# 4. Editar services/cloudflared/configmap.yml y poner el UUID en `tunnel:`
+# 5. Editar services/cloudflared/configmap.yml y poner el UUID en `tunnel:`
 ```
 
 Para añadir más servicios al túnel basta con una nueva regla en `ingress:` (antes del `http_status:404`) y su `route dns` correspondiente.
