@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.3](https://github.com/Jasviers/homelab/compare/v1.13.2...v1.13.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* ollama only use small model and big context, repair cloudflared … ([2acf1d9](https://github.com/Jasviers/homelab/commit/2acf1d9e6e1239f6dcccb33f280a3cf9749fb6d0))
+* ollama only use small model and big context, repair cloudflared deploy ([29d2389](https://github.com/Jasviers/homelab/commit/29d238932838953ba6878a61c2278345e729e64d))
+
 ## [1.13.2](https://github.com/Jasviers/homelab/compare/v1.13.1...v1.13.2) (2026-07-22)
 
 
