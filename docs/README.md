@@ -24,5 +24,6 @@ corrigiendo un runbook, y un runbook puede enlazar al postmortem que lo originó
 ## Postmortems
 
 _No hay postmortems escritos todavía. Cuando se escriban, seguir el formato
+
 [postmortems/_template.md](postmortems/_template.md) con el nombre
 `YYYY-MM-DD-titulo-corto.md`._
