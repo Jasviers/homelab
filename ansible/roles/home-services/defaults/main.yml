@@ -6,9 +6,7 @@ home_services_timezone: "Europe/Madrid"
 pihole_web_password: "changeme"
 pihole_dns_upstream: "1.1.1.1;1.0.0.1"
 
-whisper_model: "base-int8"
-whisper_language: "es"
-piper_voice: "es_ES-davefx-medium"
+piper_voice: "es_ES-carlfm-high"
 
 home_services_dns_servers:
   - { name: "luffy", ip: "192.168.1.2" }
