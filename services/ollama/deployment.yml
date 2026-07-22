@@ -33,9 +33,11 @@ spec:
             - name: OLLAMA_KEEP_ALIVE
               value: "-1"
             - name: OLLAMA_MAX_LOADED_MODELS
-              value: "2"
+              value: "1"
             - name: OLLAMA_NUM_PARALLEL
               value: "1"
+            - name: OLLAMA_CONTEXT_LENGTH
+              value: "200000"
           ports:
             - name: http
               containerPort: 11434

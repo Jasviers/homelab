@@ -27,11 +27,6 @@ spec:
             - -c
             - |
               set -eu
-              # Codigo: MoE 30B-A3B (~3B parametros activos por token), rapido
-              # en CPU pese a su tamano total; contexto 256K.
-              ollama pull qwen3-coder:30b
-              # Home Assistant / voz: denso 4B en modo "no-thinking" (2507),
-              # tool calling nativo, respuesta rapida para comandos cortos.
               ollama pull qwen3:4b-instruct-2507-q4_K_M
           resources:
             requests:
