@@ -74,6 +74,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `router.yml` | `router` | `services/router` |
 | `ollama.yml` | `ollama` | `services/ollama` |
 | `whisper.yml` | `whisper` | `services/whisper` |
+| `garage.yml` | `garage` | `services/garage` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -436,6 +437,49 @@ Kustomization que despliega [Ollama](https://ollama.com) en el nodo de IA (`vm-u
 - `httproute.yml`: publica la API en `ollama.bonchan.org` a través del Gateway (añadido a la allowlist de namespaces en `services/gateway/gateway.yml`).
 
 Recursos: `requests` 3 vCPU/24Gi, `limits` 7 vCPU/32Gi (deja margen para Whisper en el mismo nodo). Los ~22Gi que ocupan ambos modelos en RAM caben con holgura en los 48Gi del nodo.
+
+## garage/
+
+Kustomization que despliega [Garage](https://garagehq.deuxfleurs.fr/) como almacenamiento de objetos compatible con S3, en `garage.bonchan.org`. Se eligió sobre MinIO porque MinIO Community Edition quedó sin mantenimiento (repositorio archivado en 2026); Garage es un binario único en Rust, ligero, con años de uso en producción por terceros y sin depender de una empresa que monetice el mismo artefacto.
+
+Despliegue de un solo nodo (`replication_factor = 1`, sin HA real — no tiene sentido con un único NAS detrás):
+
+- `configmap.yml`: `garage.toml` con la configuración no sensible (rutas de `metadata_dir`/`data_dir` bajo `/var/lib/garage`, bind del API S3 en `3900`, RPC en `3901` y API de administración en `3903`). Los secretos (`rpc_secret`, `admin_token`, `metrics_token`) se referencian vía `*_file` apuntando a `/etc/garage-secrets/`, montados desde el Secret manual `garage-secrets`.
+- `pvc.yml`: PVC de 100Gi en `synology-iscsi-storage` montado en `/var/lib/garage` (datos + metadatos comparten el mismo volumen). Como la StorageClass tiene `allowVolumeExpansion: true`, crecer el almacenamiento más adelante es tan sencillo como subir `spec.resources.requests.storage` en este manifiesto y dejar que ArgoCD lo sincronice; no hay auto-scaling dinámico del tamaño (eso requeriría un controlador aparte tipo `pvc-autoscaler`), es una expansión online bajo demanda.
+- `deployment.yml`: un único Pod (`command: /garage server`).
+- `service.yml`: expone `3900` (S3 API) y `3903` (Admin API, solo para uso interno vía `kubectl exec`; **no** se publica en el Gateway).
+- `httproute.yml`: publica únicamente el API S3 en `garage.bonchan.org` (añadido a la allowlist de namespaces en `services/gateway/gateway.yml`). No se configuró `root_domain` en `[s3_api]`, así que los clientes S3 deben usar **path-style addressing** (`force_path_style` / `s3ForcePathStyle: true`), no virtual-hosted-style.
+
+No hay usuarios ni SSO: Garage se administra por completo con la CLI embebida en el propio binario (`garage <subcomando>`, ejecutado vía `kubectl exec` contra el pod), y el "control de acceso" son API keys con permisos por bucket — normalmente una key por aplicación/servicio, no por persona. Por eso no se integró con Authentik: el endpoint S3 se autentica con SigV4 (access key/secret key), que un login OIDC no puede sustituir.
+
+> **Manual**: antes del primer despliegue, crear el Secret con los tokens (no se versiona en git):
+>
+> ```bash
+> kubectl create namespace garage
+> kubectl -n garage create secret generic garage-secrets \
+>   --from-literal=rpc_secret="$(openssl rand -hex 32)" \
+>   --from-literal=admin_token="$(openssl rand -base64 32)" \
+>   --from-literal=metrics_token="$(openssl rand -base64 32)"
+> ```
+>
+> Tras el primer arranque del Pod hay que asignar el *layout* del clúster de un solo nodo (Garage no sirve tráfico S3 sin esto):
+>
+> ```bash
+> kubectl -n garage exec deploy/garage -- /garage node id
+> # con el <node-id> que devuelve (parte antes de la @):
+> kubectl -n garage exec deploy/garage -- /garage layout assign -z dc1 -c 100G <node-id>
+> kubectl -n garage exec deploy/garage -- /garage layout show
+> kubectl -n garage exec deploy/garage -- /garage layout apply
+> ```
+>
+> Gestión de buckets y claves de acceso (una key por aplicación/uso, con permisos por bucket):
+>
+> ```bash
+> kubectl -n garage exec deploy/garage -- /garage bucket create mi-bucket
+> kubectl -n garage exec deploy/garage -- /garage key create mi-app-key
+> kubectl -n garage exec deploy/garage -- /garage bucket allow --read --write mi-bucket --key mi-app-key
+> # las credenciales (access key id + secret) se muestran una sola vez en la salida de `key create`/`key info --show-secret`
+> ```
 
 Para usar otro modelo o ajustar los que se mantienen cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
 

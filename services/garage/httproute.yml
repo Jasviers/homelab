@@ -1,0 +1,22 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: garage
+  namespace: garage
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Garage
+    gethomepage.dev/description: Almacenamiento de objetos S3
+    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/icon: garage.png
+    gethomepage.dev/href: https://garage.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - garage.bonchan.org
+  rules:
+    - backendRefs:
+        - name: garage
+          port: 3900

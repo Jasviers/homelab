@@ -6,7 +6,7 @@ metadata:
   annotations:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/name: Ollama
-    gethomepage.dev/description: LLMs locales (Qwen3-Coder, Qwen3)
+    gethomepage.dev/description: LLMs locales
     gethomepage.dev/group: Cluster Management
     gethomepage.dev/icon: ollama.png
     gethomepage.dev/href: https://ollama.bonchan.org
