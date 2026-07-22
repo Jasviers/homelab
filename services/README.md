@@ -285,14 +285,14 @@ Kustomization que despliega [`cloudflared`](https://developers.cloudflare.com/cl
 A diferencia del resto, el túnel es **locally-managed**: las reglas de ingress se versionan en git (`configmap.yml`), no en el panel de Cloudflare. Esto da el control GitOps que pedía el TODO.
 
 - `namespace.yml`: namespace `cloudflared`.
-- `configmap.yml`: el `config.yaml` de cloudflared. Define el `tunnel` (UUID) y las reglas de `ingress`. La primera regla enruta `hs-lakasa.bonchan.org` → `http://192.168.1.2:8123` (**Home Assistant**, que corre en Docker sobre `luffy` con `network_mode: host`); la última (`http_status:404`) es el *catch-all* obligatorio.
-- `deployment.yml`: Deployment de `cloudflared` con **2 réplicas** (anti-afinidad por nodo para no perder el túnel si cae uno), `securityContext` sin privilegios y métricas en `:2000` (probes `/ready`). La autenticación del túnel se hace vía `TUNNEL_TOKEN` (env var desde el Secret `tunnel-credentials`), no con un fichero de credenciales montado.
+- `configmap.yml`: plantilla del `config.yaml` de cloudflared. Contiene el placeholder `<TUNNEL_ID>` que el init container reemplaza automáticamente con el UUID real al extraerlo del `TUNNEL_TOKEN` (JWT). Define las reglas de `ingress`: la primera enruta `hs-lakasa.bonchan.org` → `http://192.168.1.2:8123` (**Home Assistant**, que corre en Docker sobre `luffy` con `network_mode: host`); la última (`http_status:404`) es el *catch-all* obligatorio.
+- `deployment.yml`: Deployment de `cloudflared` con **2 réplicas** (anti-afinidad por nodo para no perder el túnel si cae uno), `securityContext` sin privilegios y métricas en `:2000` (probes `/ready`). La autenticación del túnel se hace vía `TUNNEL_TOKEN` (env var desde el Secret `tunnel-credentials`). Un **init container** (`busybox`) decodifica el JWT del token, extrae el UUID del campo `t` y genera el `config.yaml` definitivo en un volumen `emptyDir` compartido con el container principal.
 
 **Importante**: el túnel apunta **directo** a Home Assistant, **no** pasa por el Gateway. Es deliberado: el SSO de HA lo hace el propio Home Assistant vía OIDC contra Authentik (ver más abajo), no el forward-auth del Gateway (que rompería la app móvil, los webhooks y los tokens de API de HA).
 
 ### Bootstrap del túnel (pasos manuales)
 
-El UUID del túnel y su token **no se versionan**. Tras crear el túnel hay que rellenar el UUID en `configmap.yml` y crear el Secret a mano:
+El UUID del túnel y su token **no se versionan**. Tras crear el túnel hay que crear el Secret a mano; el UUID se resuelve automáticamente:
 
 ```bash
 # 1. Autenticar y crear el túnel (genera ~/.cloudflared/<UUID>.json)
@@ -308,9 +308,9 @@ kubectl -n cloudflared create secret generic tunnel-credentials \
 
 # 4. Registrar el DNS público (CNAME a <UUID>.cfargotunnel.com en bonchan.org)
 cloudflared tunnel route dns homelab hs-lakasa.bonchan.org
-
-# 5. Editar services/cloudflared/configmap.yml y poner el UUID en `tunnel:`
 ```
+
+> **UUID automático**: el init container decodifica el JWT del `TUNNEL_TOKEN`, extrae el UUID del campo `t` y lo inyecta en el `config.yaml`. No es necesario editar `configmap.yml` con el UUID.
 
 Para añadir más servicios al túnel basta con una nueva regla en `ingress:` (antes del `http_status:404`) y su `route dns` correspondiente.
 
