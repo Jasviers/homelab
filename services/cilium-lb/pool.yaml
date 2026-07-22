@@ -19,3 +19,7 @@ spec:
   interfaces:
     - ^eth0$
   loadBalancerIPs: true
+  serviceSelector:
+    matchExpressions:
+      - key: gateway.envoyproxy.io/owning-gateway-name
+        operator: DoesNotExist

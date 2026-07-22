@@ -5,12 +5,12 @@ metadata:
   namespace: cloudflared
 data:
   config.yaml: |
+    # <TUNNEL_ID> se reemplaza automáticamente por el init container
+    # a partir del TUNNEL_TOKEN (campo "t" del JWT).
     tunnel: <TUNNEL_ID>
     metrics: 0.0.0.0:2000
     no-autoupdate: true
-
     grace-period: 30s
-
     ingress:
       - hostname: hs-lakasa.bonchan.org
         service: http://192.168.1.2:8123
