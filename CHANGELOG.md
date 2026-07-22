@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/Jasviers/homelab/compare/v1.11.0...v1.12.0) (2026-07-22)
+
+
+### Features
+
+* change vm architecture to have 2 vms to control plane, 2 workers and 1 worker for AI ([91990b2](https://github.com/Jasviers/homelab/commit/91990b214868b6f5ff721efb2ce66c3594a7885d))
+* **services:** add ollama and whisper AI services with ArgoCD integration ([eef1afb](https://github.com/Jasviers/homelab/commit/eef1afbd2e8b216a6ccb9b69a2de0e5cfaf02583))
+
+
+### Bug Fixes
+
+* **synology-csi:** tolerate ai-dedicated taint on csi node daemonset ([f558a80](https://github.com/Jasviers/homelab/commit/f558a80c8cb0213e1e1acf4447f1e48154f91a52))
+
 ## [1.11.0](https://github.com/Jasviers/homelab/compare/v1.10.0...v1.11.0) (2026-06-20)
 
 
