@@ -38,7 +38,7 @@
 
 - name: Install k3s on worker nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}" --node-label bonchan.org/gateway-node=true
   when:
     - inventory_hostname in groups['k3s_workers']
     - not k3s_agent_unit.stat.exists
