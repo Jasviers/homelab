@@ -13,6 +13,7 @@ data:
             192.168.1.128 grafana.bonchan.org
             192.168.1.128 argocd.bonchan.org
             192.168.1.128 homepage.bonchan.org
+            192.168.1.128 ollama.bonchan.org
             fallthrough
         }
         forward . /etc/resolv.conf
