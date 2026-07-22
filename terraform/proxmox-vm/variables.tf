@@ -30,8 +30,12 @@ variable "vms" {
     vm_id       = optional(number)
     ipv4_cidr   = string
     description = optional(string)
+    cores       = optional(number)
+    memory      = optional(number)
+    disk_gb     = optional(number)
+    storage     = optional(string)
   }))
-  description = "Definiciones de las VMs que se desplegarán por defecto."
+  description = "Definiciones de las VMs que se desplegarán por defecto. cores/memory/disk_gb/storage son overrides opcionales por VM; si se omiten, se usan los globales del mismo nombre."
 }
 
 variable "template" {

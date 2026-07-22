@@ -26,16 +26,6 @@ services:
     restart: unless-stopped
     network_mode: host
 
-  whisper:
-    container_name: whisper
-    image: "rhasspy/wyoming-whisper:latest"
-    command: --model {{ whisper_model }} --language {{ whisper_language }} --beam-size 1 --threads 4
-    volumes:
-      - "./whisper:/data"
-    ports:
-      - "10300:10300"
-    restart: unless-stopped
-
   piper:
     container_name: piper
     image: "rhasspy/wyoming-piper:latest"

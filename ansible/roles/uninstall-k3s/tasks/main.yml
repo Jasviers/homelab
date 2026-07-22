@@ -1,11 +1,29 @@
 ---
-- name: Stop k3s service
+- name: Stop k3s service (control-plane)
   systemd:
     name: k3s
     state: stopped
+  when: inventory_hostname in groups['k3s_control_plane']
+  failed_when: false
 
-- name: Run k3s uninstall script
+- name: Stop k3s-agent service (workers/IA)
+  systemd:
+    name: k3s-agent
+    state: stopped
+  when: inventory_hostname not in groups['k3s_control_plane']
+  failed_when: false
+
+- name: Run k3s uninstall script (control-plane)
   shell: /usr/local/bin/k3s-uninstall.sh
+  when: inventory_hostname in groups['k3s_control_plane']
+  args:
+    removes: /usr/local/bin/k3s-uninstall.sh
+
+- name: Run k3s-agent uninstall script (workers/IA)
+  shell: /usr/local/bin/k3s-agent-uninstall.sh
+  when: inventory_hostname not in groups['k3s_control_plane']
+  args:
+    removes: /usr/local/bin/k3s-agent-uninstall.sh
 
 - name: Remove k3s directories
   file:

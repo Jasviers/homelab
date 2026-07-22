@@ -91,22 +91,26 @@ Proxmox indicado. Ver `packer/README.md`.
 
 ## Fase 3 — VMs del clúster con Terraform (🤖)
 
-Clona el template y crea las dos VMs del clúster (`vm-ubuntu26-zoro-01`
-`192.168.1.21` y `vm-ubuntu26-nami-01` `192.168.1.22`) con cloud-init.
+Clona el template y crea las 5 VMs del clúster con roles heterogéneos: 2
+control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, `vm-ubuntu26-nami-01`
+`192.168.1.22`, 2 vCPU/2 GB cada una), 2 workers (`vm-ubuntu26-zoro-02`
+`192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/6 GB) y 1 nodo de
+IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/48 GB).
 
 ```bash
 cd terraform/proxmox-vm
 
 cp terraform.tfvars.example terraform.tfvars
 # Edita terraform.tfvars: proxmox_endpoint, proxmox_api_token, template,
-# ssh_keys, ipv4_gateway... (las IPs/VMIDs de las VMs están en variables.tf > vms)
+# ssh_keys, ipv4_gateway... (las IPs/VMIDs/sizing de cada VM están en el mapa
+# `vms` de terraform.tfvars, con overrides por VM de cores/memory/disk_gb)
 
 terraform init
 terraform plan
 terraform apply
 ```
 
-*Resultado esperado:* `terraform apply` crea ambas VMs. Comprueba las salidas:
+*Resultado esperado:* `terraform apply` crea las 5 VMs. Comprueba las salidas:
 
 ```bash
 terraform output vm_ids
@@ -117,14 +121,24 @@ terraform output ipv4_addresses
 
 ## Fase 4 — Instalación de k3s con Ansible (🤖)
 
-Instala k3s en las dos VMs: inicializa el primer nodo con `--cluster-init`,
-recupera el token y une el segundo. Se despliega sin `servicelb`, `traefik` ni
-`local-storage` (el `LoadBalancer` lo da Cilium y el almacenamiento el CSI de
-Synology) y sin el networking integrado (`flannel`, `kube-proxy`,
-`network-policy`), que se sustituye por **Cilium**. El propio rol instala Cilium
-vía Helm desde tu máquina (requiere `helm` y `kubectl` locales) usando el
-endpoint `127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados.
-Al final descarga el kubeconfig a `~/.kube/config`.
+Instala k3s con roles diferenciados según el grupo de `ansible/inventory.ini`:
+los 2 nodos de `k3s_control_plane` se instalan como **server** con etcd
+embebido (el primero con `--cluster-init`, el segundo se une con
+`--server`/`--token`) y quedan tainted (`node-role.kubernetes.io/control-plane`)
+para no recibir cargas; los nodos de `k3s_workers` y `k3s_ai` se instalan como
+**agent** (worker), y el de `k3s_ai` añade además el taint `dedicated=ai` y el
+label `workload-type=ai` para que solo se programen ahí los pods que declaren
+la toleration/selector correspondiente. Se despliega sin `servicelb`, `traefik`
+ni `local-storage` (el `LoadBalancer` lo da Cilium y el almacenamiento el CSI
+de Synology) y sin el networking integrado (`flannel`, `kube-proxy`,
+`network-policy`), que se sustituye por **Cilium** (con tolerations para correr
+también en los nodos tainted). El propio rol instala Cilium vía Helm desde tu
+máquina (requiere `helm` y `kubectl` locales) usando el endpoint
+`127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados. Al final
+descarga el kubeconfig a `~/.kube/config`.
+
+> El quorum de etcd es 2/2 (2 control-plane): perder cualquiera de los dos deja
+> el API server sin quorum. Es una limitación aceptada, no un bug.
 
 ```bash
 cd ansible
@@ -144,7 +158,7 @@ El dataplane de Cilium (con LB IPAM y L2 habilitados) ya lo instaló la Fase 4;
 aquí solo se aplica el pool de IPs y la política de anuncio L2.
 
 ```bash
-kustomize build services/cilium-lb | kubectl apply -f -
+kubectl apply -k services/cilium-lb/
 ```
 
 *Resultado esperado:* `CiliumLoadBalancerIPPool` `pool` con el rango
@@ -154,7 +168,7 @@ Comprobar: `kubectl get ciliumloadbalancerippool,ciliuml2announcementpolicy`.
 ### 5.2 ArgoCD (🤖)
 
 ```bash
-kustomize build --enable-helm services/argocd | kubectl apply -f -
+kubectl apply -k services/argocd/ --enable-helm
 ```
 
 Contraseña inicial del admin:
@@ -167,7 +181,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ### 5.3 App-of-apps (🤖)
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
-gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator y el propio
+gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper y el propio
 argocd).
 
 ```bash
@@ -221,9 +236,14 @@ blueprint; ArgoCD lo lee desde `argocd-secret` (clave `oidc.argocd.clientSecret`
 ```bash
 ARGOCD_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 
-# Authentik: lo consume el worker para reconciliar el blueprint del provider.
-kubectl -n authentik create secret generic authentik-oidc-secrets \
-  --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+# Authentik: crea o actualiza el secret con la clave del provider.
+if kubectl -n authentik get secret authentik-oidc-secrets &>/dev/null; then
+  kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+    -p "{\"stringData\":{\"argocd-client-secret\":\"$ARGOCD_OIDC_SECRET\"}}"
+else
+  kubectl -n authentik create secret generic authentik-oidc-secrets \
+    --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+fi
 
 # ArgoCD: lo resuelve oidc.config vía $oidc.argocd.clientSecret.
 kubectl -n argocd patch secret argocd-secret --type merge \
@@ -274,6 +294,27 @@ kubectl -n kube-system create secret generic hubble-oidc-secret \
 
 La UI es de solo lectura; basta con que el usuario autentique en Authentik.
 
+**Otros clientes OIDC de Authentik (Proxmox, router ASUS, Home Assistant):** a
+diferencia de ArgoCD/Grafana/Hubble, el otro lado de estos 3 no es un Secret de
+Kubernetes, sino configuración manual en cada sistema (Proxmox: *Datacenter →
+Realms*; router ASUS: su propia config OIDC; Home Assistant: `configuration.yaml`
+en `luffy`, ver `services/README.md`). Aun así, sus blueprints de Authentik
+(`services/authentik/blueprints/`) esperan sus claves en `authentik-oidc-secrets`
+**desde el primer arranque** (si faltan, `authentik-server`/`authentik-worker`
+se quedan en `CreateContainerConfigError`):
+
+```bash
+PROXMOX_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+ROUTER_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+HA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\"}}"
+```
+
+Copia cada valor a su sistema correspondiente (Proxmox, router, HA) cuando
+configures su lado del OIDC.
+
 ---
 
 ## Fase 6 — Servicios en `luffy` (Pi-hole y Home Assistant) (🤖)
@@ -301,6 +342,13 @@ ssh root@zoro 'pvecm status'
 # Nodos del clúster
 kubectl get nodes
 
+# Cilium operativo (todos los nodos Ready, WireGuard activo, L2 announcements)
+cilium-dbg status --verbose
+
+# IP pool de LoadBalancer asignado
+kubectl get ciliumloadbalancerippool pool -o wide
+kubectl get ciliuml2announcementpolicy pool
+
 # Todas las Application sincronizadas
 kubectl -n argocd get applications
 
@@ -317,9 +365,11 @@ kubectl get storageclass
 # Acceso a los servicios (resolución vía Pi-hole)
 #   https://argocd.bonchan.org
 #   https://homepage.bonchan.org
+#   https://hubble.bonchan.org
 ```
 
-Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, todas las
+Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, Cilium reporta
+`5/5 reachable` con WireGuard activo, el pool LB IPAM listo, todas las
 `Application` en `Synced/Healthy`, el `ClusterIssuer` y el certificado wildcard
 en `READY=True`, y los servicios responden por HTTPS bajo `*.bonchan.org`.
 
