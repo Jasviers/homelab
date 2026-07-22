@@ -19,9 +19,10 @@ corrigiendo un runbook, y un runbook puede enlazar al postmortem que lo originó
 | Runbook | Estado | Descripción |
 | --- | --- | --- |
 | [00 — Bootstrap del homelab desde cero](runbooks/00-bootstrap-homelab.md) | ✅ | Despliegue completo: Proxmox → Packer → Terraform → Ansible (k3s) → servicios GitOps. |
+| [01 — Recovery parcial](runbooks/01-recovery-parcial.md) | ✅ | Caída de un nodo, pérdida de quorum o pérdida de datos en el NAS. |
 
 ## Postmortems
 
-Aún no hay incidentes documentados.
-Seguir el formato [postmortems/_template.md](postmortems/_template.md) con el nombre
-`YYYY-MM-DD-titulo-corto.md`.
+_No hay postmortems escritos todavía. Cuando se escriban, seguir el formato
+[postmortems/_template.md](postmortems/_template.md) con el nombre
+`YYYY-MM-DD-titulo-corto.md`._

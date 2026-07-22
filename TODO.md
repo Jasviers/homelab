@@ -4,68 +4,68 @@
 
 [x] Terraform para promox
 
-[X] k3s
+[x] k3s
 
-[X] metallb
+[x] metallb
 
-[X] ArgoCD
+[x] ArgoCD
 
-[X] cert manager
+[x] cert manager
 
-[X] Renovate para gestión de actualizaciones
+[x] Renovate para gestión de actualizaciones
 
-[X] Gateway API
+[x] Gateway API
 
-[X] Homepage
+[x] Homepage
 
-[X] Almacenamiento synology CSI
+[x] Almacenamiento synology CSI
 
-[X] PostgreSQL: operador CloudNativePG (CNPG)
+[x] PostgreSQL: operador CloudNativePG (CNPG)
 
-[X] SSO con Authentik
+[x] SSO con Authentik
 
-[X] Endpoint HA para API de k8s (kubevip)
+[x] Endpoint HA para API de k8s (kubevip)
 
-[X] Automatizar configuración proxmox y quorum
+[x] Automatizar configuración proxmox y quorum
 
-[X] Automatizar despliegue de Pi-hole y Home Assistant
+[x] Automatizar despliegue de Pi-hole y Home Assistant
 
 [x] Manual paso a paso para instalación y configuración de todo el homelab (automatización de todo lo posib)
 
 [x] Cilium como CNI
 
-[X] Monitorización (grafana, prometheus, loki y alloy)
+[x] Monitorización (grafana, prometheus, loki y alloy)
 
-[X] Asegurar que todos los logins vayan por authentik (Solo Grafana y argoCD de momento)
+[x] Asegurar que todos los logins vayan por authentik (Solo Grafana y argoCD de momento)
 
-[X] Mejoras de documentación
+[x] Mejoras de documentación
 
 ---
-[X] Sustituir metallb por cilium
+[x] Sustituir metallb por cilium
 
-[X] Mejor control de cloudflare tunnels (cloudflared en k8s)
+[x] Mejor control de cloudflare tunnels (cloudflared en k8s)
 
-[X] Ruta y DNS al router (añadirlo a homepage)
+[x] Ruta y DNS al router (añadirlo a homepage)
 
-[X] Red de trabajo separada (Solo acceso a internet y no al resto de la red)
+[x] Red de trabajo separada (Solo acceso a internet y no al resto de la red)
 
-[X] Activar hubble en cilium
+[x] Activar hubble en cilium
 
-[X] Activar cifrado pod-to-pod en cilium
+[x] Activar cifrado pod-to-pod en cilium
 
-[X] Mejorar el gateway api
+[x] Mejorar el gateway api
 
-[X] Mejorar infraestructura de maquinas virtuales y k8s
+[x] Mejorar infraestructura de maquinas virtuales y k8s
 
-[ ] Despliegue de modelo de IA local
+[x] Despliegue de modelo de IA local (Ollama: Qwen3-Coder para código, Qwen3 4B para Home Assistant)
 
-[ ] Despliegue de whisper en el cluster
+[x] Despliegue de whisper en el cluster
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
-[X] VPN foosha (Otra lozalización)
+[ ] VPN foosha (Site B — túnel site-to-site con el homelab principal)
 
 [ ] Netbox (IPAM/DCIM)
 
