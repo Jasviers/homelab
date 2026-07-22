@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-models
+  namespace: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama-pull-models
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: pull
+          image: ollama/ollama:0.32.1
+          env:
+            - name: OLLAMA_HOST
+              value: "http://ollama.ollama.svc.cluster.local:11434"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              # Codigo: MoE 30B-A3B (~3B parametros activos por token), rapido
+              # en CPU pese a su tamano total; contexto 256K.
+              ollama pull qwen3-coder:30b
+              # Home Assistant / voz: denso 4B en modo "no-thinking" (2507),
+              # tool calling nativo, respuesta rapida para comandos cortos.
+              ollama pull qwen3:4b-instruct-2507-q4_K_M
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

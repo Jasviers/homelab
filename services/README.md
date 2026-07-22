@@ -68,10 +68,44 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `monitor.yml` | `monitor` | `services/monitor` (sync-wave `2`; una sola Application para todo el stack de monitorización) |
 | `homepage.yml` | `homepage` | `services/homepage` |
 | `cloudflared.yml` | `cloudflared` | `services/cloudflared` |
+| `hubble.yml` | `hubble` | `services/hubble` |
+| `coredns.yml` | `coredns` | `services/coredns` |
+| `proxmox.yml` | `proxmox` | `services/proxmox` |
+| `router.yml` | `router` | `services/router` |
+| `ollama.yml` | `ollama` | `services/ollama` |
+| `whisper.yml` | `whisper` | `services/whisper` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
 Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Application` aquí; ArgoCD lo recogerá en el siguiente sync de `root`.
+
+## Taints de nodos
+
+El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
+instalar k3s, no GitOps):
+
+- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
+  `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
+  kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
+  (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
+- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/48 GB, sin GPU): taint
+  `dedicated=ai:NoSchedule` + label `workload-type=ai`. Aloja `ollama/` y
+  `whisper/` (ver secciones más abajo). Es el patrón a seguir para cualquier
+  servicio de IA futuro: su manifiesto debe incluir
+
+  ```yaml
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: ai
+      effect: NoSchedule
+  nodeSelector:
+    workload-type: ai
+  ```
+
+  Sin esta toleration + selector, el pod nunca se programa ahí; el resto de
+  servicios (que no la declaran) nunca aterrizan en este nodo aunque haya
+  hueco, por el taint.
 
 ## kubevip/
 
@@ -121,6 +155,8 @@ kubectl get clusterissuers          # READY=True cuando el token funciona
 kubectl describe certificate <name> # estado de la emisión
 ```
 
+La renovación del certificado wildcard es **automática**: cert-manager vigila la caducidad y renueva el certificado antes de que expire. Si el token de Cloudflare caduca, la renovación fallará y el `Certificate` pasará a `False`; habría que recrear el secret `cloudflare-api-token` con un token nuevo y cert-manager reintentará automáticamente.
+
 ## synology-csi/
 
 Kustomization que despliega el [CSI de Synology](https://github.com/SynologyOpenSource/synology-csi) (v1.3.0, manifiestos oficiales de `deploy/kubernetes/v1.20`) para aprovisionar volúmenes iSCSI dinámicos desde el NAS:
@@ -167,6 +203,15 @@ Kustomization que despliega [Homepage](https://gethomepage.dev) como portal/dash
 - `httproute.yml`: `HTTPRoute` que enruta `homepage.bonchan.org` al Service.
 
 **Autodescubrimiento**: otros servicios aparecen automáticamente en el dashboard añadiendo anotaciones `gethomepage.dev/*` a su `HTTPRoute` (nombre, grupo, icono, href y, opcionalmente, un widget). El widget de ArgoCD necesita un token, que se inyecta vía el Secret opcional `homepage-secrets` (clave `argocd-token`).
+
+## hubble/
+
+Kustomization que expone la UI de [Hubble](https://docs.cilium.io/en/stable/network/observability/) (observabilidad de red basada en eBPF de Cilium) en `hubble.bonchan.org`:
+
+- `httproute.yml`: `HTTPRoute` en `kube-system` que enruta `hubble.bonchan.org` al Service `hubble-ui:80` (el DaemonSet de Cilium ya despliega Hubble UI). Incluye anotaciones de autodescubrimiento de Homepage.
+- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway que protege la ruta con OIDC contra Authentik (`client_id: hubble`). El `client_secret` se inyecta vía el Secret `hubble-oidc-secret` en `kube-system`.
+
+Se despliega con sync-wave `2` (junto con monitorización). El OIDC se configura en el paso 5.4 del runbook de bootstrap.
 
 ## cnpg-operator/
 
@@ -281,8 +326,8 @@ Como HA queda detrás de cloudflared, hay que declararlo como proxy de confianza
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    - 192.168.1.21/32   # nodos k8s donde corre cloudflared (origen del tráfico tras SNAT)
-    - 192.168.1.22/32
+    - 192.168.1.30/32
+    - 192.168.1.31/32
 
 # Recomendado para que los enlaces y el redirect OIDC usen la URL pública
 external_url: "https://hs-lakasa.bonchan.org"
@@ -298,7 +343,7 @@ kubectl -n authentik create secret generic authentik-oidc-secrets \
   # ... junto al resto de claves (argocd/grafana/hubble/proxmox/router)
 ```
 
-> Si el Secret ya existe, edítalo (`kubectl -n authentik edit secret authentik-oidc-secrets`) para añadir la clave en lugar de recrearlo.
+> Si el Secret `authentik-oidc-secrets` ya existe, usa `patch` en lugar de `create` para no perder las claves existentes (ver el runbook de bootstrap para el patrón correcto create-or-patch).
 
 En el lado de Home Assistant se usa el componente [`hass-oidc-auth`](https://github.com/christiaangoossens/hass-oidc-auth) (instalable vía HACS). Configúralo en `configuration.yaml` (mismo `client_secret` que en Authentik, idealmente en `secrets.yaml`) y reinicia HA:
 
@@ -310,4 +355,94 @@ auth_oidc:
 ```
 
 Tras esto, la pantalla de login de HA ofrece la opción de entrar con Authentik. La app móvil y la API siguen funcionando con el login nativo de HA, ya que el OIDC se añade como proveedor adicional y no como forward-auth.
+
+## Cómo añadir un servicio nuevo al clúster
+
+1. **Crear la carpeta** bajo `services/<nombre>/` con un `kustomization.yml` que use `helmCharts` inline o manifiestos estáticos.
+
+2. **Definir un `HTTPRoute`** con `parentRefs` al Gateway `homelab` y un hostname bajo `bonchan.org`:
+
+   ```yaml
+   apiVersion: gateway.networking.k8s.io/v1
+   kind: HTTPRoute
+   metadata:
+     name: mi-servicio
+   spec:
+     parentRefs:
+       - name: homelab
+         namespace: envoy-gateway-system
+     hostnames:
+       - mi-servicio.bonchan.org
+     rules:
+       - backendRefs:
+           - name: mi-servicio
+             port: 80
+   ```
+
+3. **Anotaciones de Homepage** (opcional) para autodescubrimiento:
+
+   ```yaml
+   annotations:
+     gethomepage.dev/enabled: "true"
+     gethomepage.dev/name: Mi Servicio
+     gethomepage.dev/group: Grupo
+     gethomepage.dev/icon: <icono>.png
+     gethomepage.dev/href: https://mi-servicio.bonchan.org
+   ```
+
+4. **Crear la Application de ArgoCD** en `services/argocd-apps/<nombre>.yml`:
+
+   ```yaml
+   apiVersion: argoproj.io/v1alpha1
+   kind: Application
+   metadata:
+     name: mi-servicio
+     namespace: argocd
+   spec:
+     project: default
+     source:
+       repoURL: 'https://github.com/Jasviers/homelab'
+       targetRevision: HEAD
+       path: services/mi-servicio
+     destination:
+       server: 'https://kubernetes.default.svc'
+       namespace: mi-servicio
+     syncPolicy:
+       automated:
+         prune: true
+         selfHeal: true
+       syncOptions:
+         - CreateNamespace=true
+         - ServerSideApply=true
+   ```
+
+5. **Crear secrets no versionados** si el servicio los necesita (credenciales, tokens OIDC, etc.).
+
+6. **Aplicar** con `kubectl apply -k services/<nombre>/` o esperar a que ArgoCD lo sincronice en el siguiente sync de `root`.
+
+## ollama/
+
+Kustomization que despliega [Ollama](https://ollama.com) en el nodo de IA (`vm-ubuntu26-zoro-ai`, sin GPU), expuesto en `ollama.bonchan.org`:
+
+- `deployment.yml`: un único Pod (`OLLAMA_KEEP_ALIVE: "-1"`, `OLLAMA_MAX_LOADED_MODELS: "2"`) que mantiene dos modelos permanentemente en RAM:
+  - **`qwen3-coder:30b`** (Qwen3-Coder-30B-A3B, *Mixture-of-Experts* con ~3B parámetros activos por token): asistencia de código. La arquitectura MoE es la clave para que un modelo de esta calidad sea viable en CPU pura — el coste por token depende de los parámetros activos, no del total.
+  - **`qwen3:4b-instruct-2507-q4_K_M`**: modelo denso pequeño en modo *no-thinking*, dedicado a *tool calling* desde la integración Ollama de Home Assistant (respuestas cortas y rápidas para controlar dispositivos).
+  - `OLLAMA_NUM_PARALLEL: "1"`: sin GPU, decodificar en paralelo solo reparte los mismos vCPU entre peticiones simultáneas; en serie se sirve más rápido.
+- `pvc.yml`: PVC de 40Gi en `synology-iscsi-storage` montado en `/root/.ollama` (persiste los modelos entre reinicios del pod).
+- `job-pull-models.yml`: `Job` (sync-wave `1`, tras el Deployment) que ejecuta `ollama pull` de ambos modelos contra el Service; idempotente, así que ArgoCD puede reaplicarlo sin volver a descargar si el digest no cambió.
+- `httproute.yml`: publica la API en `ollama.bonchan.org` a través del Gateway (añadido a la allowlist de namespaces en `services/gateway/gateway.yml`).
+
+Recursos: `requests` 3 vCPU/24Gi, `limits` 7 vCPU/32Gi (deja margen para Whisper en el mismo nodo). Los ~22Gi que ocupan ambos modelos en RAM caben con holgura en los 48Gi del nodo.
+
+Para usar otro modelo o ajustar los que se mantienen cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
+
+## whisper/
+
+Kustomization que despliega Whisper (STT, protocolo Wyoming) en el nodo de IA, migrado desde el rol de Ansible `home-services` (antes corría en `luffy`):
+
+- `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja al compartir CPU con Ollama en el mismo nodo), `--language es`.
+- `pvc.yml`: PVC de 5Gi en `synology-iscsi-storage` montado en `/data` para no volver a descargar el modelo en cada reinicio.
+- `service.yml`: a diferencia del resto de servicios HTTP, Wyoming es un protocolo TCP a medida y **no** puede publicarse vía `HTTPRoute`. Se expone con una IP `LoadBalancer` propia de Cilium LB IPAM (`192.168.1.129:10300`), igual que el Gateway tiene la suya.
+
+> **Manual**: la integración Wyoming de Home Assistant apuntaba a `localhost:10300` (Whisper corría junto a HA en `luffy`). Hay que actualizarla a `192.168.1.129:10300` en la configuración de HA (fuera de este repo). Piper (TTS) sigue en `luffy` sin cambios.
 

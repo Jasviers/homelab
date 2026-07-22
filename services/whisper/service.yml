@@ -1,0 +1,22 @@
+# Wyoming es un protocolo TCP a medida (JSON + audio), no HTTP: no puede
+# publicarse via HTTPRoute en el Gateway. Se expone con una IP LoadBalancer
+# propia (Cilium LB IPAM) para que Home Assistant en luffy la alcance
+# directamente por la LAN, igual que hace el propio Gateway con la suya.
+apiVersion: v1
+kind: Service
+metadata:
+  name: whisper
+  namespace: whisper
+  labels:
+    app.kubernetes.io/name: whisper
+  annotations:
+    lbipam.cilium.io/ips: 192.168.1.129
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 10300
+      targetPort: wyoming
+      protocol: TCP
+      name: wyoming
+  selector:
+    app.kubernetes.io/name: whisper

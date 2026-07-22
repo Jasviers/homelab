@@ -1,17 +1,17 @@
 module "vm" {
   for_each = var.vms
 
-  source = "git::git@github.com:Jasviers/homelab.git//terraform/modules/proxmox-vm?ref=v1.2.1"
+  source = "git::https://github.com/Jasviers/homelab.git//terraform/modules/proxmox-vm?ref=v1.2.1"
 
   vm_name     = each.value.vm_name
   target_node = each.value.target_node
   template    = var.template
   vm_id       = each.value.vm_id
 
-  cores   = var.cores
-  memory  = var.memory
-  disk_gb = var.disk_gb
-  storage = var.storage
+  cores   = coalesce(each.value.cores, var.cores)
+  memory  = coalesce(each.value.memory, var.memory)
+  disk_gb = coalesce(each.value.disk_gb, var.disk_gb)
+  storage = coalesce(each.value.storage, var.storage)
 
   network_bridge = var.network_bridge
   ipv4_cidr      = each.value.ipv4_cidr

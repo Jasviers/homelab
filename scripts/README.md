@@ -25,4 +25,4 @@ Reglas de iptables para aislar la red de IOT (`192.168.52.0/24`, bridge `br52`) 
 
 Se instala como script de arranque del firewall en el router (`/jffs/scripts/firewall-start` en ASUS Merlin).
 
-> Aviso: el script usa `iptables -I` sin comprobar si las reglas ya existen; ejecutarlo varias veces duplica reglas.
+El script usa una función `ins()` que comprueba si la regla ya existe antes de insertarla (`iptables -C`), por lo que puede ejecutarse varias veces de forma segura sin duplicar reglas.
