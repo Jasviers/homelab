@@ -11,3 +11,4 @@ resources:
   - namespace.yml
   - configmap.yml
   - deployment.yml
+  - job.yml

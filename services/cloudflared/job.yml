@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tunnel-route-dns
+  namespace: cloudflared
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tunnel-route-dns
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: generate-commands
+          image: busybox:1.37
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "#!/cloudflared tunnel --no-autoupdate route dns homelab" > /shared/commands.sh
+              grep -E '^\s+- hostname:' /etc/cloudflared/config.yaml \
+                | sed 's/.*hostname: //' >> /shared/commands.sh
+              chmod +x /shared/commands.sh
+              echo "Generated commands:"
+              cat /shared/commands.sh
+          volumeMounts:
+            - name: configmap
+              mountPath: /etc/cloudflared/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: shared
+              mountPath: /shared
+      containers:
+        - name: route-dns
+          image: cloudflare/cloudflared:2026.6.1
+          command: ["/shared/commands.sh"]
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-credentials
+                  key: token
+          volumeMounts:
+            - name: shared
+              mountPath: /shared
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+      volumes:
+        - name: configmap
+          configMap:
+            name: cloudflared
+        - name: shared
+          emptyDir: {}
