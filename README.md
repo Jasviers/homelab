@@ -17,7 +17,7 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 | Host | IP | Hardware | Rol/Descripción |
 | --- | --- | --- | --- |
 | `nas.bonchan.org` | `192.168.1.1` | Synology DS223J · 2 bahías (1×4 TB, 1 libre) | NAS: almacenamiento e iSCSI (LUNs para el CSI del clúster) |
-| `luffy.bonchan.org` | `192.168.1.2` | Raspberry Pi 4B · 8 GB RAM | Pi-hole, Home Assistant + asistente de voz, quorum (QDevice) de Proxmox |
+| `luffy.bonchan.org` | `192.168.1.2` | Raspberry Pi 4B · 8 GB RAM | Pi-hole, Home Assistant + Piper (TTS), quorum (QDevice) de Proxmox |
 | `zoro.bonchan.org` | `192.168.1.3` | Geekom A5 · AMD Ryzen 5 7430U · 64 GB RAM | Proxmox Nodo 1 (hospeda `vm-ubuntu26-zoro-01`) |
 | `nami.bonchan.org` | `192.168.1.4` | Geekom A5 · AMD Ryzen 5 7430U · 16 GB RAM | Proxmox Nodo 2 (hospeda `vm-ubuntu26-nami-01`) |
 
@@ -28,12 +28,14 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 
 - **Pi-hole** en `luffy.bonchan.org` para DNS local y resolución de dominios internos.
 - **Home Assistant** en `luffy.bonchan.org`. Cerebro de la automatización del hogar.
-- **Asistente de voz** en `luffy.bonchan.org`: **Whisper** (STT) y **Piper** (TTS) vía
-  protocolo Wyoming, integrados con Home Assistant.
+- **Asistente de voz**: **Piper** (TTS) en `luffy.bonchan.org` y **Whisper** (STT) en
+  el clúster k3s (nodo de IA), ambos vía protocolo Wyoming, integrados con Home
+  Assistant.
 - **Proxmox** con dos nodos (`zoro` y `nami`) y quorum que incluye el Raspberry Pi (`luffy`).
-- **Clúster k3s** sobre dos VMs Ubuntu 26 (ver sección siguiente) con todos los
+- **Clúster k3s** sobre cinco VMs Ubuntu 26 (ver sección siguiente) con todos los
   servicios del homelab gestionados por GitOps (ArgoCD): SSO con Authentik,
-  PostgreSQL con CloudNativePG, monitorización (Grafana/Prometheus/Loki/Alloy), etc.
+  PostgreSQL con CloudNativePG, monitorización (Grafana/Prometheus/Loki/Alloy),
+  **Ollama** (Qwen3-Coder y Qwen3 4B) y **Whisper** en el nodo dedicado de IA, etc.
 
 ## Dominio y DNS
 
@@ -80,7 +82,6 @@ del homelab.
 - **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar). Tolera todos los taints (`tolerations: [{operator: Exists}]`) para correr también en los 2 nodos control-plane y en el nodo de IA.
 - **Cilium LB IPAM + L2 announcements** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), sustituyendo a MetalLB. El pool y la política L2 se definen en `services/cilium-lb/`.
 - **Cifrado pod-to-pod con WireGuard** habilitado en Cilium: el tráfico entre pods de distintos nodos viaja cifrado de forma transparente, sin gestión manual de claves.
-- **Hubble** (relay + UI) da observabilidad de red sobre eBPF. Las métricas se exportan a Prometheus/Grafana (`ServiceMonitor` en `services/monitor/cilium/`) y la UI se publica en `hubble.bonchan.org` protegida por OIDC de Authentik vía `SecurityPolicy` de Envoy Gateway (`services/hubble/`).
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
 - **ArgoCD** gestiona las aplicaciones del clúster vía GitOps desde este repositorio con un patrón *app-of-apps* y se expone a través del Gateway en `argocd.bonchan.org`.
 - **cert-manager** emite los certificados Let's Encrypt mediante challenge DNS-01 contra Cloudflare.
@@ -89,6 +90,10 @@ del homelab.
 - **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG.
 - **Monitorización**: **Prometheus** (métricas), **Loki** (logs), **Alloy** (recolección de logs) y **Grafana** (dashboards y alertas) en `grafana.bonchan.org`.
 - **Homepage** es el portal/dashboard del homelab en `homepage.bonchan.org`, con autodescubrimiento de servicios.
+- **Ollama** en el nodo de IA sirve dos modelos residentes en RAM: **Qwen3-Coder** (30B-A3B, MoE) para asistencia de código y **Qwen3 4B Instruct** (modo no-thinking) para *tool calling* desde Home Assistant, expuesto en `ollama.bonchan.org`.
+- **Whisper** (STT, protocolo Wyoming) corre también en el nodo de IA con una IP `LoadBalancer` dedicada (`192.168.1.129`), reemplazando al Whisper que antes corría en `luffy`; Piper (TTS) sigue en `luffy`.
+- **Cloudflare Tunnel** (`cloudflared`) expone servicios a internet sin abrir puertos en el router: Home Assistant vía `hs-lakasa.bonchan.org` (túnel locally-managed con reglas en git).
+- **Hubble** (relay + UI) da observabilidad de red sobre eBPF en `hubble.bonchan.org`, protegido por OIDC.
 
 ## Estructura del repositorio
 
@@ -96,12 +101,12 @@ del homelab.
 | --- | --- |
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
-| [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y asistente de voz) vía Docker Compose. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización). |
+| [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y Piper) vía Docker Compose. |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Ollama, Whisper). |
 | [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
-| `temp/` | Material en transición, pendiente de migrar a `services/`. |
+
 
 ## Flujo de despliegue
 
@@ -110,7 +115,7 @@ del homelab.
 3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las dos VMs del clúster con cloud-init.
 4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
 5. **Servicios** (`services/`): se aplican manualmente el pool de Cilium LB (`services/cilium-lb`) y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
-6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y el asistente de voz en la Raspberry.
+6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y Piper en la Raspberry.
 
 El procedimiento completo paso a paso está en el runbook
 [docs/runbooks/00-bootstrap-homelab.md](docs/runbooks/00-bootstrap-homelab.md).
@@ -131,6 +136,7 @@ flowchart TB
     cf -.->|Tunnel| asus
 
     subgraph lan["LAN 192.168.1.0/24 (estática)"]
+        classDef ai fill:#f59e0b,stroke:#d97706,stroke-width:2px
         nas["NAS Synology<br/>192.168.1.1"]
         luffy["luffy · RPi 4B<br/>192.168.1.2<br/>Pi-hole · Home Assistant · quorum"]
         zoro["zoro · Proxmox 1<br/>192.168.1.3"]
@@ -139,7 +145,7 @@ flowchart TB
         vm2["vm-nami-01 (control-plane)<br/>192.168.1.22"]
         vm3["vm-zoro-02 (worker)<br/>192.168.1.30"]
         vm4["vm-nami-02 (worker)<br/>192.168.1.31"]
-        vm5["vm-zoro-ai (IA, taint)<br/>192.168.1.40"]
+        vm5["vm-zoro-ai (IA: Ollama · Whisper, taint)<br/>192.168.1.40"]:::ai
         kvip["kube-vip<br/>VIP API k3s<br/>192.168.1.20"]
         gw["Envoy Gateway (Cilium LB)<br/>192.168.1.128<br/>*.bonchan.org"]
     end
@@ -190,6 +196,10 @@ flowchart TB
             root --> appMon[monitor]
             root --> appHome[homepage]
             root --> appArgo["argocd (self-managed)"]
+            root --> appHubble[hubble]
+            root --> appCloudflared[cloudflared]
+            root --> appOllama[ollama]
+            root --> appWhisper[whisper]
         end
 
         kubevip["kube-vip<br/>VIP API 192.168.1.20"]
@@ -202,6 +212,10 @@ flowchart TB
         cnpg["CloudNativePG<br/>operador PostgreSQL"]
         authentik["Authentik (SSO/IdP)<br/>authentik.bonchan.org"]
         monitor["Monitorización<br/>Prometheus · Loki · Alloy<br/>Grafana · grafana.bonchan.org"]
+        hubble["Hubble UI<br/>hubble.bonchan.org"]
+        cloudflared["cloudflared<br/>Tunnel → hs-lakasa.bonchan.org"]
+        ollama["Ollama (nodo IA)<br/>Qwen3-Coder · Qwen3 4B<br/>ollama.bonchan.org"]
+        whisper["Whisper STT (nodo IA)<br/>LoadBalancer 192.168.1.129:10300"]
     end
 
     nas[("NAS Synology<br/>LUNs iSCSI")]
@@ -219,13 +233,20 @@ flowchart TB
     appCnpg -.->|gestiona| cnpg
     appAuth -.->|gestiona| authentik
     appMon -.->|gestiona| monitor
+    appHubble -.->|gestiona| hubble
+    appCloudflared -.->|gestiona| cloudflared
+    appOllama -.->|gestiona| ollama
+    appWhisper -.->|gestiona| whisper
 
     users -->|HTTPS| gateway
     gateway -->|HTTPRoute| homepage
     gateway -->|HTTPRoute| argoUI
     gateway -->|HTTPRoute| authentik
     gateway -->|HTTPRoute| monitor
+    gateway -->|HTTPRoute| hubble
+    gateway -->|HTTPRoute| ollama
     ciliumLb -->|IP LB| gateway
+    ciliumLb -->|IP LB dedicada| whisper
     cert <-->|valida dominio| cloudflare
     cert -->|wildcard TLS| gateway
     cnpg -->|Cluster PG| authentik

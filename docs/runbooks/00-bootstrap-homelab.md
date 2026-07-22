@@ -158,7 +158,7 @@ El dataplane de Cilium (con LB IPAM y L2 habilitados) ya lo instaló la Fase 4;
 aquí solo se aplica el pool de IPs y la política de anuncio L2.
 
 ```bash
-kustomize build services/cilium-lb | kubectl apply -f -
+kubectl apply -k services/cilium-lb/
 ```
 
 *Resultado esperado:* `CiliumLoadBalancerIPPool` `pool` con el rango
@@ -168,7 +168,7 @@ Comprobar: `kubectl get ciliumloadbalancerippool,ciliuml2announcementpolicy`.
 ### 5.2 ArgoCD (🤖)
 
 ```bash
-kustomize build --enable-helm services/argocd | kubectl apply -f -
+kubectl apply -k services/argocd/ --enable-helm
 ```
 
 Contraseña inicial del admin:
@@ -181,7 +181,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ### 5.3 App-of-apps (🤖)
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
-gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator y el propio
+gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper y el propio
 argocd).
 
 ```bash
@@ -235,9 +236,14 @@ blueprint; ArgoCD lo lee desde `argocd-secret` (clave `oidc.argocd.clientSecret`
 ```bash
 ARGOCD_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 
-# Authentik: lo consume el worker para reconciliar el blueprint del provider.
-kubectl -n authentik create secret generic authentik-oidc-secrets \
-  --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+# Authentik: crea o actualiza el secret con la clave del provider.
+if kubectl -n authentik get secret authentik-oidc-secrets &>/dev/null; then
+  kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+    -p "{\"stringData\":{\"argocd-client-secret\":\"$ARGOCD_OIDC_SECRET\"}}"
+else
+  kubectl -n authentik create secret generic authentik-oidc-secrets \
+    --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+fi
 
 # ArgoCD: lo resuelve oidc.config vía $oidc.argocd.clientSecret.
 kubectl -n argocd patch secret argocd-secret --type merge \
@@ -336,6 +342,13 @@ ssh root@zoro 'pvecm status'
 # Nodos del clúster
 kubectl get nodes
 
+# Cilium operativo (todos los nodos Ready, WireGuard activo, L2 announcements)
+cilium-dbg status --verbose
+
+# IP pool de LoadBalancer asignado
+kubectl get ciliumloadbalancerippool pool -o wide
+kubectl get ciliuml2announcementpolicy pool
+
 # Todas las Application sincronizadas
 kubectl -n argocd get applications
 
@@ -352,9 +365,11 @@ kubectl get storageclass
 # Acceso a los servicios (resolución vía Pi-hole)
 #   https://argocd.bonchan.org
 #   https://homepage.bonchan.org
+#   https://hubble.bonchan.org
 ```
 
-Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, todas las
+Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, Cilium reporta
+`5/5 reachable` con WireGuard activo, el pool LB IPAM listo, todas las
 `Application` en `Synced/Healthy`, el `ClusterIssuer` y el certificado wildcard
 en `READY=True`, y los servicios responden por HTTPS bajo `*.bonchan.org`.
 
