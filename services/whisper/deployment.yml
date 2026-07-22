@@ -35,7 +35,7 @@ spec:
             - es
             - --beam-size
             - "1"
-            - --threads
+            - --cpu-threads
             - "2"
           ports:
             - name: wyoming
