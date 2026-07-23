@@ -23,6 +23,8 @@ services:
     volumes:
       - "./homeassistant:/config"
       - "/etc/localtime:/etc/localtime:ro"
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0:rwm"
     restart: unless-stopped
     network_mode: host
 

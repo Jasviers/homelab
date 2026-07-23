@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+  namespace: media
+  labels:
+    app.kubernetes.io/name: sonarr
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sonarr
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sonarr
+    spec:
+      # Fijado al mismo nodo que jellyfin/radarr/qbittorrent: media-library es un PVC
+      # ReadWriteOnce (iSCSI), solo se puede montar en varios pods si comparten nodo.
+      nodeSelector:
+        kubernetes.io/hostname: vm-ubuntu26-nami-02
+      containers:
+        - name: sonarr
+          image: lscr.io/linuxserver/sonarr:4.0.19
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: Europe/Madrid
+          ports:
+            - name: http
+              containerPort: 8989
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media-library
+              mountPath: /data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: sonarr-config
+        - name: media-library
+          persistentVolumeClaim:
+            claimName: media-library

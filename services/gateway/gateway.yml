@@ -93,3 +93,5 @@ spec:
                   - proxmox
                   - router
                   - ollama
+                  - garage
+                  - media

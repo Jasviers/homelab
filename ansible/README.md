@@ -40,7 +40,7 @@ La conexión usa `root` con la clave SSH `~/.ssh/id_ed25519` (ver `[homelab:vars
 | `install-docker` | Instala Docker Engine + Compose plugin (usado en `luffy` para los servicios del hogar). |
 | `install-k3s` | Instalación de k3s con roles server (control-plane, etcd embebido, taint) y agent (workers/IA, uno de ellos tainted para IA), sin flannel ni kube-proxy + Cilium como CNI vía Helm (con cifrado pod-to-pod WireGuard y Hubble habilitados). Variables en `defaults/main.yml` (versión del chart, endpoint del API). |
 | `uninstall-k3s` | Desinstalación y limpieza de k3s (server o agent según el grupo del host, incluye restos de red de Cilium). |
-| `home-services` | Despliega el stack Docker Compose de `luffy` (Pi-hole, Home Assistant, Piper) y los `host-record` de DNS local. Variables en `defaults/main.yml`. |
+| `home-services` | Despliega el stack Docker Compose de `luffy` (Pi-hole, Home Assistant, Piper) y los `host-record` de DNS local. En una instalación desde 0 siembra `configuration.yaml` de Home Assistant con `http.trusted_proxies` (necesario para aceptar el `X-Forwarded-For` que añade Cloudflare Tunnel; sin esto HA responde 400 Bad Request a las peticiones proxied). Variables en `defaults/main.yml`. |
 | `cloud-init` | Preparación del template de Proxmox: instala paquetes base, resetea `machine-id`, limpia configuración del instalador y deja cloud-init listo (`datasource_list: [NoCloud, ConfigDrive]`, `cloud-init clean`). |
 
 ## Uso
