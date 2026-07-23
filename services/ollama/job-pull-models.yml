@@ -27,6 +27,7 @@ spec:
             - -c
             - |
               set -eu
+              ollama rm qwen3.5:4b-q4_K_M || true
               ollama pull qwen3:4b-instruct-2507-q4_K_M
           resources:
             requests:

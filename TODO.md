@@ -73,13 +73,17 @@
 
 [ ] Mejora de gateway api (HA, Politicas de trafico, health checks, etc.)
 
+[ ] Mejorar configuración de Proxmox (Que use por ejemplo versiones especificas de x86 por defecto)
+
+[ ] Revisar escalabilidad de los PVC de k8s con synology y el formato de ISCSI (iSCSI vs NFS)
+
 ---
 
 [ ] vault
 
-[ ] Desplegar MinIO o alternativa
+[x] Desplegar Garage buckets
 
-[ ] Jellyfin
+[x] Jellyfin (+ Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent)
 
 [ ] Mejorar el homepage (más información, más servicios, etc.)
 
@@ -92,8 +96,6 @@
 [ ] SSO para pihole
 
 ---
-
-[ ] Enchufes y luces (home assistant)
 
 [ ] Mejoras de seguridad
 
