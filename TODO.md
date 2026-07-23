@@ -83,7 +83,7 @@
 
 [x] Desplegar Garage buckets
 
-[ ] Jellyfin
+[x] Jellyfin (+ Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent)
 
 [ ] Mejorar el homepage (más información, más servicios, etc.)
 
@@ -96,8 +96,6 @@
 [ ] SSO para pihole
 
 ---
-
-[ ] Enchufes y luces (home assistant)
 
 [ ] Mejoras de seguridad
 

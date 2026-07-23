@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qbittorrent
+  namespace: media
+  labels:
+    app.kubernetes.io/name: qbittorrent
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qbittorrent
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qbittorrent
+    spec:
+      # Fijado al mismo nodo que jellyfin/radarr/sonarr: media-library es un PVC
+      # ReadWriteOnce (iSCSI), solo se puede montar en varios pods si comparten nodo.
+      # Además, para que Radarr/Sonarr puedan hacer hardlink en vez de copiar al
+      # importar, /data debe ser el mismo volumen en los cuatro Pods.
+      nodeSelector:
+        kubernetes.io/hostname: vm-ubuntu26-nami-02
+      containers:
+        - name: qbittorrent
+          image: lscr.io/linuxserver/qbittorrent:5.2.3
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: Europe/Madrid
+            - name: WEBUI_PORT
+              value: "8080"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: torrent-tcp
+              containerPort: 6881
+              protocol: TCP
+            - name: torrent-udp
+              containerPort: 6881
+              protocol: UDP
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: media-library
+              mountPath: /data
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: qbittorrent-config
+        - name: media-library
+          persistentVolumeClaim:
+            claimName: media-library
