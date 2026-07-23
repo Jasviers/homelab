@@ -75,6 +75,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `ollama.yml` | `ollama` | `services/ollama` |
 | `whisper.yml` | `whisper` | `services/whisper` |
 | `garage.yml` | `garage` | `services/garage` |
+| `media.yml` | `media` | `services/media` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -482,6 +483,30 @@ No hay usuarios ni SSO: Garage se administra por completo con la CLI embebida en
 > ```
 
 Para usar otro modelo o ajustar los que se mantienen cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
+
+## media/
+
+Kustomization que despliega el stack multimedia (Jellyfin + Jellyseerr + Radarr + Sonarr + Prowlarr + qBittorrent) como un único namespace `media`, en `jellyfin.bonchan.org`, `jellyseerr.bonchan.org`, `radarr.bonchan.org`, `sonarr.bonchan.org`, `prowlarr.bonchan.org` y `qbittorrent.bonchan.org`.
+
+A diferencia del resto de servicios (1 namespace por app), aquí todo comparte namespace porque Jellyfin/Radarr/Sonarr/qBittorrent necesitan ver **exactamente el mismo volumen** para que Radarr/Sonarr puedan importar con *hardlink* (instantáneo, sin duplicar espacio) en vez de copiar. Como la StorageClass del clúster (`synology-iscsi-storage`) es iSCSI y solo soporta `ReadWriteOnce`, ese volumen compartido solo puede montarse en varios Pods si todos corren en el **mismo nodo**. Al ser un único namespace con varias apps, sigue el mismo patrón que `monitor/`: una carpeta por app (cada una con su propio `kustomization.yml` con `namespace: media`) referenciadas desde el `kustomization.yml` raíz junto con los recursos compartidos:
+
+- `namespace.yml`: el único `Namespace` (`media`) para todas las apps.
+- `media-library-pvc.yml`: PVC compartido de 500Gi en `synology-iscsi-storage` — el único recurso que no pertenece a una app concreta, por eso vive en la raíz.
+- `jellyfin/`, `jellyseerr/`, `radarr/`, `sonarr/`, `prowlarr/`, `qbittorrent/`: cada carpeta tiene `pvc.yml` (config propia, 10Gi para Jellyfin, 1-2Gi para el resto), `deployment.yml`, `service.yml` y `httproute.yml` (con las anotaciones de Homepage bajo el grupo `Media`), publicando en `<app>.bonchan.org`.
+- `jellyfin/deployment.yml`, `radarr/deployment.yml`, `sonarr/deployment.yml`, `qbittorrent/deployment.yml`: los cuatro llevan `nodeSelector: kubernetes.io/hostname: vm-ubuntu26-nami-02` (fijos al mismo worker) y montan `media-library` en `/data` (Jellyfin en solo lectura, el resto en lectura-escritura). Dentro de `/data`, la convención es `/data/torrents/{movies,tv}` para las descargas y `/data/media/{movies,tv}` para la biblioteca final — así el hardlink entre ambas carpetas es posible por estar en el mismo filesystem. Esta estructura se crea a mano (o desde la propia UI) en el primer arranque; no está en git porque vive dentro del PVC.
+- `jellyseerr/deployment.yml`, `prowlarr/deployment.yml`: no montan `media-library` (solo hablan por API con Jellyfin/Radarr/Sonarr), así que no necesitan estar fijados a un nodo concreto.
+- Como todas las apps están en el mismo namespace `media`, el Gateway solo necesita una entrada (`media`) en la allowlist de `services/gateway/gateway.yml` para dar acceso a las 6 rutas.
+
+> **Manual tras el primer despliegue** (nada de esto se versiona en git, es configuración desde cada UI):
+>
+> 1. Crear en `media-library` (por ejemplo con `kubectl -n media exec deploy/qbittorrent -- mkdir -p /data/torrents/movies /data/torrents/tv /data/media/movies /data/media/tv`) la estructura de carpetas anterior.
+> 2. **Prowlarr**: añadir los indexadores y conectarlo a Radarr/Sonarr (Settings → Apps) para que sincronice los indexadores automáticamente.
+> 3. **qBittorrent**: carpeta de descargas por defecto `/data/torrents`.
+> 4. **Radarr/Sonarr**: root folder `/data/media/movies` / `/data/media/tv`; añadir qBittorrent como *download client* (`qbittorrent.media.svc.cluster.local:8080`) y usar categorías (`radarr`/`sonarr`) para que qBittorrent separe las descargas por app.
+> 5. **Jellyfin**: crear las bibliotecas apuntando a `/data/media/movies` y `/data/media/tv` (montado en solo lectura).
+> 6. **Jellyseerr**: conectarlo a Jellyfin (`jellyfin.media.svc.cluster.local:8096`) y a Radarr/Sonarr (`radarr.media.svc.cluster.local:7878` / `sonarr.media.svc.cluster.local:8989`) desde su asistente de configuración inicial.
+>
+> Ninguna de estas apps tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, en el caso de qBittorrent/Radarr/Sonarr/Prowlarr si se restringe el acceso solo a la LAN).
 
 ## whisper/
 
