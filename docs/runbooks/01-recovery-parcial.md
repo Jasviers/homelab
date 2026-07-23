@@ -113,9 +113,10 @@ k3s agent --server https://zoro:6443 --token <token>
 
 ---
 
-## Escenario 3 — Pérdida de un disco del NAS / corrupción de LUNs iSCSI
+## Escenario 3 — Pérdida de un disco del NAS / corrupción de LUNs iSCSI o carpetas NFS
 
-Si un disco del Synology falla o las LUNs iSCSI se corrompen:
+Si un disco del Synology falla, las LUNs iSCSI se corrompen, o falla el
+servicio NFS / las carpetas compartidas que respaldan `synology-nfs-storage`:
 
 ### 3.1 Diagnosticar
 
@@ -128,17 +129,23 @@ kubectl get pv | grep -i pending
 kubectl -n synology-csi logs sts/synology-csi-controller -c csi-plugin --tail=50
 ```
 
-### 3.2 Si el NAS sigue accesible pero las LUNs están dañadas
+### 3.2 Si el NAS sigue accesible pero las LUNs/carpetas están dañadas
 
-1. En la DSM, eliminar las LUNs dañadas y recrearlas con el mismo `location` (`/volume1`).
-2. El Synology CSI re-creará los PVs dinámicamente al hacer `kubectl apply` del
-   `storage-class.yml` de nuevo.
+1. En la DSM, eliminar las LUNs dañadas y recrearlas con el mismo `location`
+   (`/volume1` para `synology-iscsi-storage`), o recrear la carpeta compartida
+   `nfs_kubernetes` (`/volume1/nfs_kubernetes` para `synology-nfs-storage`),
+   reactivando el servicio NFS y los permisos (lectura/escritura, sin *root
+   squash*, subred de los nodos) si hiciera falta.
+2. El Synology CSI re-creará los PVs dinámicamente al hacer `kubectl apply` de
+   `storage-class.yml` / `storage-class-nfs.yml` de nuevo.
 
 ### 3.3 Si el NAS completo está perdido
 
 1. Restaurar datos desde backup (si existe).
 
-2. Recrear las LUNs iSCSI en el DSM nuevo.
+2. Recrear las LUNs iSCSI y la carpeta compartida NFS (`nfs_kubernetes`,
+   con el servicio NFS activado y permisos para la subred de los nodos) en el
+   DSM nuevo.
 
 3. Recrear el Secret `client-info-secret`:
 

@@ -164,7 +164,8 @@ La renovación del certificado wildcard es **automática**: cert-manager vigila 
 Kustomization que despliega el [CSI de Synology](https://github.com/SynologyOpenSource/synology-csi) (v1.3.0, manifiestos oficiales de `deploy/kubernetes/v1.20`) para aprovisionar volúmenes iSCSI dinámicos desde el NAS:
 
 - `namespace.yml`, `csi-driver.yml`, `controller.yml`, `node.yml`: el `CSIDriver`, el controller (StatefulSet con provisioner/attacher/resizer) y el node (DaemonSet) con su RBAC.
-- `storage-class.yml`: StorageClass `synology-iscsi-storage`, marcada como **default** del clúster, `reclaimPolicy: Retain` y expansión de volumen habilitada. Usa `protocol: iscsi`, por lo que cada PV es una **LUN iSCSI** creada en el volumen DSM indicado en `location` (`/volume1`); las LUNs no se crean dentro de carpetas compartidas. Ajusta `location` al volumen que toque.
+- `storage-class.yml`: StorageClass `synology-iscsi-storage`, marcada como **default** del clúster, `reclaimPolicy: Retain` y expansión de volumen habilitada. Usa `protocol: iscsi`, por lo que cada PV es una **LUN iSCSI** creada en el volumen DSM indicado en `location` (`/volume1`); las LUNs no se crean dentro de carpetas compartidas.
+- `storage-class-nfs.yml`: StorageClass `synology-nfs-storage`, mismo provisioner pero `protocol: nfs`. Aquí cada PV es una **carpeta compartida** creada dinámicamente por el driver dentro de `location` (`/volume1/nfs_kubernetes`, carpeta compartida precreada en el DSM con el servicio NFS activado y permisos para la subred de los nodos), no una LUN — no cuenta contra el límite de LUNs iSCSI del NAS. También soporta `ReadWriteMany`. El NAS usado en este homelab (Synology DS223j, 2 bahías) solo admite un número reducido de LUNs iSCSI (10), así que `synology-nfs-storage` es la clase recomendada para cualquier PVC que no necesite semántica de bloque: solo se deja en iSCSI lo que se beneficia de ella (bases de datos, Loki, Garage).
 - El snapshotter no se incluye (requeriría las CRDs de `snapshot.storage.k8s.io` y el snapshot-controller).
 
 Las credenciales del NAS **no se versionan en git** (`client-info.yml` está en `.gitignore`). Hay que crear el Secret a mano tras el primer sync, partiendo de la plantilla `client-info.example.yml`:
@@ -176,11 +177,11 @@ kubectl -n synology-csi create secret generic client-info-secret \
   --from-file=client-info.yml=services/synology-csi/client-info.yml
 ```
 
-El usuario del DSM debe estar en el grupo `administrators` y tener el servicio iSCSI activado en el NAS. Verificación:
+El usuario del DSM debe estar en el grupo `administrators` y tener el servicio iSCSI activado en el NAS. Para `synology-nfs-storage` además hay que activar el servicio NFS (Panel de control → Servicios de archivos → NFS) y dar permisos NFS (lectura/escritura, sin *root squash*) a la subred de los nodos sobre la carpeta compartida usada en `location`. Verificación:
 
 ```bash
 kubectl -n synology-csi get pods                 # controller + node Running
-kubectl get storageclass                          # synology-iscsi-storage (default)
+kubectl get storageclass                          # synology-iscsi-storage (default) y synology-nfs-storage
 kubectl -n synology-csi logs sts/synology-csi-controller -c csi-plugin
 ```
 
@@ -488,13 +489,13 @@ Para usar otro modelo o ajustar los que se mantienen cargados, edita `job-pull-m
 
 Kustomization que despliega el stack multimedia (Jellyfin + Jellyseerr + Radarr + Sonarr + Prowlarr + qBittorrent) como un único namespace `media`, en `jellyfin.bonchan.org`, `jellyseerr.bonchan.org`, `radarr.bonchan.org`, `sonarr.bonchan.org`, `prowlarr.bonchan.org` y `qbittorrent.bonchan.org`.
 
-A diferencia del resto de servicios (1 namespace por app), aquí todo comparte namespace porque Jellyfin/Radarr/Sonarr/qBittorrent necesitan ver **exactamente el mismo volumen** para que Radarr/Sonarr puedan importar con *hardlink* (instantáneo, sin duplicar espacio) en vez de copiar. Como la StorageClass del clúster (`synology-iscsi-storage`) es iSCSI y solo soporta `ReadWriteOnce`, ese volumen compartido solo puede montarse en varios Pods si todos corren en el **mismo nodo**. Al ser un único namespace con varias apps, sigue el mismo patrón que `monitor/`: una carpeta por app (cada una con su propio `kustomization.yml` con `namespace: media`) referenciadas desde el `kustomization.yml` raíz junto con los recursos compartidos:
+A diferencia del resto de servicios (1 namespace por app), aquí todo comparte namespace porque Jellyfin/Radarr/Sonarr/qBittorrent necesitan ver **exactamente el mismo volumen** para que Radarr/Sonarr puedan importar con *hardlink* (instantáneo, sin duplicar espacio) en vez de copiar. `media-library` usa la StorageClass `synology-nfs-storage` (carpetas compartidas del CSI de Synology, no LUNs iSCSI) con `accessModes: ReadWriteMany`, así que ese volumen compartido puede montarse en varios Pods sin necesidad de fijarlos al mismo nodo. Al ser un único namespace con varias apps, sigue el mismo patrón que `monitor/`: una carpeta por app (cada una con su propio `kustomization.yml` con `namespace: media`) referenciadas desde el `kustomization.yml` raíz junto con los recursos compartidos:
 
 - `namespace.yml`: el único `Namespace` (`media`) para todas las apps.
-- `media-library-pvc.yml`: PVC compartido de 500Gi en `synology-iscsi-storage` — el único recurso que no pertenece a una app concreta, por eso vive en la raíz.
-- `jellyfin/`, `jellyseerr/`, `radarr/`, `sonarr/`, `prowlarr/`, `qbittorrent/`: cada carpeta tiene `pvc.yml` (config propia, 10Gi para Jellyfin, 1-2Gi para el resto), `deployment.yml`, `service.yml` y `httproute.yml` (con las anotaciones de Homepage bajo el grupo `Media`), publicando en `<app>.bonchan.org`.
-- `jellyfin/deployment.yml`, `radarr/deployment.yml`, `sonarr/deployment.yml`, `qbittorrent/deployment.yml`: los cuatro llevan `nodeSelector: kubernetes.io/hostname: vm-ubuntu26-nami-02` (fijos al mismo worker) y montan `media-library` en `/data` (Jellyfin en solo lectura, el resto en lectura-escritura). Dentro de `/data`, la convención es `/data/torrents/{movies,tv}` para las descargas y `/data/media/{movies,tv}` para la biblioteca final — así el hardlink entre ambas carpetas es posible por estar en el mismo filesystem. Esta estructura se crea a mano (o desde la propia UI) en el primer arranque; no está en git porque vive dentro del PVC.
-- `jellyseerr/deployment.yml`, `prowlarr/deployment.yml`: no montan `media-library` (solo hablan por API con Jellyfin/Radarr/Sonarr), así que no necesitan estar fijados a un nodo concreto.
+- `media-library-pvc.yml`: PVC compartido de 500Gi en `synology-nfs-storage` (`ReadWriteMany`) — el único recurso que no pertenece a una app concreta, por eso vive en la raíz.
+- `jellyfin/`, `jellyseerr/`, `radarr/`, `sonarr/`, `prowlarr/`, `qbittorrent/`: cada carpeta tiene `pvc.yml` (config propia en `synology-nfs-storage`, 10Gi para Jellyfin, 1-2Gi para el resto), `deployment.yml`, `service.yml` y `httproute.yml` (con las anotaciones de Homepage bajo el grupo `Media`), publicando en `<app>.bonchan.org`.
+- `jellyfin/deployment.yml`, `radarr/deployment.yml`, `sonarr/deployment.yml`, `qbittorrent/deployment.yml`: montan `media-library` en `/data` (Jellyfin en solo lectura, el resto en lectura-escritura). Dentro de `/data`, la convención es `/data/torrents/{movies,tv}` para las descargas y `/data/media/{movies,tv}` para la biblioteca final — así el hardlink entre ambas carpetas es posible por estar en el mismo filesystem. Esta estructura se crea a mano (o desde la propia UI) en el primer arranque; no está en git porque vive dentro del PVC.
+- `jellyseerr/deployment.yml`, `prowlarr/deployment.yml`: no montan `media-library` (solo hablan por API con Jellyfin/Radarr/Sonarr).
 - Como todas las apps están en el mismo namespace `media`, el Gateway solo necesita una entrada (`media`) en la allowlist de `services/gateway/gateway.yml` para dar acceso a las 6 rutas.
 
 > **Manual tras el primer despliegue** (nada de esto se versiona en git, es configuración desde cada UI):
