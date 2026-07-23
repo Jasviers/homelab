@@ -18,10 +18,6 @@ spec:
       labels:
         app.kubernetes.io/name: jellyfin
     spec:
-      # Fijado al mismo nodo que radarr/sonarr/qbittorrent: media-library es un PVC
-      # ReadWriteOnce (iSCSI), solo se puede montar en varios pods si comparten nodo.
-      nodeSelector:
-        kubernetes.io/hostname: vm-ubuntu26-nami-02
       containers:
         - name: jellyfin
           image: lscr.io/linuxserver/jellyfin:10.11.11
