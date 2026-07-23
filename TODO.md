@@ -75,7 +75,7 @@
 
 [ ] Mejorar configuración de Proxmox (Que use por ejemplo versiones especificas de x86 por defecto)
 
-[ ] Revisar escalabilidad de los PVC de k8s con synology y el formato de ISCSI (iSCSI vs NFS)
+[x] Revisar escalabilidad de los PVC de k8s con synology y el formato de ISCSI (iSCSI vs NFS)
 
 ---
 

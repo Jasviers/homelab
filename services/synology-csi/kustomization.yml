@@ -15,3 +15,4 @@ resources:
   - controller.yml
   - node.yml
   - storage-class.yml
+  - storage-class-nfs.yml

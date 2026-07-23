@@ -7,8 +7,8 @@ metadata:
     app.kubernetes.io/name: media-library
 spec:
   accessModes:
-    - ReadWriteOnce
-  storageClassName: synology-iscsi-storage
+    - ReadWriteMany
+  storageClassName: synology-nfs-storage
   resources:
     requests:
       storage: 500Gi
