@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.14.0](https://github.com/Jasviers/homelab/compare/v1.13.3...v1.14.0) (2026-07-23)
+
+
+### Features
+
+* add garage buckets and improve cloudflared ([f294be3](https://github.com/Jasviers/homelab/commit/f294be36a3c48438c67517e2a572d43d767a362f))
+* add garage buckets and improve cloudflared ([91e8afc](https://github.com/Jasviers/homelab/commit/91e8afc3ebab2858f8f5e472db17203d9f65da84))
+* add media server with jellyfin ([a01cff8](https://github.com/Jasviers/homelab/commit/a01cff8d2f6f2f1747af1c1ae6bcc2af14fdaef6))
+
+
+### Bug Fixes
+
+* add nfs storage class, we reach the limit of LUNs in Synology NA… ([7cf4b09](https://github.com/Jasviers/homelab/commit/7cf4b0917dfa57026399576b689a11bd84a4b64d))
+* add nfs storage class, we reach the limit of LUNs in Synology NAS server ([99b0eee](https://github.com/Jasviers/homelab/commit/99b0eee2a0114bba86ff4f23a81052437d187053))
+
 ## [1.13.3](https://github.com/Jasviers/homelab/compare/v1.13.2...v1.13.3) (2026-07-22)
 
 
