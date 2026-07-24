@@ -17,4 +17,5 @@ spec:
           headers:replace("X-Content-Type-Options", "nosniff")
           headers:replace("X-Frame-Options", "SAMEORIGIN")
           headers:replace("Referrer-Policy", "strict-origin-when-cross-origin")
+          headers:replace("Permissions-Policy", "geolocation=(), camera=(), microphone=(), payment=()")
         end

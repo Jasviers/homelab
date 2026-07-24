@@ -1,28 +1,29 @@
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
 metadata:
-  name: ollama
-  namespace: ollama
+  name: jellyfin
+  namespace: media
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      name: ollama
-  timeout:
-    http:
-      requestTimeout: 10m
-      connectionIdleTimeout: 10m
+      name: jellyfin
   healthCheck:
     active:
-      type: TCP
+      type: HTTP
       interval: 10s
       timeout: 2s
       unhealthyThreshold: 3
       healthyThreshold: 1
+      http:
+        path: /health
+        expectedStatuses:
+          - start: 200
+            end: 399
   rateLimit:
     type: Local
     local:
       rules:
         - limit:
-            requests: 5
+            requests: 100
             unit: Second

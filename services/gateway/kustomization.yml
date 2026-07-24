@@ -11,6 +11,7 @@ resources:
   - https-redirect.yml
   - clienttrafficpolicy.yml
   - security-headers.yml
+  - servicemonitors.yml
 
 helmCharts:
   - name: gateway-helm

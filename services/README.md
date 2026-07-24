@@ -430,15 +430,31 @@ Tras esto, la pantalla de login de HA ofrece la opción de entrar con Authentik.
 
 Kustomization que despliega [Ollama](https://ollama.com) en el nodo de IA (`vm-ubuntu26-zoro-ai`, sin GPU), expuesto en `ollama.bonchan.org`:
 
-- `deployment.yml`: un único Pod (`OLLAMA_KEEP_ALIVE: "-1"`, `OLLAMA_MAX_LOADED_MODELS: "2"`) que mantiene dos modelos permanentemente en RAM:
-  - **`qwen3-coder:30b`** (Qwen3-Coder-30B-A3B, *Mixture-of-Experts* con ~3B parámetros activos por token): asistencia de código. La arquitectura MoE es la clave para que un modelo de esta calidad sea viable en CPU pura — el coste por token depende de los parámetros activos, no del total.
-  - **`qwen3:4b-instruct-2507-q4_K_M`**: modelo denso pequeño en modo *no-thinking*, dedicado a *tool calling* desde la integración Ollama de Home Assistant (respuestas cortas y rápidas para controlar dispositivos).
+- `deployment.yml`: un único Pod (`OLLAMA_KEEP_ALIVE: "-1"`, `OLLAMA_MAX_LOADED_MODELS: "1"`) que mantiene un único modelo residente en RAM: **`qwen3:1.7b-q4_K_M`**, dedicado a *tool calling* desde la integración Ollama de Home Assistant (respuestas cortas y rápidas para controlar dispositivos).
   - `OLLAMA_NUM_PARALLEL: "1"`: sin GPU, decodificar en paralelo solo reparte los mismos vCPU entre peticiones simultáneas; en serie se sirve más rápido.
+  - `OLLAMA_CONTEXT_LENGTH: "8192"`: suficiente para el historial + definiciones de herramientas de una interacción de voz con HA. Antes estaba en `200000`, lo que reservaba un KV cache dimensionado para 200K tokens (~31Gi de RAM en reposo con el modelo de 4B que se usaba entonces) sin necesidad real.
+  - `OLLAMA_FLASH_ATTENTION: "1"` / `OLLAMA_KV_CACHE_TYPE: "q8_0"`: reducen el footprint de memoria/ancho de banda del KV cache.
 - `pvc.yml`: PVC de 40Gi en `synology-iscsi-storage` montado en `/root/.ollama` (persiste los modelos entre reinicios del pod).
-- `job-pull-models.yml`: `Job` (sync-wave `1`, tras el Deployment) que ejecuta `ollama pull` de ambos modelos contra el Service; idempotente, así que ArgoCD puede reaplicarlo sin volver a descargar si el digest no cambió.
+- `job-pull-models.yml`: `Job` (sync-wave `1`, tras el Deployment) que ejecuta `ollama pull` del modelo contra el Service; idempotente, así que ArgoCD puede reaplicarlo sin volver a descargar si el digest no cambió.
 - `httproute.yml`: publica la API en `ollama.bonchan.org` a través del Gateway (añadido a la allowlist de namespaces en `services/gateway/gateway.yml`).
 
-Recursos: `requests` 3 vCPU/24Gi, `limits` 7 vCPU/32Gi (deja margen para Whisper en el mismo nodo). Los ~22Gi que ocupan ambos modelos en RAM caben con holgura en los 48Gi del nodo.
+Recursos: `requests` 3 vCPU/4Gi, `limits` 7 vCPU/10Gi (bajado desde 24Gi/32Gi tras reducir el contexto; deja mucho más margen para Whisper en el mismo nodo).
+
+### Benchmark e historial de la elección de modelo
+
+Se probó originalmente con dos modelos residentes (`qwen3-coder:30b` MoE para código + `qwen3:4b-instruct-2507-q4_K_M` para HA), pero se descartó el modelo de 30B por problemas de rendimiento en este nodo sin GPU (commit `29d2389`, "ollama only use small model and big context").
+
+Con solo el modelo de 4B, medido en vivo contra `ollama.bonchan.org` (`/api/generate` y `/api/chat` con *tool calling*, hardware: Ryzen 5 7430U, 6c/12t, sin GPU):
+
+| Modelo | Tokens/s (generación) | Precisión *tool calling* (4 casos de prueba) |
+| --- | --- | --- |
+| `qwen3:4b-instruct-2507-q4_K_M` | ~10 tok/s | 4/4 correctos |
+| `qwen3:1.7b-q4_K_M` (sin *thinking*) | ~18-26 tok/s | 4/4 correctos |
+| `qwen3:0.6b-q4_K_M` (sin *thinking*) | ~25-50 tok/s | 3/4 (falló una consulta de estado) |
+
+La carga es *memory-bandwidth-bound* (el cuello de botella es leer los pesos del modelo en cada token, no el cómputo), por lo que tokens/s escala aproximadamente de forma inversa al tamaño del modelo. Se eligió **`qwen3:1.7b-q4_K_M`** como mejor compromiso: ~2x más rápido que el 4B con la misma precisión observada en las pruebas, mientras que el 0.6B ya empezaba a fallar *tool calls*. Si en uso real el 1.7B da problemas de precisión, el 4B queda como alternativa documentada (cambiar `job-pull-models.yml` y el nombre del modelo en la integración de HA).
+
+Para usar otro modelo o ajustar cuántos quedan cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
 
 ## garage/
 
