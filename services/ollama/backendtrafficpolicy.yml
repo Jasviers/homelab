@@ -12,3 +12,17 @@ spec:
     http:
       requestTimeout: 10m
       connectionIdleTimeout: 10m
+  healthCheck:
+    active:
+      type: TCP
+      interval: 10s
+      timeout: 2s
+      unhealthyThreshold: 3
+      healthyThreshold: 1
+  rateLimit:
+    type: Local
+    local:
+      rules:
+        - limit:
+            requests: 5
+            unit: Second
