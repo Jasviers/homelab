@@ -10,3 +10,4 @@ resources:
   - deployment.yml
   - service.yml
   - httproute.yml
+  - backendtrafficpolicy.yml

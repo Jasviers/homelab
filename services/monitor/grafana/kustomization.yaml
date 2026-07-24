@@ -5,6 +5,7 @@ namespace: monitoring
 
 resources:
   - httproute.yml
+  - backendtrafficpolicy.yaml
 
 helmCharts:
   - name: grafana
