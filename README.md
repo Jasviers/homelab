@@ -35,7 +35,7 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 - **Clúster k3s** sobre cinco VMs Ubuntu 26 (ver sección siguiente) con todos los
   servicios del homelab gestionados por GitOps (ArgoCD): SSO con Authentik,
   PostgreSQL con CloudNativePG, monitorización (Grafana/Prometheus/Loki/Alloy),
-  **Ollama** (Qwen3-Coder y Qwen3 4B) y **Whisper** en el nodo dedicado de IA, etc.
+  **Ollama** (Qwen3 1.7B) y **Whisper** en el nodo dedicado de IA, etc.
 
 ## Dominio y DNS
 
@@ -90,7 +90,7 @@ del homelab.
 - **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG.
 - **Monitorización**: **Prometheus** (métricas), **Loki** (logs), **Alloy** (recolección de logs) y **Grafana** (dashboards y alertas) en `grafana.bonchan.org`.
 - **Homepage** es el portal/dashboard del homelab en `homepage.bonchan.org`, con autodescubrimiento de servicios.
-- **Ollama** en el nodo de IA sirve dos modelos residentes en RAM: **Qwen3-Coder** (30B-A3B, MoE) para asistencia de código y **Qwen3 4B Instruct** (modo no-thinking) para *tool calling* desde Home Assistant, expuesto en `ollama.bonchan.org`.
+- **Ollama** en el nodo de IA sirve **Qwen3 1.7B** (Q4_K_M, sin *thinking*) para *tool calling* desde Home Assistant, expuesto en `ollama.bonchan.org`. Se eligió este tamaño tras medir en el hardware real (CPU sin GPU) que el 4B rendía solo ~10 tokens/s frente a ~20 tokens/s del 1.7B, con la misma precisión de *tool calling* en las pruebas realizadas.
 - **Whisper** (STT, protocolo Wyoming) corre también en el nodo de IA con una IP `LoadBalancer` dedicada (`192.168.1.129`), reemplazando al Whisper que antes corría en `luffy`; Piper (TTS) sigue en `luffy`.
 - **Cloudflare Tunnel** (`cloudflared`) expone servicios a internet sin abrir puertos en el router: Home Assistant vía `hs-lakasa.bonchan.org` (túnel locally-managed con reglas en git).
 - **Hubble** (relay + UI) da observabilidad de red sobre eBPF en `hubble.bonchan.org`, protegido por OIDC.
@@ -214,7 +214,7 @@ flowchart TB
         monitor["Monitorización<br/>Prometheus · Loki · Alloy<br/>Grafana · grafana.bonchan.org"]
         hubble["Hubble UI<br/>hubble.bonchan.org"]
         cloudflared["cloudflared<br/>Tunnel → hs-lakasa.bonchan.org"]
-        ollama["Ollama (nodo IA)<br/>Qwen3-Coder · Qwen3 4B<br/>ollama.bonchan.org"]
+        ollama["Ollama (nodo IA)<br/>Qwen3 1.7B<br/>ollama.bonchan.org"]
         whisper["Whisper STT (nodo IA)<br/>LoadBalancer 192.168.1.129:10300"]
     end
 
