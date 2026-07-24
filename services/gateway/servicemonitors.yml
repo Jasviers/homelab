@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: envoy-gateway-controller
+  namespace: envoy-gateway-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: envoy-gateway
+  namespaceSelector:
+    matchNames:
+      - envoy-gateway-system
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: envoy-gateway-dataplane
+  namespace: envoy-gateway-system
+spec:
+  selector:
+    matchLabels:
+      gateway.envoyproxy.io/owning-gateway-name: homelab
+  namespaceSelector:
+    matchNames:
+      - envoy-gateway-system
+  podMetricsEndpoints:
+    # 19000 is Envoy's conventional admin port; verify against the live pods before relying on this:
+    # kubectl -n envoy-gateway-system get pod -l gateway.envoyproxy.io/owning-gateway-name=homelab -o jsonpath='{.items[0].spec.containers[*].ports}'
+    - portNumber: 19000
+      path: /stats/prometheus
+      interval: 30s

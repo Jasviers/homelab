@@ -10,3 +10,4 @@ resources:
   - backend.yml
   - httproute.yml
   - securitypolicy.yml
+  - backendtrafficpolicy.yml

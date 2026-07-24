@@ -8,3 +8,4 @@ labels:
 resources:
   - httproute.yml
   - securitypolicy.yml
+  - backendtrafficpolicy.yml

@@ -1,0 +1,29 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: homepage
+  healthCheck:
+    active:
+      type: HTTP
+      interval: 10s
+      timeout: 2s
+      unhealthyThreshold: 3
+      healthyThreshold: 1
+      http:
+        path: /api/healthcheck
+        expectedStatuses:
+          - start: 200
+            end: 399
+  rateLimit:
+    type: Local
+    local:
+      rules:
+        - limit:
+            requests: 50
+            unit: Second
