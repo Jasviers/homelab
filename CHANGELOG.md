@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/Jasviers/homelab/compare/v1.15.0...v1.15.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* add media storage class missed changes ([4d69573](https://github.com/Jasviers/homelab/commit/4d695730431ade95df9d5e91c545e3ee8b40b8ef))
+
 ## [1.15.0](https://github.com/Jasviers/homelab/compare/v1.14.0...v1.15.0) (2026-07-25)
 
 
