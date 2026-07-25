@@ -8,8 +8,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: synology-iscsi-storage
-  volumeName: pvc-56c5da91-5c4a-42c8-9bc0-8c758cee0866
+  storageClassName: synology-nfs-storage
   resources:
     requests:
       storage: 2Gi
