@@ -182,7 +182,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
 gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
-cloudflared, hubble, coredns, proxmox, router, ollama, whisper y el propio
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media y el propio
 argocd).
 
 ```bash
@@ -294,11 +294,12 @@ kubectl -n kube-system create secret generic hubble-oidc-secret \
 
 La UI es de solo lectura; basta con que el usuario autentique en Authentik.
 
-**Otros clientes OIDC de Authentik (Proxmox, router ASUS, Home Assistant):** a
-diferencia de ArgoCD/Grafana/Hubble, el otro lado de estos 3 no es un Secret de
-Kubernetes, sino configuración manual en cada sistema (Proxmox: *Datacenter →
-Realms*; router ASUS: su propia config OIDC; Home Assistant: `configuration.yaml`
-en `luffy`, ver `services/README.md`). Aun así, sus blueprints de Authentik
+**Otros clientes OIDC de Authentik (Proxmox, router ASUS, Home Assistant,
+Jellyfin):** a diferencia de ArgoCD/Grafana/Hubble, el otro lado de estos 4 no
+es un Secret de Kubernetes, sino configuración manual en cada sistema (Proxmox:
+*Datacenter → Realms*; router ASUS: su propia config OIDC; Home Assistant:
+`configuration.yaml` en `luffy`; Jellyfin: plugin SSO-Auth desde su propia UI,
+ver `services/README.md`). Aun así, sus blueprints de Authentik
 (`services/authentik/blueprints/`) esperan sus claves en `authentik-oidc-secrets`
 **desde el primer arranque** (si faltan, `authentik-server`/`authentik-worker`
 se quedan en `CreateContainerConfigError`):
@@ -307,13 +308,15 @@ se quedan en `CreateContainerConfigError`):
 PROXMOX_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 ROUTER_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 HA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+JELLYFIN_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 
 kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
-  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\"}}"
+  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\",\"jellyfin-client-secret\":\"$JELLYFIN_OIDC_SECRET\"}}"
 ```
 
-Copia cada valor a su sistema correspondiente (Proxmox, router, HA) cuando
-configures su lado del OIDC.
+Copia cada valor a su sistema correspondiente (Proxmox, router, HA, Jellyfin)
+cuando configures su lado del OIDC. Para Jellyfin, pega `$JELLYFIN_OIDC_SECRET`
+tal cual en el plugin (ver detalle en `services/README.md`).
 
 ---
 

@@ -102,7 +102,7 @@ del homelab.
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
 | [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y Piper) vía Docker Compose. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Ollama, Whisper). |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Ollama, Whisper, Garage, Media, CoreDNS, Proxmox, Router). |
 | [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
@@ -112,7 +112,7 @@ del homelab.
 
 1. **Proxmox** (`ansible/playbooks/qdevice.yml`): configura los repos sin suscripción y el QDevice de quorum (árbitro en `luffy`).
 2. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
-3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las dos VMs del clúster con cloud-init.
+3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las 5 VMs del clúster con cloud-init (2 control-plane, 2 workers, 1 nodo de IA).
 4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
 5. **Servicios** (`services/`): se aplican manualmente el pool de Cilium LB (`services/cilium-lb`) y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
 6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y Piper en la Raspberry.
@@ -198,8 +198,13 @@ flowchart TB
             root --> appArgo["argocd (self-managed)"]
             root --> appHubble[hubble]
             root --> appCloudflared[cloudflared]
+            root --> appCoreDns[coredns]
+            root --> appProxmox[proxmox]
+            root --> appRouter[router]
             root --> appOllama[ollama]
             root --> appWhisper[whisper]
+            root --> appGarage[garage]
+            root --> appMedia[media]
         end
 
         kubevip["kube-vip<br/>VIP API 192.168.1.20"]
@@ -214,8 +219,13 @@ flowchart TB
         monitor["Monitorización<br/>Prometheus · Loki · Alloy<br/>Grafana · grafana.bonchan.org"]
         hubble["Hubble UI<br/>hubble.bonchan.org"]
         cloudflared["cloudflared<br/>Tunnel → hs-lakasa.bonchan.org"]
+        coredns["CoreDNS custom<br/>resolución interna *.bonchan.org"]
+        proxmox["Proxmox UI<br/>proxmox/zoro/nami.bonchan.org"]
+        routerSvc["Router ASUS UI<br/>router.bonchan.org"]
         ollama["Ollama (nodo IA)<br/>Qwen3 1.7B<br/>ollama.bonchan.org"]
         whisper["Whisper STT (nodo IA)<br/>LoadBalancer 192.168.1.129:10300"]
+        garage["Garage (S3)<br/>garage.bonchan.org"]
+        media["Media stack<br/>jellyfin/radarr/sonarr/..."]
     end
 
     nas[("NAS Synology<br/>LUNs iSCSI")]
@@ -235,8 +245,13 @@ flowchart TB
     appMon -.->|gestiona| monitor
     appHubble -.->|gestiona| hubble
     appCloudflared -.->|gestiona| cloudflared
+    appCoreDns -.->|gestiona| coredns
+    appProxmox -.->|gestiona| proxmox
+    appRouter -.->|gestiona| routerSvc
     appOllama -.->|gestiona| ollama
     appWhisper -.->|gestiona| whisper
+    appGarage -.->|gestiona| garage
+    appMedia -.->|gestiona| media
 
     users -->|HTTPS| gateway
     gateway -->|HTTPRoute| homepage
@@ -245,6 +260,10 @@ flowchart TB
     gateway -->|HTTPRoute| monitor
     gateway -->|HTTPRoute| hubble
     gateway -->|HTTPRoute| ollama
+    gateway -->|HTTPRoute| proxmox
+    gateway -->|HTTPRoute| routerSvc
+    gateway -->|HTTPRoute| garage
+    gateway -->|HTTPRoute| media
     ciliumLb -->|IP LB| gateway
     ciliumLb -->|IP LB dedicada| whisper
     cert <-->|valida dominio| cloudflare
