@@ -558,7 +558,23 @@ A diferencia del resto de servicios (1 namespace por app), aquí todo comparte n
 > 5. **Jellyfin**: crear las bibliotecas apuntando a `/data/media/movies` y `/data/media/tv` (montado en solo lectura).
 > 6. **Jellyseerr**: conectarlo a Jellyfin (`jellyfin.media.svc.cluster.local:8096`) y a Radarr/Sonarr (`radarr.media.svc.cluster.local:7878` / `sonarr.media.svc.cluster.local:8989`) desde su asistente de configuración inicial.
 >
-> Ninguna de estas apps tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, en el caso de qBittorrent/Radarr/Sonarr/Prowlarr si se restringe el acceso solo a la LAN).
+> El resto de apps (Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent) no tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, si se restringe el acceso solo a la LAN).
+
+### SSO sobre Jellyfin (OIDC contra Authentik)
+
+Jellyfin no tiene soporte OIDC nativo; se usa el plugin de terceros [SSO-Auth](https://github.com/9p4/jellyfin-plugin-sso) (repo de plugin: `https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json`, instalable desde Dashboard → Plugins → Repositories → Catalog en la propia UI).
+
+El blueprint `authentik/blueprints/jellyfin.yaml` crea un provider OAuth2/OIDC **confidential** (`client_id: jellyfin`, callback `https://jellyfin.bonchan.org/sso/OID/redirect/authentik`) y la aplicación correspondiente. El `client_secret` se inyecta vía la variable `JELLYFIN_CLIENT_SECRET` desde el Secret **no versionado** `authentik-oidc-secrets` (clave `jellyfin-client-secret`); añádela igual que el resto de clientes OIDC (ver runbook de bootstrap, sección "Otros clientes OIDC").
+
+En Jellyfin, tras instalar el plugin, configúralo a mano en Dashboard → Plugins → SSO-Auth → Add new OID Provider:
+
+- **Nombre del provider**: `authentik` (debe coincidir exactamente con el path `.../sso/OID/redirect/<nombre>` del blueprint).
+- **OID Endpoint**: `https://authentik.bonchan.org/application/o/jellyfin/`
+- **Client ID**: `jellyfin`
+- **Client Secret**: el mismo valor que se puso en `authentik-oidc-secrets` (clave `jellyfin-client-secret`).
+- **Enabled** y **Enable Authorization by Plugin**: activados.
+
+Reinicia Jellyfin si no aparece el botón de login con Authentik. Al no ser un componente versionado en git (vive en el PVC de configuración), este paso hay que repetirlo si el PVC se recrea desde cero.
 
 ## whisper/
 
