@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.0](https://github.com/Jasviers/homelab/compare/v1.14.0...v1.15.0) (2026-07-25)
+
+
+### Features
+
+* migrate storage class from some services ([c43339b](https://github.com/Jasviers/homelab/commit/c43339beeddb1ad835a57684ad1f87896576d087))
+* modify homepage layout ([b7afb55](https://github.com/Jasviers/homelab/commit/b7afb55d7c810301d6d393417c6108a9edc910b0))
+
 ## [1.14.0](https://github.com/Jasviers/homelab/compare/v1.13.3...v1.14.0) (2026-07-23)
 
 
