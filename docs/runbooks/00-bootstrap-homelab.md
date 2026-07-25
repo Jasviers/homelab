@@ -182,7 +182,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
 gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
-cloudflared, hubble, coredns, proxmox, router, ollama, whisper y el propio
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media y el propio
 argocd).
 
 ```bash

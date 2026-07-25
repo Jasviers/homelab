@@ -8,7 +8,7 @@ El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el n
 
 1. **Cilium LB IPAM** (kustomize): define el `CiliumLoadBalancerIPPool` y la `CiliumL2AnnouncementPolicy` que dan IPs de tipo `LoadBalancer` en la red local (el dataplane Cilium ya lo instala Ansible). Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
-3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage y el propio argocd).
+3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage, cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media y el propio argocd).
 
 ```bash
 # 1. Cilium LB IPAM (pool + política L2)
@@ -215,6 +215,14 @@ Kustomization que expone la UI de [Hubble](https://docs.cilium.io/en/stable/netw
 - `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway que protege la ruta con OIDC contra Authentik (`client_id: hubble`). El `client_secret` se inyecta vía el Secret `hubble-oidc-secret` en `kube-system`.
 
 Se despliega con sync-wave `2` (junto con monitorización). El OIDC se configura en el paso 5.4 del runbook de bootstrap.
+
+## coredns/
+
+Kustomization que añade una configuración personalizada a CoreDNS (el DNS interno del clúster) mediante un `ConfigMap` en `kube-system`, gestionado por ArgoCD con sync-wave `0` (antes de las apps que dependen de resolver `*.bonchan.org` desde dentro del clúster):
+
+- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
+
+> CoreDNS ya viene con k3s; este manifiesto solo añade la personalización. Si se necesita resolver más subdominios internos, basta con añadir entradas al bloque `hosts` de `coredns-custom.yml`.
 
 ## cnpg-operator/
 
@@ -426,6 +434,23 @@ Tras esto, la pantalla de login de HA ofrece la opción de entrar con Authentik.
 
 6. **Aplicar** con `kubectl apply -k services/<nombre>/` o esperar a que ArgoCD lo sincronice en el siguiente sync de `root`.
 
+## proxmox/
+
+Kustomization que expone la UI de administración de ambos nodos Proxmox a través del Gateway API, protegida con OIDC:
+
+- `namespace.yml`: namespace `proxmox`.
+- `backend.yml`: dos recursos `Backend` de Envoy Gateway que apuntan a las IPs reales de los nodos Proxmox — `proxmox-zoro` (`192.168.1.3:8006`) y `proxmox-nami` (`192.168.1.4:8006`) — puenteando el Service de Kubernetes (el tráfico va directo al nodo).
+- `httproute.yml`: tres `HTTPRoute`:
+  - `proxmox.bonchan.org` → Backend `proxmox-zoro` (nodo por defecto).
+  - `zoro.bonchan.org` → Backend `proxmox-zoro` (acceso directo a zoro).
+  - `nami.bonchan.org` → Backend `proxmox-nami` (acceso directo a nami).
+  Todas con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
+- `backendtlspolicy.yml`: `BackendTLSPolicy` que habilita TLS entre el Gateway y los nodos Proxmox (el panel web de Proxmox usa HTTPS en el puerto 8006).
+- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway en cada ruta que protege con **OIDC** contra Authentik (`client_id: proxmox`). El `client_secret` se inyecta vía el Secret `proxmox-oidc-secret` en el namespace `proxmox`.
+- `backendtrafficpolicy.yml`: `BackendTrafficPolicy` con rate limiting local (20 req/s por ruta).
+
+El Secret `proxmox-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). Los blueprints de Authentik (`services/authentik/blueprints/proxmox.yaml`) configuran el provider OIDC y la aplicación correspondiente.
+
 ## ollama/
 
 Kustomization que despliega [Ollama](https://ollama.com) en el nodo de IA (`vm-ubuntu26-zoro-ai`, sin GPU), expuesto en `ollama.bonchan.org`:
@@ -499,7 +524,17 @@ No hay usuarios ni SSO: Garage se administra por completo con la CLI embebida en
 > # las credenciales (access key id + secret) se muestran una sola vez en la salida de `key create`/`key info --show-secret`
 > ```
 
-Para usar otro modelo o ajustar los que se mantienen cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
+## router/
+
+Kustomization que expone el panel de administración del router ASUS a través del Gateway API, protegido con OIDC:
+
+- `namespace.yml`: namespace `router`.
+- `backend.yml`: recurso `Backend` de Envoy Gateway que apunta a la IP real del router (`192.168.0.1:80`), puenteando el Service de Kubernetes.
+- `httproute.yml`: `HTTPRoute` que enruta `router.bonchan.org` al Backend, con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
+- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway que protege la ruta con **OIDC** contra Authentik (`client_id: router`). El `client_secret` se inyecta vía el Secret `router-oidc-secret` en el namespace `router`.
+- `backendtrafficpolicy.yml`: `BackendTrafficPolicy` con rate limiting local (20 req/s).
+
+El Secret `router-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). El blueprint de Authentik (`services/authentik/blueprints/router.yaml`) configura el provider OIDC y la aplicación correspondiente.
 
 ## media/
 
