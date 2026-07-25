@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: jellyseerr
-          image: ghcr.io/fallenbagel/jellyseerr:3.3.0
+          image: ghcr.io/fallenbagel/jellyseerr:2.7.3
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ
