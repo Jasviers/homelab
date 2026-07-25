@@ -131,11 +131,11 @@ kubectl -n synology-csi logs sts/synology-csi-controller -c csi-plugin --tail=50
 
 ### 3.2 Si el NAS sigue accesible pero las LUNs/carpetas están dañadas
 
-1. En la DSM, eliminar las LUNs dañadas y recrearlas con el mismo `location`
-   (`/volume1` para `synology-iscsi-storage`), o recrear la carpeta compartida
-   `nfs_kubernetes` (`/volume1/nfs_kubernetes` para `synology-nfs-storage`),
-   reactivando el servicio NFS y los permisos (lectura/escritura, sin *root
-   squash*, subred de los nodos) si hiciera falta.
+1. En la DSM, eliminar las LUNs dañadas (`synology-iscsi-storage`, `location: /volume1`)
+   o las carpetas compartidas creadas por el driver (`synology-nfs-storage`,
+   `location: /volume1` — el driver crea una carpeta nueva por PV directamente
+   bajo el volumen, no hace falta precrear ninguna), reactivando el servicio
+   NFS si hiciera falta.
 2. El Synology CSI re-creará los PVs dinámicamente al hacer `kubectl apply` de
    `storage-class.yml` / `storage-class-nfs.yml` de nuevo.
 
@@ -143,9 +143,8 @@ kubectl -n synology-csi logs sts/synology-csi-controller -c csi-plugin --tail=50
 
 1. Restaurar datos desde backup (si existe).
 
-2. Recrear las LUNs iSCSI y la carpeta compartida NFS (`nfs_kubernetes`,
-   con el servicio NFS activado y permisos para la subred de los nodos) en el
-   DSM nuevo.
+2. Activar iSCSI y NFS en el DSM nuevo; las LUNs y las carpetas compartidas
+   NFS las vuelve a crear el driver dinámicamente, no hace falta precrearlas.
 
 3. Recrear el Secret `client-info-secret`:
 
