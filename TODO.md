@@ -85,7 +85,7 @@
 
 [x] Jellyfin (+ Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent)
 
-[ ] Mejorar el homepage (más información, más servicios, etc.)
+[X] Mejorar el homepage (más información, más servicios, etc.)
 
 [ ] backups (proxmox backups + velero)
 
