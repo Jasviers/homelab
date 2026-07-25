@@ -44,6 +44,11 @@ configMapGenerator:
       - blueprints/home-assistant.yaml
     options:
       disableNameSuffixHash: true
+  - name: authentik-blueprint-jellyfin
+    files:
+      - blueprints/jellyfin.yaml
+    options:
+      disableNameSuffixHash: true
 
 helmCharts:
   - name: authentik
@@ -96,6 +101,11 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: home-assistant-client-secret
+          - name: JELLYFIN_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: jellyfin-client-secret
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
@@ -104,6 +114,7 @@ helmCharts:
           - authentik-blueprint-proxmox
           - authentik-blueprint-router
           - authentik-blueprint-home-assistant
+          - authentik-blueprint-jellyfin
       authentik:
         postgresql:
           host: authentik-db-rw
