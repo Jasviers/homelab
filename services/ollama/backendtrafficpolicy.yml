@@ -15,6 +15,7 @@ spec:
   healthCheck:
     active:
       type: TCP
+      tcp: {}
       interval: 10s
       timeout: 2s
       unhealthyThreshold: 3
