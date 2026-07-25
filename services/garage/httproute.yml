@@ -7,7 +7,7 @@ metadata:
     gethomepage.dev/enabled: "true"
     gethomepage.dev/name: Garage
     gethomepage.dev/description: Almacenamiento de objetos S3
-    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/group: Infraestructura
     gethomepage.dev/icon: garage.png
     gethomepage.dev/href: https://garage.bonchan.org
 spec:
