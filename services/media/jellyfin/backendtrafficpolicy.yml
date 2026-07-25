@@ -18,8 +18,7 @@ spec:
       http:
         path: /health
         expectedStatuses:
-          - start: 200
-            end: 399
+          - 200
   rateLimit:
     type: Local
     local:

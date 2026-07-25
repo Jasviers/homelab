@@ -4,11 +4,10 @@ metadata:
   name: homepage
   namespace: homepage
   annotations:
-    # Autodescubrimiento: Homepage se lista a si mismo en el dashboard.
     gethomepage.dev/enabled: "true"
     gethomepage.dev/name: Homepage
     gethomepage.dev/description: Dashboard del homelab
-    gethomepage.dev/group: Cluster Management
+    gethomepage.dev/group: Plataforma
     gethomepage.dev/icon: homepage.png
     gethomepage.dev/href: https://homepage.bonchan.org
 spec:
