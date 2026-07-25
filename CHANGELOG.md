@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.16.0](https://github.com/Jasviers/homelab/compare/v1.15.1...v1.16.0) (2026-07-25)
+
+
+### Features
+
+* add jellyfin oidc configuration ([f42f20d](https://github.com/Jasviers/homelab/commit/f42f20d52f28dce1f8e0967c1d7b1aca10cff510))
+
+
+### Bug Fixes
+
+* backend traffic policies tcp configuration error ([6650d4f](https://github.com/Jasviers/homelab/commit/6650d4fce674ba2ceff7661bb16baf19fb5d8b99))
+* backend traffic policies tcp configuration error ([0684b74](https://github.com/Jasviers/homelab/commit/0684b74868764c3b919af7b5686c874bc425976b))
+
 ## [1.15.1](https://github.com/Jasviers/homelab/compare/v1.15.0...v1.15.1) (2026-07-25)
 
 
