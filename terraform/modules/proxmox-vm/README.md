@@ -8,9 +8,12 @@ Lo consume el root module `terraform/proxmox-vm`, que lo referencia por tag de g
 
 - Busca el template por nombre en el nodo destino (data source `proxmox_virtual_environment_vms`).
 - Clona la VM (clone completo) con el VMID, nombre, tags y descripción indicados.
-- Configura CPU (`x86-64-v2-AES`), memoria, disco (`scsi0`) y red (`virtio`).
+- Configura CPU (`cpu_type`, NUMA activado), memoria (con ballooning opcional),
+  disco (`scsi0` sobre `virtio-scsi-single`, con `ssd`/`discard`/`iothread`
+  activados) y red (`virtio`).
 - Inicializa con cloud-init: IP estática, gateway, usuario, password y claves SSH.
-- Habilita el QEMU guest agent.
+- Habilita el QEMU guest agent (con `trim`) y el arranque automático (`on_boot`).
+- Permite fijar el orden de arranque/apagado de la VM (`startup_order` / `startup_up_delay`).
 
 ## Entradas principales
 
@@ -21,6 +24,10 @@ Lo consume el root module `terraform/proxmox-vm`, que lo referencia por tag de g
 | `template` | Nombre del template a clonar | — |
 | `vm_id` | VMID (null = auto) | `null` |
 | `cores` / `memory` / `disk_gb` | Sizing | `2` / `2048` / `20` |
+| `cpu_type` | Tipo de CPU expuesto a la VM (`host` para máximo rendimiento si todos los nodos comparten CPU) | `host` |
+| `memory_floating` | Mínimo de balloon en MB; `null` desactiva el ballooning | `null` |
+| `on_boot` | Arranque automático con el host | `true` |
+| `startup_order` / `startup_up_delay` | Orden y retardo de arranque | `null` |
 | `storage` | Datastore del disco | — |
 | `network_bridge` | Bridge de red | `vmbr0` |
 | `ipv4_cidr` / `ipv4_gateway` | Red de la VM | — |

@@ -128,3 +128,33 @@ variable "description" {
   description = "Descripción de la VM."
   default     = ""
 }
+
+variable "cpu_type" {
+  type        = string
+  description = "Tipo de CPU expuesto a la VM (ej: host, x86-64-v3, x86-64-v2-AES)."
+  default     = "host"
+}
+
+variable "memory_floating" {
+  type        = number
+  description = "Mínimo de balloon en MB. Si es null, se desactiva el ballooning (floating = dedicated)."
+  default     = null
+}
+
+variable "on_boot" {
+  type        = bool
+  description = "Si la VM debe arrancar automáticamente con el host Proxmox."
+  default     = true
+}
+
+variable "startup_order" {
+  type        = number
+  description = "Orden de arranque/apagado de la VM (menor = antes). Si es null, no se gestiona el orden."
+  default     = null
+}
+
+variable "startup_up_delay" {
+  type        = number
+  description = "Segundos de espera tras iniciar esta VM antes de arrancar la siguiente en orden."
+  default     = null
+}
