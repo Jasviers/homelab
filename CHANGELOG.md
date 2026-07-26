@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.1](https://github.com/Jasviers/homelab/compare/v1.16.0...v1.16.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* add other control plane node to avoid quorum problems ([c46e912](https://github.com/Jasviers/homelab/commit/c46e912910f1b0c8b7cf7a199114239affcd38d0))
+* improve vm defaults options to deploy better vms ([8867aa0](https://github.com/Jasviers/homelab/commit/8867aa046bf80551c28341d942577a71195e3543))
+* replace proxmox bookmarks to HA and DNS references ([8ff7295](https://github.com/Jasviers/homelab/commit/8ff72955653ea3ba3edc6a0bec9b6ab03b8907d4))
+
 ## [1.16.0](https://github.com/Jasviers/homelab/compare/v1.15.1...v1.16.0) (2026-07-25)
 
 
