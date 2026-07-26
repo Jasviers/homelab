@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.16.2](https://github.com/Jasviers/homelab/compare/v1.16.1...v1.16.2) (2026-07-26)
+
+
+### Bug Fixes
+
+* replace icsi for virtio0 disk type ([fb8b129](https://github.com/Jasviers/homelab/commit/fb8b129483e6d0d3bd0c960f6089c888c3a74dc9))
+* replace icsi for virtio0 disk type ([73b4cb3](https://github.com/Jasviers/homelab/commit/73b4cb3fb7d5b02aff493b652c2091e58b583c2e))
+
 ## [1.16.1](https://github.com/Jasviers/homelab/compare/v1.16.0...v1.16.1) (2026-07-26)
 
 
