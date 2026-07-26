@@ -1,13 +1,13 @@
 # Proxmox VM (Terraform)
 
-Este root module usa el módulo `../modules/proxmox-vm` para desplegar el clúster k3s del homelab: 5 VMs heterogéneas repartidas entre `zoro` y `nami` (2 control-plane, 2 workers, 1 nodo de IA).
+Este root module usa el módulo `../modules/proxmox-vm` para desplegar el clúster k3s del homelab: 6 VMs heterogéneas repartidas entre `zoro` y `nami` (3 control-plane, 2 workers, 1 nodo de IA). El tercer control-plane (`zoro_cp2`) vive en `zoro` junto a `zoro_cp` solo para dar quorum de etcd (3 miembros); no mejora la HA real si `zoro` se apaga, porque perdería 2 de los 3 miembros a la vez.
 
 ## Archivos principales
 
 - `main.tf`: referencia el módulo y crea las 5 VMs vía `for_each` sobre `vms`.
 - `providers.tf`: configuración del provider de Proxmox vía API.
 - `variables.tf`: variables del root module; `vms` admite overrides opcionales por VM (`cores`, `memory`, `disk_gb`, `storage`) que caen a los globales del mismo nombre si se omiten.
-- `terraform.tfvars.example`: ejemplo con las 5 VMs (2 control-plane de 2 vCPU/2 GB, 2 workers de 4 vCPU/6 GB, 1 nodo de IA de 8 vCPU/48 GB).
+- `terraform.tfvars.example`: ejemplo con las 6 VMs (3 control-plane de 2 vCPU/2 GB, 2 workers de 4 vCPU/6 GB, 1 nodo de IA de 8 vCPU/48 GB).
 - `zoro.tfvars.example` / `nami.tfvars.example`: ejemplos heredados compatibles.
 
 ## Uso rápido
@@ -39,7 +39,7 @@ Verifica salidas en `outputs.tf` para obtener `vm_ids`, `vm_names` e `ipv4_addre
 - `proxmox_endpoint`: URL de la API de Proxmox.
 - `proxmox_api_token`: token de acceso.
 - `template`: template base para clonado.
-- `vms`: mapa con las 5 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`).
+- `vms`: mapa con las 6 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`).
 - `storage`, `disk_gb`, `cores`, `memory`: sizing y storage por defecto, usados por las VMs que no definen su propio override.
 - `ipv4_gateway`: gateway para cloud-init.
 

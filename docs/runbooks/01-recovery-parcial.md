@@ -53,10 +53,13 @@ terraform apply -target=module.vms["zoro"]
 
 ---
 
-## Escenario 2 — Pérdida de quorum (ambos control-plane caen)
+## Escenario 2 — Pérdida de quorum (mayoría de control-plane caída)
 
-El quorum de etcd es 2/2: si caen ambos control-plane, el API server se queda
-sin quorum y el clúster deja de funcionar.
+El quorum de etcd es de 3 miembros (`zoro-01`, `zoro-03` y `nami-01`): hace
+falta que se caigan al menos 2 de los 3 para que el API server se quede sin
+quorum. Como `zoro-01` y `zoro-03` comparten el host físico `zoro`, este
+escenario ocurre igualmente si el host `zoro` se apaga (se pierden esos 2
+miembros de golpe), aunque nami siga arriba.
 
 ### 2.1 Diagnosticar
 
