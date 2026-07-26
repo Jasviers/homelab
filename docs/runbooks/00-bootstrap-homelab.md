@@ -91,9 +91,11 @@ Proxmox indicado. Ver `packer/README.md`.
 
 ## Fase 3 — VMs del clúster con Terraform (🤖)
 
-Clona el template y crea las 5 VMs del clúster con roles heterogéneos: 2
+Clona el template y crea las 6 VMs del clúster con roles heterogéneos: 3
 control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, `vm-ubuntu26-nami-01`
-`192.168.1.22`, 2 vCPU/2 GB cada una), 2 workers (`vm-ubuntu26-zoro-02`
+`192.168.1.22`, `vm-ubuntu26-zoro-03` `192.168.1.23`, 2 vCPU/2 GB cada una —
+la tercera solo para dar quorum de etcd, coexiste con `zoro-01` en el mismo
+host físico), 2 workers (`vm-ubuntu26-zoro-02`
 `192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/6 GB) y 1 nodo de
 IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/48 GB).
 
@@ -110,7 +112,7 @@ terraform plan
 terraform apply
 ```
 
-*Resultado esperado:* `terraform apply` crea las 5 VMs. Comprueba las salidas:
+*Resultado esperado:* `terraform apply` crea las 6 VMs. Comprueba las salidas:
 
 ```bash
 terraform output vm_ids
@@ -122,8 +124,8 @@ terraform output ipv4_addresses
 ## Fase 4 — Instalación de k3s con Ansible (🤖)
 
 Instala k3s con roles diferenciados según el grupo de `ansible/inventory.ini`:
-los 2 nodos de `k3s_control_plane` se instalan como **server** con etcd
-embebido (el primero con `--cluster-init`, el segundo se une con
+los 3 nodos de `k3s_control_plane` se instalan como **server** con etcd
+embebido (el primero con `--cluster-init`, los otros dos se unen con
 `--server`/`--token`) y quedan tainted (`node-role.kubernetes.io/control-plane`)
 para no recibir cargas; los nodos de `k3s_workers` y `k3s_ai` se instalan como
 **agent** (worker), y el de `k3s_ai` añade además el taint `dedicated=ai` y el
@@ -137,8 +139,12 @@ máquina (requiere `helm` y `kubectl` locales) usando el endpoint
 `127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados. Al final
 descarga el kubeconfig a `~/.kube/config`.
 
-> El quorum de etcd es 2/2 (2 control-plane): perder cualquiera de los dos deja
-> el API server sin quorum. Es una limitación aceptada, no un bug.
+> El quorum de etcd es de 3 miembros: tolera perder cualquier VM control-plane
+> suelta. Pero `zoro-01` y `zoro-03` viven en el mismo host físico `zoro`, así
+> que si `zoro` se apaga se pierden 2/3 miembros a la vez y el API server se
+> queda sin quorum igual — no mejora la HA real frente a la caída del host,
+> solo evita perder quorum por el fallo de una VM o del propio k3s en un nodo
+> suelto.
 
 ```bash
 cd ansible

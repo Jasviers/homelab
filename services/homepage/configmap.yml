@@ -70,12 +70,12 @@ data:
         - Repositorio:
             - abbr: GH
               href: https://github.com/Jasviers/homelab
-        - Proxmox zoro:
-            - abbr: PVE
-              href: https://zoro.bonchan.org:8006
-        - Proxmox nami:
-            - abbr: PVE
-              href: https://nami.bonchan.org:8006
+        - Home Assistant:
+            - abbr: HA
+              href: https://hs-lakasa.bonchan.org
+        - Pihole:
+            - abbr: DNS
+              href: http://luffy.bonchan.org/admin
         - NAS Synology:
             - abbr: NAS
               href: https://nas.bonchan.org

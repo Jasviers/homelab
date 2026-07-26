@@ -21,15 +21,21 @@ resource "proxmox_virtual_environment_vm" "vm" {
 
   agent {
     enabled = true
+    trim    = true
   }
+
+  on_boot       = var.on_boot
+  scsi_hardware = "virtio-scsi-single"
 
   cpu {
     cores = var.cores
-    type  = "x86-64-v2-AES"
+    type  = var.cpu_type
+    numa  = true
   }
 
   memory {
     dedicated = var.memory
+    floating  = coalesce(var.memory_floating, var.memory)
   }
 
   disk {
@@ -37,11 +43,22 @@ resource "proxmox_virtual_environment_vm" "vm" {
     file_format  = "raw"
     interface    = "scsi0"
     size         = var.disk_gb
+    ssd          = true
+    discard      = "on"
+    iothread     = true
   }
 
   network_device {
     bridge = var.network_bridge
     model  = "virtio"
+  }
+
+  dynamic "startup" {
+    for_each = var.startup_order != null ? [1] : []
+    content {
+      order    = var.startup_order
+      up_delay = var.startup_up_delay
+    }
   }
 
   initialization {
