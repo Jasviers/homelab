@@ -83,10 +83,10 @@ Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Applicati
 
 ## Taints de nodos
 
-El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
+El clúster tiene 4 nodos tainted (los aplica el rol de Ansible `install-k3s` al
 instalar k3s, no GitOps):
 
-- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
+- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`/`zoro-03`): taint
   `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
   kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
   (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
@@ -583,6 +583,4 @@ Kustomization que despliega Whisper (STT, protocolo Wyoming) en el nodo de IA, m
 - `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja al compartir CPU con Ollama en el mismo nodo), `--language es`.
 - `pvc.yml`: PVC de 5Gi en `synology-iscsi-storage` montado en `/data` para no volver a descargar el modelo en cada reinicio.
 - `service.yml`: a diferencia del resto de servicios HTTP, Wyoming es un protocolo TCP a medida y **no** puede publicarse vía `HTTPRoute`. Se expone con una IP `LoadBalancer` propia de Cilium LB IPAM (`192.168.1.129:10300`), igual que el Gateway tiene la suya.
-
-> **Manual**: la integración Wyoming de Home Assistant apuntaba a `localhost:10300` (Whisper corría junto a HA en `luffy`). Hay que actualizarla a `192.168.1.129:10300` en la configuración de HA (fuera de este repo). Piper (TTS) sigue en `luffy` sin cambios.
 

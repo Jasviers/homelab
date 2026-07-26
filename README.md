@@ -64,22 +64,23 @@ del homelab.
 
 ## Clúster k3s
 
-5 VMs Ubuntu 26 repartidas entre los 2 nodos Proxmox forman el clúster k3s, con roles dedicados: 2 control-plane (etcd embebido, sin cargas de trabajo), 2 workers y 1 nodo para IA con taint. Desplegado sin `servicelb`, `traefik`, `local-storage` ni el networking integrado (`flannel`, `kube-proxy` y `network-policy`):
+6 VMs Ubuntu 26 repartidas entre los 2 nodos Proxmox forman el clúster k3s, con roles dedicados: 3 control-plane (etcd embebido, sin cargas de trabajo), 2 workers y 1 nodo para IA con taint. Desplegado sin `servicelb`, `traefik`, `local-storage` ni el networking integrado (`flannel`, `kube-proxy` y `network-policy`):
 
 | VM | IP | Nodo Proxmox | VMID | Rol k3s |
 | --- | --- | --- | --- | --- |
 | `vm-ubuntu26-zoro-01` | `192.168.1.21` | `zoro` | 210 | control-plane (server + etcd), taint `node-role.kubernetes.io/control-plane` |
 | `vm-ubuntu26-nami-01` | `192.168.1.22` | `nami` | 220 | control-plane (server + etcd), mismo taint |
+| `vm-ubuntu26-zoro-03` | `192.168.1.23` | `zoro` | 213 | control-plane (server + etcd), mismo taint; solo para quorum de etcd |
 | `vm-ubuntu26-zoro-02` | `192.168.1.30` | `zoro` | 211 | worker (agent), sin taint |
 | `vm-ubuntu26-nami-02` | `192.168.1.31` | `nami` | 221 | worker (agent), sin taint |
 | `vm-ubuntu26-zoro-ai` | `192.168.1.40` | `zoro` | 212 | worker (agent) para IA, taint `dedicated=ai` + label `workload-type=ai` |
 
-> El quorum de etcd es 2/2 (2 nodos control-plane): si cualquiera de los dos cae, el API server se queda sin quorum. Es una limitación conocida y aceptada (sin tercer miembro de etcd) a cambio de mantener solo 2 servidores dedicados a control-plane.
+> El quorum de etcd es 3 miembros (2 en `zoro`, 1 en `nami`): tolera la caída de cualquier VM control-plane individual. Pero como dos de los tres miembros (`zoro-01` y `zoro-03`) viven en el mismo host físico `zoro`, si ese host se apaga se pierden 2/3 y el API server se queda sin quorum igualmente — no mejora la HA real frente a la caída del host, solo evita perder quorum por el fallo de una VM o del propio k3s en un nodo suelto.
 >
 > El nodo de IA (`vm-ubuntu26-zoro-ai`, 8 vCPU / 48 GB) solo admite pods que declaren explícitamente `tolerations: [{key: dedicated, operator: Equal, value: ai, effect: NoSchedule}]` y `nodeSelector: {workload-type: ai}` — cualquier despliegue sin esa toleration/selector nunca se programa ahí.
 
 - **kube-vip** publica una VIP de alta disponibilidad para el *control plane* de k3s en `192.168.1.20` (modo ARP, *leader election* entre los nodos control-plane). Es el endpoint estable del API de Kubernetes, registrado en Pi-hole como `kubevip`.
-- **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar). Tolera todos los taints (`tolerations: [{operator: Exists}]`) para correr también en los 2 nodos control-plane y en el nodo de IA.
+- **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar). Tolera todos los taints (`tolerations: [{operator: Exists}]`) para correr también en los 3 nodos control-plane y en el nodo de IA.
 - **Cilium LB IPAM + L2 announcements** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), sustituyendo a MetalLB. El pool y la política L2 se definen en `services/cilium-lb/`.
 - **Cifrado pod-to-pod con WireGuard** habilitado en Cilium: el tráfico entre pods de distintos nodos viaja cifrado de forma transparente, sin gestión manual de claves.
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
@@ -112,7 +113,7 @@ del homelab.
 
 1. **Proxmox** (`ansible/playbooks/qdevice.yml`): configura los repos sin suscripción y el QDevice de quorum (árbitro en `luffy`).
 2. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
-3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las 5 VMs del clúster con cloud-init (2 control-plane, 2 workers, 1 nodo de IA).
+3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las 6 VMs del clúster con cloud-init (3 control-plane, 2 workers, 1 nodo de IA).
 4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
 5. **Servicios** (`services/`): se aplican manualmente el pool de Cilium LB (`services/cilium-lb`) y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
 6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y Piper en la Raspberry.
@@ -143,6 +144,7 @@ flowchart TB
         nami["nami · Proxmox 2<br/>192.168.1.4"]
         vm1["vm-zoro-01 (control-plane)<br/>192.168.1.21"]
         vm2["vm-nami-01 (control-plane)<br/>192.168.1.22"]
+        vm6["vm-zoro-03 (control-plane, solo quorum)<br/>192.168.1.23"]
         vm3["vm-zoro-02 (worker)<br/>192.168.1.30"]
         vm4["vm-nami-02 (worker)<br/>192.168.1.31"]
         vm5["vm-zoro-ai (IA: Ollama · Whisper, taint)<br/>192.168.1.40"]:::ai
@@ -154,11 +156,12 @@ flowchart TB
     zoro -.->|hospeda| vm1
     zoro -.->|hospeda| vm3
     zoro -.->|hospeda| vm5
+    zoro -.->|hospeda| vm6
     nami -.->|hospeda| vm2
     nami -.->|hospeda| vm4
     vm3 & vm4 & vm5 ==>|clúster k3s| gw
-    vm1 & vm2 -.->|VIP control-plane| kvip
-    vm1 & vm2 & vm3 & vm4 & vm5 -.->|iSCSI| nas
+    vm1 & vm2 & vm6 -.->|VIP control-plane| kvip
+    vm1 & vm2 & vm3 & vm4 & vm5 & vm6 -.->|iSCSI| nas
 
     subgraph iot["Red IOT 192.168.52.0/24 (br52, aislada)"]
         dispositivos["Dispositivos IOT"]
@@ -183,7 +186,7 @@ flowchart TB
 flowchart TB
     repo["Repositorio Git<br/>github.com/Jasviers/homelab"]
 
-    subgraph k3s["Clúster k3s (2 control-plane + 2 workers + 1 IA)"]
+    subgraph k3s["Clúster k3s (3 control-plane + 2 workers + 1 IA)"]
         subgraph argocd["ArgoCD (GitOps)"]
             root["Application: root<br/>(app-of-apps)"]
             root --> appKubevip[kube-vip]
