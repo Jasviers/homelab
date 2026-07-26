@@ -1,7 +1,8 @@
 ---
-- name: Configure Proxmox no-subscription repositories
+- name: Configure Proxmox
   hosts: proxmox
   become: true
 
   roles:
     - proxmox-repos
+    - proxmox-tuning

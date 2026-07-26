@@ -1,0 +1,11 @@
+[Unit]
+Description=Set CPU frequency governor to {{ proxmox_tuning_cpu_governor }}
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cpupower frequency-set -g {{ proxmox_tuning_cpu_governor }}
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target
