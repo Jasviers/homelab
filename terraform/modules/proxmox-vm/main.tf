@@ -24,8 +24,7 @@ resource "proxmox_virtual_environment_vm" "vm" {
     trim    = true
   }
 
-  on_boot       = var.on_boot
-  scsi_hardware = "virtio-scsi-single"
+  on_boot = var.on_boot
 
   cpu {
     cores = var.cores
@@ -41,9 +40,8 @@ resource "proxmox_virtual_environment_vm" "vm" {
   disk {
     datastore_id = var.storage
     file_format  = "raw"
-    interface    = "scsi0"
+    interface    = "virtio0"
     size         = var.disk_gb
-    ssd          = true
     discard      = "on"
     iothread     = true
   }
