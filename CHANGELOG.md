@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.17.7](https://github.com/Jasviers/homelab/compare/v1.17.6...v1.17.7) (2026-07-27)
+
+
+### Bug Fixes
+
+* annotations to expose servicios on principal homepage ([09d18fa](https://github.com/Jasviers/homelab/commit/09d18fa1ee37142cfe39fb6d9939ddba5c4a4498))
+* more changes to fix transmute and servicios services ([cd9de1f](https://github.com/Jasviers/homelab/commit/cd9de1f210ca3ff799e93b7ac5984732215fcbb0))
+* more changes to fix transmute and servicios services ([2e1e2cb](https://github.com/Jasviers/homelab/commit/2e1e2cb1bc6af228e0f5e6b0f8a38c6434ae6bf1))
+* more changes to transmute ([a3bd448](https://github.com/Jasviers/homelab/commit/a3bd4483aed3c7824150d55da7340b55b995bc10))
+* more changes to transmute ([7877223](https://github.com/Jasviers/homelab/commit/78772233d0b23316949c9a1b4f220431f85cf198))
+
 ## [1.17.6](https://github.com/Jasviers/homelab/compare/v1.17.5...v1.17.6) (2026-07-27)
 
 
