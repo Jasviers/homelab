@@ -107,3 +107,4 @@ spec:
                   - ollama
                   - garage
                   - media
+                  - stirling-pdf

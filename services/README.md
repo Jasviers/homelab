@@ -76,6 +76,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `whisper.yml` | `whisper` | `services/whisper` |
 | `garage.yml` | `garage` | `services/garage` |
 | `media.yml` | `media` | `services/media` |
+| `stirling-pdf.yml` | `stirling-pdf` | `services/stirling-pdf` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -551,7 +552,7 @@ A diferencia del resto de servicios (1 namespace por app), aquí todo comparte n
 
 > **Manual tras el primer despliegue** (nada de esto se versiona en git, es configuración desde cada UI):
 >
-> 1. Crear en `media-library` (por ejemplo con `kubectl -n media exec deploy/qbittorrent -- mkdir -p /data/torrents/movies /data/torrents/tv /data/media/movies /data/media/tv`) la estructura de carpetas anterior.
+> 1. Crear en `media-library` la estructura de carpetas anterior **y** corregir el propietario, en un solo paso (`kubectl -n media exec deploy/qbittorrent -- sh -c 'mkdir -p /data/torrents/movies /data/torrents/tv /data/media/movies /data/media/tv && chown -R 1000:1000 /data'`). El `chown` es imprescindible: `kubectl exec` entra como `root`, así que cualquier carpeta creada así (incluida la raíz `/data` del propio PVC, que la carpeta compartida de Synology crea como `root:root`) queda inaccesible para Jellyfin/Radarr/Sonarr/qBittorrent, que corren como `PUID=1000`/`PGID=1000` — sin este paso las apps no pueden ni listar `/data`, y da la impresión de que las carpetas "no se crean bien".
 > 2. **Prowlarr**: añadir los indexadores y conectarlo a Radarr/Sonarr (Settings → Apps) para que sincronice los indexadores automáticamente.
 > 3. **qBittorrent**: carpeta de descargas por defecto `/data/torrents`.
 > 4. **Radarr/Sonarr**: root folder `/data/media/movies` / `/data/media/tv`; añadir qBittorrent como *download client* (`qbittorrent.media.svc.cluster.local:8080`) y usar categorías (`radarr`/`sonarr`) para que qBittorrent separe las descargas por app.
