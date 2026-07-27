@@ -77,6 +77,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `garage.yml` | `garage` | `services/garage` |
 | `media.yml` | `media` | `services/media` |
 | `bentopdf.yml` | `bentopdf` | `services/bentopdf` |
+| `transmute.yml` | `transmute` | `services/transmute` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -584,4 +585,22 @@ Kustomization que despliega Whisper (STT, protocolo Wyoming) en el nodo de IA, m
 - `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja al compartir CPU con Ollama en el mismo nodo), `--language es`.
 - `pvc.yml`: PVC de 5Gi en `synology-iscsi-storage` montado en `/data` para no volver a descargar el modelo en cada reinicio.
 - `service.yml`: a diferencia del resto de servicios HTTP, Wyoming es un protocolo TCP a medida y **no** puede publicarse vía `HTTPRoute`. Se expone con una IP `LoadBalancer` propia de Cilium LB IPAM (`192.168.1.129:10300`), igual que el Gateway tiene la suya.
+
+## transmute/
+
+Kustomization que despliega [Transmute](https://github.com/transmute-app/transmute) (convertidor/compresor de ficheros self-hosted: imágenes, vídeo, audio, docs..., ~3000 conversiones), en `transmute.bonchan.org`.
+
+A diferencia de **bentopdf** (100% client-side/WASM, el servidor solo sirve estáticos), Transmute **procesa en el servidor** (ffmpeg y otras herramientas), así que es un servicio con estado, al estilo de `whisper`/`garage`:
+
+- `pvc.yml`: PVC `transmute-data` de 200Gi en `synology-nfs-storage` (`ReadWriteOnce`) montado en `/app/data`. Ahí viven tanto la BD SQLite embebida como los ficheros temporales de conversión. Se eligió NFS en vez de iSCSI para no consumir una LUN del NAS (limitado en el DS223j); con un único pod y `ReadWriteOnce` el riesgo de locking de SQLite sobre NFS es mínimo. La StorageClass tiene `allowVolumeExpansion: true`, así que ampliar es subir el valor y sincronizar.
+- `deployment.yml`: imagen fijada `ghcr.io/transmute-app/transmute:2.0.0` (no `:latest`), 1 réplica con `strategy: Recreate` (RWO + SQLite no admiten dos escritores). Escucha en `3313` y expone `/api/health/ready` (probes y health check activo del `BackendTrafficPolicy`). `limits` de 2 CPU/2Gi por el uso intensivo de ffmpeg en vídeo (ajustable). El `securityContext` corre con la imagen por defecto (el upstream no define `PUID`, corre como root y escribe en la carpeta compartida NFS `root:root`), pero sin privilegios extra (`allowPrivilegeEscalation: false`, `drop: [ALL]`, `RuntimeDefault`).
+- `httproute.yml`: publica `transmute.bonchan.org` con `timeouts` de 600s (subidas/conversiones largas de vídeo) y anotaciones de autodescubrimiento de Homepage (grupo *Aplicaciones*). El namespace `transmute` está en la allowlist del listener HTTPS del Gateway (`services/gateway/gateway.yml`).
+
+### SSO sobre Transmute (OIDC nativo contra Authentik)
+
+Transmute tiene **soporte OIDC nativo** (a diferencia de Jellyfin, que necesita un plugin), así que se integra directamente por variables de entorno — no hace falta forward-auth por `SecurityPolicy` (rompería su API REST). El blueprint `authentik/blueprints/transmute.yaml` crea un provider OAuth2/OIDC **confidential** (`client_id: transmute`, callback `https://transmute.bonchan.org/api/oidc/callback`) y su aplicación.
+
+Variables OIDC en `deployment.yml`: `OIDC_ISSUER_URL` apunta a `https://authentik.bonchan.org/application/o/transmute/` (CoreDNS resuelve ese host dentro del clúster, así que no hace falta `OIDC_INTERNAL_URL`), `OIDC_AUTO_CREATE_USERS=true` (crea la cuenta al primer login) y `OIDC_AUTO_LAUNCH=false` (se mantiene el login local como fallback; poner a `true` para redirigir directo a Authentik).
+
+El `client_secret` **no se versiona** y va en los dos lados con el **mismo valor**: en `authentik-oidc-secrets` (clave `transmute-client-secret`, que el chart de Authentik lee por entorno) y en el Secret `transmute-oidc-secret` (clave `client-secret`) del namespace `transmute`, del que el deployment toma `OIDC_CLIENT_SECRET`. Ambos se crean en el runbook de bootstrap (sección "Otros clientes OIDC"); **la clave en Authentik debe existir desde el primer arranque** o `authentik-server`/`worker` quedan en `CreateContainerConfigError`.
 
