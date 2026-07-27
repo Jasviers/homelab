@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.4](https://github.com/Jasviers/homelab/compare/v1.17.3...v1.17.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* some deploy problems with the new services ([fefc354](https://github.com/Jasviers/homelab/commit/fefc3542f52b03fb8e6f73ab9bd04865c6efaa07))
+* some deploy problems with the new services ([38862d2](https://github.com/Jasviers/homelab/commit/38862d216f535b62524237d30bce5210e1d75c06))
+
 ## [1.17.3](https://github.com/Jasviers/homelab/compare/v1.17.2...v1.17.3) (2026-07-27)
 
 
