@@ -90,6 +90,8 @@
 
 [ ] VPN foosha (Site B — túnel site-to-site con el homelab principal)
 
+[ ] Solucionar certificados de proxmox para rutas en el gateway api
+
 ---
 
 [ ] Netbox (IPAM/DCIM)
