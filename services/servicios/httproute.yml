@@ -3,6 +3,13 @@ kind: HTTPRoute
 metadata:
   name: servicios
   namespace: servicios
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Servicios
+    gethomepage.dev/description: Portal de servicios para usuarios
+    gethomepage.dev/group: Plataforma
+    gethomepage.dev/icon: homepage.png
+    gethomepage.dev/href: https://servicios.bonchan.org
 spec:
   parentRefs:
     - name: homelab
