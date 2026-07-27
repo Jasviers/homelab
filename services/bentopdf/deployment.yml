@@ -18,9 +18,7 @@ spec:
     spec:
       containers:
         - name: bentopdf
-          # Self-host build (sin la web de marketing), nginx-unprivileged sirviendo en :8080.
-          # Procesamiento 100% client-side (WASM): el servidor solo entrega estaticos.
-          image: ghcr.io/alam00000/bentopdf-simple:1.15.4
+          image: ghcr.io/alam00000/bentopdf-simple:2.8.7
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
