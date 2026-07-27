@@ -76,9 +76,9 @@
 
 [x] Desplegar un bentoPDF
 
-[ ] Convertidor de medios (transmute)
+[x] Convertidor de medios (transmute)
 
-[ ] Homepage con servios para usuarios
+[x] Homepage con servios para usuarios (servicios.bonchan.org)
 
 [ ] backups (proxmox backups + velero)
 

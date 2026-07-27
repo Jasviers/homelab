@@ -49,6 +49,11 @@ configMapGenerator:
       - blueprints/jellyfin.yaml
     options:
       disableNameSuffixHash: true
+  - name: authentik-blueprint-transmute
+    files:
+      - blueprints/transmute.yaml
+    options:
+      disableNameSuffixHash: true
 
 helmCharts:
   - name: authentik
@@ -106,6 +111,11 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: jellyfin-client-secret
+          - name: TRANSMUTE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: transmute-client-secret
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
@@ -115,6 +125,7 @@ helmCharts:
           - authentik-blueprint-router
           - authentik-blueprint-home-assistant
           - authentik-blueprint-jellyfin
+          - authentik-blueprint-transmute
       authentik:
         postgresql:
           host: authentik-db-rw
