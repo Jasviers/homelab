@@ -93,5 +93,6 @@ data:
 
   kubernetes.yaml: ""
   docker.yaml: ""
+  proxmox.yaml: ""
   custom.css: ""
   custom.js: ""
