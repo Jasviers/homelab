@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.3](https://github.com/Jasviers/homelab/compare/v1.17.2...v1.17.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* change some homepage configurations ([1d7ffae](https://github.com/Jasviers/homelab/commit/1d7ffae295cf6783997f016fbb4c37306539589c))
+* change some homepage configurations ([4bf349f](https://github.com/Jasviers/homelab/commit/4bf349f17e1a9b8d2851eb7bded986a8261b8937))
+
 ## [1.17.2](https://github.com/Jasviers/homelab/compare/v1.17.1...v1.17.2) (2026-07-27)
 
 
