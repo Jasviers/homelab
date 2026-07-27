@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.6](https://github.com/Jasviers/homelab/compare/v1.17.5...v1.17.6) (2026-07-27)
+
+
+### Bug Fixes
+
+* services deploy error ([1818e9e](https://github.com/Jasviers/homelab/commit/1818e9e2c9b9c498501052e403414768ee0e7770))
+
 ## [1.17.5](https://github.com/Jasviers/homelab/compare/v1.17.4...v1.17.5) (2026-07-27)
 
 
