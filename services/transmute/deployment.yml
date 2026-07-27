@@ -42,6 +42,10 @@ spec:
           env:
             - name: PYTHONUNBUFFERED
               value: "1"
+            - name: HOME
+              value: /app/data
+            - name: XDG_CACHE_HOME
+              value: /app/data/.cache
             - name: APP_URL
               value: https://transmute.bonchan.org
             - name: OIDC_ISSUER_URL
