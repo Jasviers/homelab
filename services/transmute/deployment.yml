@@ -45,6 +45,13 @@ spec:
               value: "true"
             - name: OIDC_AUTO_LAUNCH
               value: "false"
+          startupProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: /api/health/ready
@@ -56,7 +63,7 @@ spec:
               path: /api/health/ready
               port: http
             periodSeconds: 30
-            timeoutSeconds: 5
+            timeoutSeconds: 10
             failureThreshold: 3
           resources:
             requests:
