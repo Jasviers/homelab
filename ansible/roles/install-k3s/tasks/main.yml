@@ -11,7 +11,7 @@
 
 - name: Install k3s on init control-plane node
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20
+    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --etcd-arg heartbeat-interval=500 --etcd-arg election-timeout=5000
   when:
     - inventory_hostname == groups['k3s_control_plane'][0]
     - not k3s_server_unit.stat.exists
@@ -30,7 +30,7 @@
 
 - name: Install k3s on the rest of the control-plane nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --etcd-arg heartbeat-interval=500 --etcd-arg election-timeout=5000 --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
   when:
     - inventory_hostname in groups['k3s_control_plane']
     - inventory_hostname != groups['k3s_control_plane'][0]
