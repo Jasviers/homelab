@@ -76,7 +76,7 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `whisper.yml` | `whisper` | `services/whisper` |
 | `garage.yml` | `garage` | `services/garage` |
 | `media.yml` | `media` | `services/media` |
-| `stirling-pdf.yml` | `stirling-pdf` | `services/stirling-pdf` |
+| `bentopdf.yml` | `bentopdf` | `services/bentopdf` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
