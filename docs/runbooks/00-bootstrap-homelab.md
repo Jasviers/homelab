@@ -337,14 +337,26 @@ PROXMOX_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 ROUTER_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 HA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 JELLYFIN_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+TRANSMUTE_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 
 kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
-  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\",\"jellyfin-client-secret\":\"$JELLYFIN_OIDC_SECRET\"}}"
+  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\",\"jellyfin-client-secret\":\"$JELLYFIN_OIDC_SECRET\",\"transmute-client-secret\":\"$TRANSMUTE_OIDC_SECRET\"}}"
 ```
 
 Copia cada valor a su sistema correspondiente (Proxmox, router, HA, Jellyfin)
 cuando configures su lado del OIDC. Para Jellyfin, pega `$JELLYFIN_OIDC_SECRET`
 tal cual en el plugin (ver detalle en `services/README.md`).
+
+**Transmute** es un caso mixto: el otro lado sí es un Secret de Kubernetes (como
+Hubble/Grafana). Transmute lee su `OIDC_CLIENT_SECRET` desde el Secret
+`transmute-oidc-secret` (clave `client-secret`) en su propio namespace, con el
+**mismo valor** que se acaba de poner en `authentik-oidc-secrets`:
+
+```bash
+kubectl create namespace transmute --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n transmute create secret generic transmute-oidc-secret \
+  --from-literal=client-secret="$TRANSMUTE_OIDC_SECRET"
+```
 
 ---
 

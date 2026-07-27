@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: stirling-pdf
-  namespace: stirling-pdf
+  name: transmute
+  namespace: transmute
   labels:
-    app.kubernetes.io/name: stirling-pdf
+    app.kubernetes.io/name: transmute
 spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 8080
+      port: 3313
       targetPort: http
       protocol: TCP
   selector:
-    app.kubernetes.io/name: stirling-pdf
+    app.kubernetes.io/name: transmute

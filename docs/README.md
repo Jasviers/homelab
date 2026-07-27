@@ -24,7 +24,9 @@ corrigiendo un runbook, y un runbook puede enlazar al postmortem que lo originó
 
 ## Postmortems
 
-_No hay postmortems escritos todavía. Cuando se escriban, seguir el formato
+| Postmortem | Descripción |
+| --- | --- |
+| [2026-07-27 — Crash-loop de kube-vip por latencia de fsync de etcd](postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md) | NVMe genérico (~100 fsync/s) + worker de media saturando el disco de etcd → latencia de etcd ~5 s → kube-vip en crash-loop y reinicios en cascada. |
 
-[postmortems/_template.md](postmortems/_template.md) con el nombre
-`YYYY-MM-DD-titulo-corto.md`._
+*Formato: seguir [postmortems/_template.md](postmortems/_template.md) con el nombre
+`YYYY-MM-DD-titulo-corto.md`.*

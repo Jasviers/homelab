@@ -1,0 +1,22 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: bentopdf
+  namespace: bentopdf
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: BentoPDF
+    gethomepage.dev/description: Suite de manipulación de PDFs (client-side)
+    gethomepage.dev/group: Aplicaciones
+    gethomepage.dev/icon: bentopdf.png
+    gethomepage.dev/href: https://pdf.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - pdf.bonchan.org
+  rules:
+    - backendRefs:
+        - name: bentopdf
+          port: 8080
