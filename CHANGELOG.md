@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.2](https://github.com/Jasviers/homelab/compare/v1.17.1...v1.17.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* etcd quorum election problems ([9714bc5](https://github.com/Jasviers/homelab/commit/9714bc5135568875205bdc8fb82178f9a5aec022))
+* etcd quorum election problems ([262b880](https://github.com/Jasviers/homelab/commit/262b880bafbaca0c6230b16ad04ac61213119153))
+
 ## [1.17.1](https://github.com/Jasviers/homelab/compare/v1.17.0...v1.17.1) (2026-07-27)
 
 
