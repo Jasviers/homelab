@@ -18,6 +18,12 @@ spec:
       labels:
         app.kubernetes.io/name: transmute
     spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: transmute
           image: ghcr.io/transmute-app/transmute:2.0.0
@@ -26,6 +32,8 @@ spec:
             - name: http
               containerPort: 3313
           env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
             - name: APP_URL
               value: https://transmute.bonchan.org
             - name: OIDC_ISSUER_URL
@@ -49,22 +57,23 @@ spec:
             httpGet:
               path: /api/health/ready
               port: http
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 24
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 60
           readinessProbe:
-            httpGet:
-              path: /api/health/ready
-              port: http
-            periodSeconds: 15
-            timeoutSeconds: 5
-          livenessProbe:
             httpGet:
               path: /api/health/ready
               port: http
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 6
           resources:
             requests:
               cpu: "250m"
@@ -75,13 +84,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /app/data
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
-            seccompProfile:
-              type: RuntimeDefault
       volumes:
         - name: data
           persistentVolumeClaim:
