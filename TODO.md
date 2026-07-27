@@ -72,21 +72,25 @@
 
 [X] Mejorar el homepage (más información, más servicios, etc.)
 
----
-
 [x] Desplegar un bentoPDF
 
 [x] Convertidor de medios (transmute)
 
 [x] Homepage con servios para usuarios (servicios.bonchan.org)
 
+---
+
 [ ] backups (proxmox backups + velero)
+
+[ ] Mejoras de monitorización
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
 [ ] VPN foosha (Site B — túnel site-to-site con el homelab principal)
+
+---
 
 [ ] Netbox (IPAM/DCIM)
 
@@ -96,8 +100,6 @@
 
 [ ] SSO para pihole
 
----
-
 [ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 
 [ ] Mejoras de seguridad
@@ -105,8 +107,6 @@
 [ ] Ansible de bastionado (CIS hardening)
 
 [ ] Mejoras en el CI
-
-[ ] Mejoras de monitorización
 
 [ ] Mejoras de quorum para k8s
 

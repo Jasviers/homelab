@@ -8,7 +8,7 @@ metadata:
     gethomepage.dev/name: Transmute
     gethomepage.dev/description: Convertidor/compresor de medios
     gethomepage.dev/group: Aplicaciones
-    gethomepage.dev/icon: transmute.png
+    gethomepage.dev/icon: si-ffmpeg
     gethomepage.dev/href: https://transmute.bonchan.org
 spec:
   parentRefs:

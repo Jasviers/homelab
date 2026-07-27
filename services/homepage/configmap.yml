@@ -67,7 +67,7 @@ data:
 
   bookmarks.yaml: |
     - Homelab:
-        - Repositorio:
+        - GItHub:
             - abbr: GH
               href: https://github.com/Jasviers/homelab
         - Home Assistant:
@@ -82,9 +82,6 @@ data:
         - YouTube:
             - icon: youtube.png
               href: https://youtube.com
-        - GitHub:
-            - icon: github.png
-              href: https://github.com
         - Cloudflare:
             - icon: cloudflare.png
               href: https://dash.cloudflare.com

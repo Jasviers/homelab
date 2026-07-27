@@ -83,7 +83,7 @@ data:
             description: Editar y convertir PDFs
             target: _blank
         - Transmute:
-            icon: transmute.png
+            icon: si-ffmpeg
             href: https://transmute.bonchan.org
             description: Convertir audio, vídeo e imágenes
             target: _blank
