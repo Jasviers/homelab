@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.17.0](https://github.com/Jasviers/homelab/compare/v1.16.2...v1.17.0) (2026-07-27)
+
+
+### Features
+
+* add stirling-pdf service ([051aa2f](https://github.com/Jasviers/homelab/commit/051aa2f290fecda6d94d094cc1847578d7f855b4))
+
+
+### Bug Fixes
+
+* improve vms and storage of proxmox cluster to better performance ([80189df](https://github.com/Jasviers/homelab/commit/80189dfe5db23468cf2f0b248090b22e16fcc5e8))
+
 ## [1.16.2](https://github.com/Jasviers/homelab/compare/v1.16.1...v1.16.2) (2026-07-26)
 
 
