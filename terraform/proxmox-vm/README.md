@@ -6,8 +6,8 @@ Este root module usa el módulo `../modules/proxmox-vm` para desplegar el clúst
 
 - `main.tf`: referencia el módulo y crea las 5 VMs vía `for_each` sobre `vms`.
 - `providers.tf`: configuración del provider de Proxmox vía API.
-- `variables.tf`: variables del root module; `vms` admite overrides opcionales por VM (`cores`, `memory`, `disk_gb`, `storage`) que caen a los globales del mismo nombre si se omiten.
-- `terraform.tfvars.example`: ejemplo con las 6 VMs (3 control-plane de 2 vCPU/2 GB, 2 workers de 4 vCPU/6 GB, 1 nodo de IA de 8 vCPU/48 GB).
+- `variables.tf`: variables del root module; `vms` admite overrides opcionales por VM (`cores`, `memory`, `disk_gb`, `storage`, `memory_floating`, `startup_order`, `startup_up_delay`) que caen a los globales del mismo nombre si se omiten.
+- `terraform.tfvars.example`: ejemplo con las 6 VMs (3 control-plane de 2 vCPU/4 GB, 2 workers de 4 vCPU/8 GB, 1 nodo de IA de 8 vCPU/32 GB). `cpu_type = "host"` por defecto (ambos nodos comparten CPU).
 - `zoro.tfvars.example` / `nami.tfvars.example`: ejemplos heredados compatibles.
 
 ## Uso rápido
@@ -39,9 +39,23 @@ Verifica salidas en `outputs.tf` para obtener `vm_ids`, `vm_names` e `ipv4_addre
 - `proxmox_endpoint`: URL de la API de Proxmox.
 - `proxmox_api_token`: token de acceso.
 - `template`: template base para clonado.
-- `vms`: mapa con las 6 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`).
+- `vms`: mapa con las 6 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`/`memory_floating`/`startup_order`/`startup_up_delay`).
 - `storage`, `disk_gb`, `cores`, `memory`: sizing y storage por defecto, usados por las VMs que no definen su propio override.
+- `cpu_type`: tipo de CPU global (default `host`; máximo rendimiento cuando todos los nodos comparten la misma CPU física).
+- `on_boot`: arranque automático de las VMs con el host (default `true`).
 - `ipv4_gateway`: gateway para cloud-init.
+
+### Notas de RAM y rendimiento (zoro/nami)
+
+`zoro` y `nami` comparten CPU (Ryzen 5 7430U) pero no RAM (64 GB / 16 GB), así
+que `cpu_type = "host"` no compromete la migración. El nodo IA se dimensionó
+en 32 GB (antes 48 GB) porque dejaba a `zoro` con solo ~2 GB libres para el
+propio host Proxmox; con el nuevo sizing quedan ~16 GB libres en `zoro` y ~4
+GB en `nami`. `memory_floating` activa ballooning en workers/nodo IA (para
+que Proxmox pueda reclamar RAM no usada) pero se deja desactivado en los
+control-plane porque etcd es sensible a la latencia que introduce el balloon
+driver. `startup_order` asegura que el control-plane arranque antes que los
+workers y el nodo IA tras un reinicio del host.
 
 ## Salidas
 

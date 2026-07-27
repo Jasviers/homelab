@@ -1,0 +1,3 @@
+---
+proxmox_tuning_cpu_governor: performance
+proxmox_tuning_swappiness: 10

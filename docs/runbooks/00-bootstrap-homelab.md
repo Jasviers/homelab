@@ -62,6 +62,16 @@ ansible-playbook playbooks/qdevice.yml
 
 *Resultado esperado:* playbooks en verde. El quorum se verifica en la Fase 6.
 
+### 1.1b Tuning del host Proxmox (🤖 Ansible)
+
+Fija el governor de CPU en `performance`, ajusta `vm.swappiness` y activa
+`ksmtuned` en `zoro`/`nami` (mini PCs que pueden venir en `powersave`/
+`schedutil` de fábrica — afecta a la latencia de etcd).
+
+```bash
+ansible-playbook playbooks/proxmox-tuning.yml
+```
+
 ### 1.2 Token de API de Proxmox (✋ manual)
 
 En la UI de Proxmox (*Datacenter → Permissions → API Tokens*) crea un token con
@@ -93,11 +103,13 @@ Proxmox indicado. Ver `packer/README.md`.
 
 Clona el template y crea las 6 VMs del clúster con roles heterogéneos: 3
 control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, `vm-ubuntu26-nami-01`
-`192.168.1.22`, `vm-ubuntu26-zoro-03` `192.168.1.23`, 2 vCPU/2 GB cada una —
+`192.168.1.22`, `vm-ubuntu26-zoro-03` `192.168.1.23`, 2 vCPU/4 GB cada una —
 la tercera solo para dar quorum de etcd, coexiste con `zoro-01` en el mismo
 host físico), 2 workers (`vm-ubuntu26-zoro-02`
-`192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/6 GB) y 1 nodo de
-IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/48 GB).
+`192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/8 GB) y 1 nodo de
+IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/32 GB). Las VMs usan
+`cpu_type = "host"` (ambos nodos comparten CPU) y ballooning en workers/nodo
+IA — ver `terraform/proxmox-vm/README.md`.
 
 ```bash
 cd terraform/proxmox-vm
@@ -149,6 +161,16 @@ descarga el kubeconfig a `~/.kube/config`.
 ```bash
 cd ansible
 ansible-playbook playbooks/install-k3s.yml
+```
+
+### 4.1 Tuning de las VMs (🤖 Ansible)
+
+Ajusta `vm.swappiness` dentro de las 6 VMs (ya se mide swap en uso en 5 de
+las 6 bajo carga normal). No toca hardware virtual, se puede correr en
+cualquier momento sin coordinar con Terraform.
+
+```bash
+ansible-playbook playbooks/vm-tuning.yml
 ```
 
 ---

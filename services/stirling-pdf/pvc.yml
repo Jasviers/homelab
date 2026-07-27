@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stirling-pdf-configs
+  namespace: stirling-pdf
+  labels:
+    app.kubernetes.io/name: stirling-pdf
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: synology-nfs-storage
+  resources:
+    requests:
+      storage: 1Gi
