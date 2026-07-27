@@ -1,0 +1,28 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: stirling-pdf
+  namespace: stirling-pdf
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: stirling-pdf
+  healthCheck:
+    active:
+      type: HTTP
+      http:
+        path: /api/v1/info/status
+        expectedStatuses:
+          - 200
+      interval: 10s
+      timeout: 5s
+      unhealthyThreshold: 3
+      healthyThreshold: 1
+  rateLimit:
+    type: Local
+    local:
+      rules:
+        - limit:
+            requests: 50
+            unit: Second

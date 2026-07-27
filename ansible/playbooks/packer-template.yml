@@ -8,4 +8,5 @@
 
   roles:
     - update-packages
+    - vm-tuning
     - cloud-init

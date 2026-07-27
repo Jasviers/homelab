@@ -40,7 +40,6 @@
 
 [x] Mejoras de documentación
 
----
 [x] Sustituir metallb por cilium
 
 [x] Mejor control de cloudflare tunnels (cloudflared en k8s)
@@ -61,6 +60,28 @@
 
 [x] Despliegue de whisper en el cluster
 
+[x] Mejora de gateway api (HA, Politicas de trafico, health checks, etc.)
+
+[x] Mejorar configuración de Proxmox (Que use por ejemplo versiones especificas de x86 por defecto)
+
+[x] Revisar escalabilidad de los PVC de k8s con synology y el formato de ISCSI (iSCSI vs NFS)
+
+[x] Desplegar Garage buckets
+
+[x] Jellyfin (+ Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent)
+
+[X] Mejorar el homepage (más información, más servicios, etc.)
+
+---
+
+[x] Desplegar un stirling-pdf
+
+[ ] Convertidor de medios (transmute)
+
+[ ] Homepage con servios para usuarios
+
+[ ] backups (proxmox backups + velero)
+
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
@@ -71,31 +92,13 @@
 
 [ ] Network policies para aislar servicios
 
-[x] Mejora de gateway api (HA, Politicas de trafico, health checks, etc.)
-
-[ ] Mejorar configuración de Proxmox (Que use por ejemplo versiones especificas de x86 por defecto)
-
-[x] Revisar escalabilidad de los PVC de k8s con synology y el formato de ISCSI (iSCSI vs NFS)
-
----
-
 [ ] vault
-
-[x] Desplegar Garage buckets
-
-[x] Jellyfin (+ Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent)
-
-[X] Mejorar el homepage (más información, más servicios, etc.)
-
-[ ] backups (proxmox backups + velero)
-
-[ ] Convertidor de medios
-
-[ ] Servicio de descarga de videos de youtube
 
 [ ] SSO para pihole
 
 ---
+
+[ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 
 [ ] Mejoras de seguridad
 
