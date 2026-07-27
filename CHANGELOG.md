@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.5](https://github.com/Jasviers/homelab/compare/v1.17.4...v1.17.5) (2026-07-27)
+
+
+### Bug Fixes
+
+* changes on transmute to fix deployment problem ([c1e2fd4](https://github.com/Jasviers/homelab/commit/c1e2fd4fa3108a5a31f09bda65853be4c3c0d45d))
+* changes on transmute to fix deployment problem ([c72cb0d](https://github.com/Jasviers/homelab/commit/c72cb0dbce1d6671bf8085409520427120d6e616))
+
 ## [1.17.4](https://github.com/Jasviers/homelab/compare/v1.17.3...v1.17.4) (2026-07-27)
 
 
