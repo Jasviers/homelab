@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.1](https://github.com/Jasviers/homelab/compare/v1.17.0...v1.17.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* ollama job tolerations ([170393d](https://github.com/Jasviers/homelab/commit/170393d373f42c4bbe7294c24bc9b6ddee84d3e8))
+
 ## [1.17.0](https://github.com/Jasviers/homelab/compare/v1.16.2...v1.17.0) (2026-07-27)
 
 
