@@ -91,5 +91,7 @@ data:
   bookmarks.yaml: |
     []
 
+  kubernetes.yaml: ""
+  docker.yaml: ""
   custom.css: ""
   custom.js: ""

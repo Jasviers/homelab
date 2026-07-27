@@ -79,6 +79,12 @@ spec:
             - mountPath: /app/config/widgets.yaml
               name: config
               subPath: widgets.yaml
+            - mountPath: /app/config/kubernetes.yaml
+              name: config
+              subPath: kubernetes.yaml
+            - mountPath: /app/config/docker.yaml
+              name: config
+              subPath: docker.yaml
             - mountPath: /app/config/logs
               name: logs
       volumes:
