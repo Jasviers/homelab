@@ -16,6 +16,13 @@ spec:
         app.kubernetes.io/name: ollama-pull-models
     spec:
       restartPolicy: OnFailure
+      nodeSelector:
+        workload-type: ai
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ai
+          effect: NoSchedule
       containers:
         - name: pull
           image: ollama/ollama:0.32.1
