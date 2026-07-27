@@ -74,7 +74,7 @@
 
 ---
 
-[x] Desplegar un stirling-pdf
+[x] Desplegar un bentoPDF
 
 [ ] Convertidor de medios (transmute)
 
