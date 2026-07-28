@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.8](https://github.com/Jasviers/homelab/compare/v1.17.7...v1.17.8) (2026-07-28)
+
+
+### Bug Fixes
+
+* add flaresolverr to solver prowlarr problem with cloudflare checks ([e319034](https://github.com/Jasviers/homelab/commit/e3190348dacf7bbac42355ca8b16ecb7a9fb0fbf))
+* add flaresolverr to solver prowlarr problem with cloudflare checks ([83a1dcd](https://github.com/Jasviers/homelab/commit/83a1dcd06b02101b10d112666c21e579e8252c1a))
+
 ## [1.17.7](https://github.com/Jasviers/homelab/compare/v1.17.6...v1.17.7) (2026-07-27)
 
 
