@@ -79,7 +79,7 @@ data:
             target: _blank
         - BentoPDF:
             icon: bentopdf.png
-            href: https://pdf.bonchan.org
+            href: https://pdf.bonchan.org/es/
             description: Editar y convertir PDFs
             target: _blank
         - Transmute:
