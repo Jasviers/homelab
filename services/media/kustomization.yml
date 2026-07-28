@@ -9,4 +9,5 @@ resources:
   - radarr
   - sonarr
   - prowlarr
+  - flaresolverr
   - qbittorrent
