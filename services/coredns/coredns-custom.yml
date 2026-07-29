@@ -15,6 +15,9 @@ data:
             192.168.1.128 homepage.bonchan.org
             192.168.1.128 ollama.bonchan.org
             192.168.1.128 servicios.bonchan.org
+            192.168.1.128 proxmox.bonchan.org
+            192.168.1.128 router.bonchan.org
+            192.168.1.128 foosha-router.bonchan.org
             fallthrough
         }
         forward . /etc/resolv.conf

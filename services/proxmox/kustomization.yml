@@ -9,6 +9,5 @@ resources:
   - namespace.yml
   - backend.yml
   - httproute.yml
-  - backendtlspolicy.yml
   - securitypolicy.yml
   - backendtrafficpolicy.yml
