@@ -8,6 +8,46 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: router
+  healthCheck:
+    active:
+      type: HTTP
+      http:
+        path: /
+        expectedStatuses:
+          - 200
+      interval: 10s
+      timeout: 5s
+      unhealthyThreshold: 3
+      healthyThreshold: 1
+  rateLimit:
+    type: Local
+    local:
+      rules:
+        - limit:
+            requests: 20
+            unit: Second
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: foosha-router
+  namespace: router
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: foosha-router
+  healthCheck:
+    active:
+      type: HTTP
+      http:
+        path: /
+        expectedStatuses:
+          - 200
+      interval: 30s
+      timeout: 10s
+      unhealthyThreshold: 3
+      healthyThreshold: 1
   rateLimit:
     type: Local
     local:

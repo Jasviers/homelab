@@ -438,20 +438,17 @@ Tras esto, la pantalla de login de HA ofrece la opción de entrar con Authentik.
 
 ## proxmox/
 
-Kustomization que expone la UI de administración de ambos nodos Proxmox a través del Gateway API, protegida con OIDC:
+Kustomization que expone la UI de administración del clúster Proxmox a través del Gateway API, protegida con OIDC. Junto con `router/`, es el patrón de referencia para publicar un **host externo al clúster** (sin Service ni Pod detrás): en lugar de un `Service`, la `HTTPRoute` apunta a un `Backend` de Envoy Gateway con la IP real del host.
 
 - `namespace.yml`: namespace `proxmox`.
-- `backend.yml`: dos recursos `Backend` de Envoy Gateway que apuntan a las IPs reales de los nodos Proxmox — `proxmox-zoro` (`192.168.1.3:8006`) y `proxmox-nami` (`192.168.1.4:8006`) — puenteando el Service de Kubernetes (el tráfico va directo al nodo).
-- `httproute.yml`: tres `HTTPRoute`:
-  - `proxmox.bonchan.org` → Backend `proxmox-zoro` (nodo por defecto).
-  - `zoro.bonchan.org` → Backend `proxmox-zoro` (acceso directo a zoro).
-  - `nami.bonchan.org` → Backend `proxmox-nami` (acceso directo a nami).
-  Todas con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
-- `backendtlspolicy.yml`: `BackendTLSPolicy` que habilita TLS entre el Gateway y los nodos Proxmox (el panel web de Proxmox usa HTTPS en el puerto 8006).
-- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway en cada ruta que protege con **OIDC** contra Authentik (`client_id: proxmox`). El `client_secret` se inyecta vía el Secret `proxmox-oidc-secret` en el namespace `proxmox`.
-- `backendtrafficpolicy.yml`: `BackendTrafficPolicy` con rate limiting local (20 req/s por ruta).
+- `backend.yml`: un `Backend` de Envoy Gateway (`proxmox`) que apunta directamente a `192.168.1.3:8006` (nodo `zoro`). Lleva `tls.insecureSkipVerify: true`: `pveproxy` sirve HTTPS con un certificado firmado por la CA interna del clúster PVE (*PVE Cluster Manager CA*), que no está en ningún almacén de confianza del clúster de Kubernetes; el salto Envoy → Proxmox va cifrado pero sin verificar, y no sale de la LAN.
+- `httproute.yml`: una `HTTPRoute` que enruta `proxmox.bonchan.org` al Backend, con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
+- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway que protege la ruta con **OIDC** contra Authentik (`client_id: proxmox`). El `client_secret` se inyecta vía el Secret `proxmox-oidc-secret` en el namespace `proxmox`.
+- `backendtrafficpolicy.yml`: `BackendTrafficPolicy` con health check activo y rate limiting local (20 req/s).
 
-El Secret `proxmox-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). Los blueprints de Authentik (`services/authentik/blueprints/proxmox.yaml`) configuran el provider OIDC y la aplicación correspondiente.
+**Un solo hostname, no uno por nodo.** La UI de PVE es *cluster-wide*: entrando por `zoro` se ven y gestionan ambos nodos, así que basta con `proxmox.bonchan.org`. Los nombres `zoro.bonchan.org` y `nami.bonchan.org` **no** pasan por el Gateway: siguen resolviendo en Pi-hole a las IPs reales de los nodos (`192.168.1.3`/`192.168.1.4`) para acceso directo y SSH. Failover manual si cae `zoro`: cambiar la IP de `backend.yml` a `192.168.1.4`.
+
+El Secret `proxmox-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). Si falta, Envoy falla en cerrado y la ruta devuelve **HTTP 500** sin llegar al backend. El blueprint de Authentik (`services/authentik/blueprints/proxmox.yaml`) configura el provider OIDC y la aplicación correspondiente.
 
 ## ollama/
 
@@ -528,15 +525,19 @@ No hay usuarios ni SSO: Garage se administra por completo con la CLI embebida en
 
 ## router/
 
-Kustomization que expone el panel de administración del router ASUS a través del Gateway API, protegido con OIDC:
+Kustomization que expone los paneles de administración de los **dos routers** del homelab a través del Gateway API, protegidos con OIDC. Ambos comparten namespace (y por tanto `Application` de ArgoCD y entrada en el allow-list del Gateway), igual que `media/` agrupa su stack:
 
 - `namespace.yml`: namespace `router`.
-- `backend.yml`: recurso `Backend` de Envoy Gateway que apunta a la IP real del router (`192.168.0.1:80`), puenteando el Service de Kubernetes.
-- `httproute.yml`: `HTTPRoute` que enruta `router.bonchan.org` al Backend, con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
-- `securitypolicy.yml`: `SecurityPolicy` de Envoy Gateway que protege la ruta con **OIDC** contra Authentik (`client_id: router`). El `client_secret` se inyecta vía el Secret `router-oidc-secret` en el namespace `router`.
-- `backendtrafficpolicy.yml`: `BackendTrafficPolicy` con rate limiting local (20 req/s).
+- `backend.yml`: dos recursos `Backend` de Envoy Gateway que apuntan a la IP real de cada router, puenteando el Service de Kubernetes:
+  - `router` → `192.168.0.1:80`, el ASUS del site principal. Es la única IP de `192.168.0.0/24` referenciada desde el clúster: la red es plana (`192.168.0.0/23`), así que Envoy la alcanza directamente.
+  - `foosha-router` → `192.168.20.1:80`, el ZTE (ZXV10) del **site B**. Envoy lo alcanza a través del ASUS, que es la puerta de enlace por defecto de los nodos.
+- `httproute.yml`: dos `HTTPRoute` — `router.bonchan.org` y `foosha-router.bonchan.org` —, cada una a su Backend y con anotaciones de autodescubrimiento de Homepage (grupo *Infraestructura*).
+- `securitypolicy.yml`: una `SecurityPolicy` por ruta que la protege con **OIDC** contra Authentik. Las dos comparten el mismo provider (`client_id: router`) y el mismo Secret `router-oidc-secret`, como hace Proxmox: así no hay que crear un Secret extra en el bootstrap. Si en algún momento quieres políticas de acceso distintas por site, hay que separarlas en dos providers de Authentik con sus dos Secrets.
+- `backendtrafficpolicy.yml`: una `BackendTrafficPolicy` por ruta, con health check activo y rate limiting local (20 req/s). La de `foosha-router` usa intervalos más laxos (`interval: 30s`, `timeout: 10s`) por ser un enlace remoto.
 
-El Secret `router-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). El blueprint de Authentik (`services/authentik/blueprints/router.yaml`) configura el provider OIDC y la aplicación correspondiente.
+A diferencia de Proxmox, el salto Gateway → router va en **HTTP plano** (el firmware ASUS no sirve HTTPS en la LAN por defecto); el TLS lo termina el Gateway de cara al navegador. El firmware acepta un `Host:` ajeno sin problemas, así que no hace falta ningún filtro `URLRewrite`.
+
+El Secret `router-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). Si falta, Envoy falla en cerrado y la ruta devuelve **HTTP 500** sin llegar al backend. El blueprint de Authentik (`services/authentik/blueprints/router.yaml`) configura el provider OIDC y la aplicación correspondiente.
 
 ## media/
 
