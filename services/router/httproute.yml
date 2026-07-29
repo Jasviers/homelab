@@ -22,3 +22,28 @@ spec:
           kind: Backend
           name: router
           port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: foosha-router
+  namespace: router
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: Router foosha
+    gethomepage.dev/description: Panel de administración del router ZTE (Foosha)
+    gethomepage.dev/group: Infraestructura
+    gethomepage.dev/icon: mdi-router-network
+    gethomepage.dev/href: https://foosha-router.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - foosha-router.bonchan.org
+  rules:
+    - backendRefs:
+        - group: gateway.envoyproxy.io
+          kind: Backend
+          name: foosha-router
+          port: 80
