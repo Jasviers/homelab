@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.9](https://github.com/Jasviers/homelab/compare/v1.17.8...v1.17.9) (2026-07-29)
+
+
+### Bug Fixes
+
+* routes to routers and proxmox ([85efbb0](https://github.com/Jasviers/homelab/commit/85efbb01da5f360a231b2394c97ee9db336cf653))
+* routes to routers and proxmox ([fb4a60a](https://github.com/Jasviers/homelab/commit/fb4a60a7b84b128239c679463d792f0db9125303))
+
 ## [1.17.8](https://github.com/Jasviers/homelab/compare/v1.17.7...v1.17.8) (2026-07-28)
 
 
