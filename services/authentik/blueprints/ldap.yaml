@@ -1,0 +1,84 @@
+version: 1
+metadata:
+  name: ldap
+  labels:
+    blueprints.goauthentik.io/instance: ldap
+context:
+  ldap_bind_password: !Env [LDAP_BIND_PASSWORD, ""]
+entries:
+  - model: authentik_rbac.role
+    id: ldap-search-role
+    identifiers:
+      name: ldap-search
+    attrs:
+      name: ldap-search
+
+  - model: authentik_core.group
+    id: ldap-search-group
+    identifiers:
+      name: ldap-search
+    attrs:
+      name: ldap-search
+      roles:
+        - !KeyOf ldap-search-role
+
+  - model: authentik_core.user
+    id: ldap-bind-user
+    identifiers:
+      username: ldapservice
+    attrs:
+      username: ldapservice
+      name: LDAP bind service account
+      type: service_account
+      path: users
+      password: !Context ldap_bind_password
+      groups:
+        - !KeyOf ldap-search-group
+
+  - model: authentik_providers_ldap.ldapprovider
+    id: ldap-provider
+    identifiers:
+      name: LDAP
+    attrs:
+      name: LDAP
+      base_dn: dc=bonchan,dc=org
+      authorization_flow:
+        !Find [authentik_flows.flow, [slug, default-authentication-flow]]
+      invalidation_flow:
+        !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      certificate:
+        !Find [authentik_crypto.certificatekeypair, [name, ldap-bonchan-org]]
+      tls_server_name: ldap.bonchan.org
+      bind_mode: cached
+      search_mode: cached
+      mfa_support: false
+      uid_start_number: 2000
+      gid_start_number: 4000
+    permissions:
+      - permission: authentik_providers_ldap.search_full_directory
+        role: !KeyOf ldap-search-role
+
+  - model: authentik_core.application
+    id: ldap-app
+    identifiers:
+      slug: ldap
+    attrs:
+      name: LDAP
+      slug: ldap
+      backchannel_providers:
+        - !KeyOf ldap-provider
+      meta_description: Directorio LDAP para servicios sin OIDC (NAS Synology)
+      group: Plataforma
+
+  - model: authentik_outposts.outpost
+    id: ldap-outpost
+    identifiers:
+      name: ldap
+    attrs:
+      name: ldap
+      type: ldap
+      providers:
+        - !KeyOf ldap-provider
+      config:
+        authentik_host: http://authentik-server.authentik.svc.cluster.local/
+        log_level: info

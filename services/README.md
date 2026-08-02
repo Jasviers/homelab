@@ -8,7 +8,7 @@ El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el n
 
 1. **Cilium LB IPAM** (kustomize): define el `CiliumLoadBalancerIPPool` y la `CiliumL2AnnouncementPolicy` que dan IPs de tipo `LoadBalancer` en la red local (el dataplane Cilium ya lo instala Ansible). Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
-3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage, cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media y el propio argocd).
+3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage, cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media, bentopdf, transmute, servicios y el propio argocd).
 
 ```bash
 # 1. Cilium LB IPAM (pool + política L2)
@@ -209,6 +209,17 @@ Kustomization que despliega [Homepage](https://gethomepage.dev) como portal/dash
 
 **Autodescubrimiento**: otros servicios aparecen automáticamente en el dashboard añadiendo anotaciones `gethomepage.dev/*` a su `HTTPRoute` (nombre, grupo, icono, href y, opcionalmente, un widget). El widget de ArgoCD necesita un token, que se inyecta vía el Secret opcional `homepage-secrets` (clave `argocd-token`).
 
+## servicios/
+
+Kustomization que despliega una **segunda instancia** de [Homepage](https://gethomepage.dev) —el mismo software que `homepage/`—, pero como portal **para el resto de usuarios de la casa** (no de administración del clúster), expuesto en `servicios.bonchan.org`:
+
+- `deployment.yml` / `service.yml` / `namespace.yml`: la app (`ghcr.io/gethomepage/homepage:v1.13.2`) y su `Service` ClusterIP en el puerto 3000. A diferencia de `homepage/`, no lleva `ServiceAccount`/RBAC ni hace autodescubrimiento de Kubernetes (`kubernetes.yaml`, `docker.yaml` y `proxmox.yaml` van vacíos en el `configmap.yml`): es una lista de enlaces estática.
+- `configmap.yml`: configuración de Homepage con una lista fija de servicios en `services.yaml` (Jellyfin, Jellyseerr, BentoPDF, Transmute) pensada para el resto de la casa, no para el operador del homelab.
+- `httproute.yml`: `HTTPRoute` que enruta `servicios.bonchan.org` al Service.
+- `backendtrafficpolicy.yml`: health check activo (`/api/healthcheck`) y rate limiting local (50 req/s).
+
+No tiene SSO con Authentik: se asume acceso solo desde la LAN.
+
 ## hubble/
 
 Kustomization que expone la UI de [Hubble](https://docs.cilium.io/en/stable/network/observability/) (observabilidad de red basada en eBPF de Cilium) en `hubble.bonchan.org`:
@@ -222,7 +233,7 @@ Se despliega con sync-wave `2` (junto con monitorización). El OIDC se configura
 
 Kustomization que añade una configuración personalizada a CoreDNS (el DNS interno del clúster) mediante un `ConfigMap` en `kube-system`, gestionado por ArgoCD con sync-wave `0` (antes de las apps que dependen de resolver `*.bonchan.org` desde dentro del clúster):
 
-- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
+- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`, `servicios.bonchan.org`, `proxmox.bonchan.org`, `router.bonchan.org`, `foosha-router.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), más `ldap.bonchan.org` a la IP dedicada del outpost LDAP (`192.168.1.130`), con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
 
 > CoreDNS ya viene con k3s; este manifiesto solo añade la personalización. Si se necesita resolver más subdominios internos, basta con añadir entradas al bloque `hosts` de `coredns-custom.yml`.
 
@@ -252,6 +263,55 @@ kubectl -n authentik create secret generic authentik-secret \
 ```
 
 La contraseña de la base de datos (`authentik-db-app`) la genera CNPG automáticamente; no hay que crearla.
+
+### Provider LDAP (NAS Synology y otros clientes sin OIDC)
+
+DSM no habla OIDC: solo sabe consumir un directorio LDAP. Para no duplicar cuentas en la NAS, Authentik publica un **provider LDAP** servido por un **outpost** propio con IP fija en la LAN.
+
+- `blueprints/ldap.yaml`: crea el rol y el grupo `ldap-search`, la cuenta de servicio `ldapservice`, el `LDAPProvider` (base DN `dc=bonchan,dc=org`), la aplicación `ldap` y el `Outpost` `ldap`. Dos detalles propios de este provider, distintos del resto de blueprints de la carpeta:
+  - El provider LDAP es **backchannel**: cuelga de `backchannel_providers` de la aplicación, no de `provider`.
+  - No existe un "search group"; el permiso de leer el árbol completo es el permiso RBAC de objeto `authentik_providers_ldap.search_full_directory`, que el blueprint asigna al rol `ldap-search` (y el grupo homónimo lo hereda). `ldapservice` está en ese grupo.
+- `certificate.yml`: `Certificate` de cert-manager para `ldap.bonchan.org` (`ClusterIssuer letsencrypt`, DNS-01) en el Secret `ldap-bonchan-org-tls`. El `kustomization.yml` lo monta en `/certs/ldap-bonchan-org` de los pods de Authentik y el **cert discovery** del worker lo importa como `CertificateKeyPair` `ldap-bonchan-org` — el nombre sale del directorio de montaje, y es el que busca el blueprint. En el primer sync el blueprint puede fallar con "certificate not found" hasta que el worker lo descubra; se reaplica solo, o a mano desde *System → Blueprints → Apply*.
+- `ldap-outpost.yml`: `Deployment` del outpost (`ghcr.io/goauthentik/ldap`, **misma versión que el chart**: al subir uno hay que subir el otro) más el `Service` `authentik-ldap` de tipo `LoadBalancer` en **`192.168.1.130`** (`389→3389`, `636→6636`) y un `Service` aparte para las métricas (9300) con su `ServiceMonitor`. Se despliega a mano en vez de dejar que el worker lo cree vía la integración *Local Kubernetes Cluster* para fijar la IP y tener el manifiesto versionado.
+- CoreDNS resuelve `ldap.bonchan.org` a `192.168.1.130` (`services/coredns/coredns-custom.yml`). **La NAS no usa CoreDNS**, sino Pi-hole, donde el wildcard `address=/bonchan.org/192.168.1.128` mandaría el nombre al Gateway: la excepción vive en `home_services_dns_overrides` (rol `home-services`, `ansible/roles/home-services/defaults/main.yml`). Hace falta porque LDAPS obliga a conectar por nombre, no por IP.
+
+Secretos **no versionados** (ver runbook de bootstrap):
+
+```bash
+# 1. Antes del sync: password de la cuenta de bind (si falta, server/worker
+#    quedan en CreateContainerConfigError, igual que con los *_CLIENT_SECRET)
+kubectl -n authentik create secret generic authentik-ldap-secrets \
+  --from-literal=bind-password="$(openssl rand -base64 32 | tr -d '\n')"
+
+# 2. Tras el sync, con el outpost ya creado por el blueprint:
+#    Authentik UI > Applications > Outposts > ldap > "View Deployment Info" > AUTHENTIK_TOKEN
+kubectl -n authentik create secret generic authentik-ldap-outpost \
+  --from-literal=token="<AUTHENTIK_TOKEN>"
+kubectl -n authentik rollout restart deploy/authentik-ldap-outpost
+```
+
+El pod del outpost se queda en `CreateContainerConfigError` hasta el paso 2; es lo esperado en el primer arranque.
+
+Árbol que expone el provider bajo `dc=bonchan,dc=org`: `ou=users` (usuarios, con `objectClass` POSIX), `ou=groups` (grupos) y `ou=virtual-groups` (un grupo por cada usuario, para el `gidNumber` primario).
+
+**Cliente LDAP de DSM** (Control Panel → Domain/LDAP → pestaña *LDAP* → *Enable LDAP client*):
+
+| Campo | Valor |
+| --- | --- |
+| Server address | `ldap.bonchan.org` (por nombre: el certificado no cubre la IP) |
+| Encryption | SSL/TLS — LDAPS, puerto 636 |
+| Base DN | `dc=bonchan,dc=org` |
+| Bind DN | `cn=ldapservice,ou=users,dc=bonchan,dc=org` |
+| Password | el valor de `authentik-ldap-secrets` (clave `bind-password`) |
+
+Tras aplicar, los usuarios aparecen en Control Panel → User & Group, pestaña de dominio, y ya se les pueden dar permisos sobre carpetas compartidas. Avisos:
+
+- Los usuarios que Authentik federa desde fuentes externas **no pueden hacer bind** (no tienen password local).
+- El provider va con `mfa_support: false`, porque DSM no sabe mandar la password con el código TOTP anexado; el segundo factor no aplica a los binds LDAP.
+- El `uidNumber` es `uid_start_number + pk` del usuario. **No cambiar `uid_start_number`/`gid_start_number`** una vez que la NAS haya creado ficheros con esos UID/GID, o se rompe la propiedad de los datos.
+- El bind DN da lectura de todo el directorio: su password vive solo en el Secret y en DSM.
+
+Otros consumidores posibles del mismo provider, **no configurados** hoy: Proxmox VE (realm LDAP; ahora usa OIDC), Jellyfin (plugin LDAP-Auth; ahora usa el plugin SSO-Auth) y Grafana. Las apps *arr, Garage, Home Assistant y Transmute no soportan LDAP.
 
 ## monitor/
 
