@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.0](https://github.com/Jasviers/homelab/compare/v1.17.9...v1.18.0) (2026-08-02)
+
+
+### Features
+
+* add ldpa support to authentik ([515a4c0](https://github.com/Jasviers/homelab/commit/515a4c05456e4716c2173d36cb81432ae8540307))
+* add ldpa support to authentik ([265bcd3](https://github.com/Jasviers/homelab/commit/265bcd3dacced81e0026ba3c2d3d50988275ee0f))
+
 ## [1.17.9](https://github.com/Jasviers/homelab/compare/v1.17.8...v1.17.9) (2026-07-29)
 
 
