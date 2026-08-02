@@ -12,6 +12,8 @@ resources:
   - postgres-cluster.yml
   - redis.yml
   - httproute.yml
+  - certificate.yml
+  - ldap-outpost.yml
 
 configMapGenerator:
   - name: authentik-blueprint-argocd
@@ -52,6 +54,11 @@ configMapGenerator:
   - name: authentik-blueprint-transmute
     files:
       - blueprints/transmute.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-ldap
+    files:
+      - blueprints/ldap.yaml
     options:
       disableNameSuffixHash: true
 
@@ -116,6 +123,19 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: transmute-client-secret
+          - name: LDAP_BIND_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: authentik-ldap-secrets
+                key: bind-password
+        volumes:
+          - name: ldap-cert
+            secret:
+              secretName: ldap-bonchan-org-tls
+        volumeMounts:
+          - name: ldap-cert
+            mountPath: /certs/ldap-bonchan-org
+            readOnly: true
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
@@ -126,6 +146,7 @@ helmCharts:
           - authentik-blueprint-home-assistant
           - authentik-blueprint-jellyfin
           - authentik-blueprint-transmute
+          - authentik-blueprint-ldap
       authentik:
         postgresql:
           host: authentik-db-rw
