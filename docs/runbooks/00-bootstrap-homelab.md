@@ -210,8 +210,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
 gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
-cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media y el propio
-argocd).
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media,
+bentopdf, transmute, servicios y el propio argocd).
 
 ```bash
 kubectl apply -f services/argocd-apps/root-app.yaml
@@ -323,14 +323,9 @@ kubectl -n kube-system create secret generic hubble-oidc-secret \
 La UI es de solo lectura; basta con que el usuario autentique en Authentik.
 
 **Otros clientes OIDC de Authentik (Proxmox, router ASUS, Home Assistant,
-Jellyfin):** a diferencia de ArgoCD/Grafana/Hubble, el otro lado de estos 4 no
-es un Secret de Kubernetes, sino configuración manual en cada sistema (Proxmox:
-*Datacenter → Realms*; router ASUS: su propia config OIDC; Home Assistant:
-`configuration.yaml` en `luffy`; Jellyfin: plugin SSO-Auth desde su propia UI,
-ver `services/README.md`). Aun así, sus blueprints de Authentik
-(`services/authentik/blueprints/`) esperan sus claves en `authentik-oidc-secrets`
-**desde el primer arranque** (si faltan, `authentik-server`/`authentik-worker`
-se quedan en `CreateContainerConfigError`):
+Jellyfin):** todos sus blueprints (`services/authentik/blueprints/`) esperan sus
+claves en `authentik-oidc-secrets` **desde el primer arranque** (si faltan,
+`authentik-server`/`authentik-worker` se quedan en `CreateContainerConfigError`):
 
 ```bash
 PROXMOX_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
@@ -343,9 +338,36 @@ kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
   -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\",\"jellyfin-client-secret\":\"$JELLYFIN_OIDC_SECRET\",\"transmute-client-secret\":\"$TRANSMUTE_OIDC_SECRET\"}}"
 ```
 
-Copia cada valor a su sistema correspondiente (Proxmox, router, HA, Jellyfin)
-cuando configures su lado del OIDC. Para Jellyfin, pega `$JELLYFIN_OIDC_SECRET`
-tal cual en el plugin (ver detalle en `services/README.md`).
+A partir de aquí el "otro lado" del OIDC depende del servicio:
+
+**a) Proxmox y router ASUS — Secret de Kubernetes (como Hubble).** A estos dos no
+los protege su propio login, sino Envoy Gateway como Relying Party OIDC (una
+`SecurityPolicy` sobre su `HTTPRoute`), así que **necesitan un Secret con clave
+`client-secret` en su propio namespace**. Si falta, Envoy falla en cerrado y la
+ruta responde **HTTP 500** (`direct_response`) sin llegar al backend:
+
+```bash
+kubectl -n proxmox create secret generic proxmox-oidc-secret \
+  --from-literal=client-secret="$PROXMOX_OIDC_SECRET"
+kubectl -n router create secret generic router-oidc-secret \
+  --from-literal=client-secret="$ROUTER_OIDC_SECRET"
+```
+
+> Si ya perdiste las variables de shell, se recuperan del propio Authentik:
+> `kubectl -n authentik get secret authentik-oidc-secrets -o jsonpath='{.data.proxmox-client-secret}' | base64 -d`
+>
+> Comprueba que quedan aceptadas (si sale `Accepted=False Invalid: OIDC: secret
+> ... does not exist`, es que falta el Secret):
+>
+> ```bash
+> kubectl -n proxmox get securitypolicy -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.ancestors[0].conditions[0].status}{"\n"}{end}'
+> kubectl -n router  get securitypolicy -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.ancestors[0].conditions[0].status}{"\n"}{end}'
+> ```
+
+**b) Home Assistant y Jellyfin — configuración manual en cada sistema.** Home
+Assistant: `configuration.yaml` en `luffy`. Jellyfin: plugin SSO-Auth desde su
+propia UI (pega `$JELLYFIN_OIDC_SECRET` tal cual; ver detalle en
+`services/README.md`).
 
 **Transmute** es un caso mixto: el otro lado sí es un Secret de Kubernetes (como
 Hubble/Grafana). Transmute lee su `OIDC_CLIENT_SECRET` desde el Secret
@@ -357,6 +379,29 @@ kubectl create namespace transmute --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n transmute create secret generic transmute-oidc-secret \
   --from-literal=client-secret="$TRANSMUTE_OIDC_SECRET"
 ```
+
+**Provider LDAP (NAS Synology).** No es OIDC: es un provider LDAP con su propio
+outpost. Necesita dos Secrets, uno **antes** del sync y otro **después** (ver
+`services/README.md`, sección "Provider LDAP"):
+
+```bash
+# Antes del sync: password de la cuenta de bind ldapservice. Si falta,
+# authentik-server/worker se quedan en CreateContainerConfigError.
+kubectl -n authentik create secret generic authentik-ldap-secrets \
+  --from-literal=bind-password="$(openssl rand -base64 32 | tr -d '\n')"
+
+# Después del sync, cuando el blueprint ya ha creado el outpost: copiar su token
+# desde Authentik UI > Applications > Outposts > ldap > "View Deployment Info".
+kubectl -n authentik create secret generic authentik-ldap-outpost \
+  --from-literal=token="<AUTHENTIK_TOKEN>"
+kubectl -n authentik rollout restart deploy/authentik-ldap-outpost
+```
+
+El DNS que usa la NAS lo pone el rol `home-services` de la fase 6
+(`home_services_dns_overrides`: `ldap.bonchan.org → 192.168.1.130`, excepción al
+wildcard `address=/bonchan.org/192.168.1.128`); si esa fase ya está hecha, vuelve
+a lanzar `ansible-playbook playbooks/home-services.yml`. Después, configura el
+cliente LDAP de DSM con los valores de la tabla de `services/README.md`.
 
 ---
 

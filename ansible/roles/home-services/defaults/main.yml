@@ -22,3 +22,6 @@ home_services_dns_servers:
 
 home_services_gateway_domain: "bonchan.org"
 home_services_gateway_ip: "192.168.1.128"
+
+home_services_dns_overrides:
+  - { name: "ldap.bonchan.org", ip: "192.168.1.130" }

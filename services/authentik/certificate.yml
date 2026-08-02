@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ldap-bonchan-org
+  namespace: authentik
+spec:
+  secretName: ldap-bonchan-org-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - ldap.bonchan.org
