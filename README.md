@@ -44,18 +44,20 @@ Esta documentación describe la disposición actual de la red y servicios del ho
 
 ## Red remota (site B)
 
-Segunda ubicación física, independiente del domicilio principal, pensada como
-futura extensión de la LAN (`192.168.0.0/23`) mediante un túnel VPN site-to-site
-(aún no implementado). De momento es una red aislada, sin conexión con el resto
-del homelab.
+Segunda ubicación física, independiente del domicilio principal, conectada a la
+LAN principal (`192.168.0.0/23`) mediante un túnel VPN site-to-site.
 
 - **Hardware**: Raspberry Pi 2B.
 - **Software**: PiVPN con servidor OpenVPN propio, independiente del servidor
   OpenVPN del router ASUS del site principal.
 - **Red**: `192.168.20.0/24`.
 - **IP de la Raspberry**: `192.168.20.134`.
-- **Estado**: sin clientes/peers configurados todavía; sin nombre de host ni
-  subdominio `bonchan.org` asignado.
+- **Router**: ZTE ZXV10 en `192.168.20.1`, publicado en
+  `foosha-router.bonchan.org` a través del Gateway API con SSO de Authentik
+  (ver `services/router/`).
+- **Estado**: la red es alcanzable desde la LAN principal a través del router
+  ASUS (RTT ~10-25 ms), que es lo que permite que Envoy enrute a
+  `192.168.20.1`.
 
 ## Acceso remoto
 
@@ -88,7 +90,7 @@ del homelab.
 - **cert-manager** emite los certificados Let's Encrypt mediante challenge DNS-01 contra Cloudflare.
 - **Synology CSI** aprovisiona volúmenes persistentes (LUNs iSCSI) dinámicamente desde el NAS.
 - **CloudNativePG (CNPG)** es el operador de PostgreSQL: cada servicio que necesita base de datos declara su propio `Cluster` (p. ej. el de Authentik).
-- **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG.
+- **Authentik** es el proveedor de identidad (SSO/IdP) del homelab, en `authentik.bonchan.org`, con su PostgreSQL dedicado gestionado por CNPG. También publica un **provider LDAP** para clientes sin OIDC (la NAS Synology), servido por un outpost propio con IP `LoadBalancer` dedicada (`192.168.1.130`, `ldap.bonchan.org`) — ver `services/README.md`.
 - **Monitorización**: **Prometheus** (métricas), **Loki** (logs), **Alloy** (recolección de logs) y **Grafana** (dashboards y alertas) en `grafana.bonchan.org`.
 - **Homepage** es el portal/dashboard del homelab en `homepage.bonchan.org`, con autodescubrimiento de servicios.
 - **Ollama** en el nodo de IA sirve **Qwen3 1.7B** (Q4_K_M, sin *thinking*) para *tool calling* desde Home Assistant, expuesto en `ollama.bonchan.org`. Se eligió este tamaño tras medir en el hardware real (CPU sin GPU) que el 4B rendía solo ~10 tokens/s frente a ~20 tokens/s del 1.7B, con la misma precisión de *tool calling* en las pruebas realizadas.
@@ -103,7 +105,7 @@ del homelab.
 | [packer/](packer/) | Template de Ubuntu 26 para Proxmox (autoinstall + provisión con Ansible). |
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
 | [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y Piper) vía Docker Compose. |
-| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Ollama, Whisper, Garage, Media, CoreDNS, Proxmox, Router). |
+| [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Hubble, Cloudflared, Ollama, Whisper, Garage, Media, CoreDNS, Proxmox, Router, BentoPDF, Transmute, Servicios). |
 | [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
@@ -171,14 +173,17 @@ flowchart TB
 
     cf -.->|*.bonchan.org| gw
 
-    subgraph siteb["Site B · 192.168.20.0/24 (aislada, sin conexión aún)"]
+    subgraph siteb["Site B · 192.168.20.0/24 (túnel site-to-site)"]
         pivpn["Raspberry Pi 2B<br/>192.168.20.134<br/>PiVPN · servidor OpenVPN propio"]
+        siterouter["ZTE ZXV10<br/>192.168.20.1"]
     end
+    asus <-->|"VPN site-to-site"| siteb
+
 ```
 
 > El acceso a internet de la IOT y el tráfico desde/hacia el resto de la LAN están bloqueados por iptables en el router; solo Home Assistant (`luffy`) puede comunicarse con ella (ver [scripts/firewall-start.sh](scripts/firewall-start.sh)).
 >
-> El **Site B** (`192.168.20.0/24`) es una segunda ubicación física con su propio servidor OpenVPN (PiVPN), sin ningún enlace todavía con el resto del homelab; ver [Red remota (site B)](#red-remota-site-b).
+> El **Site B** (`192.168.20.0/24`) es una segunda ubicación física con su propio servidor OpenVPN (PiVPN), conectada a la LAN principal mediante un túnel VPN site-to-site; ver [Red remota (site B)](#red-remota-site-b).
 
 ## Diagrama del clúster y servicios
 
@@ -208,6 +213,9 @@ flowchart TB
             root --> appWhisper[whisper]
             root --> appGarage[garage]
             root --> appMedia[media]
+            root --> appBentopdf[bentopdf]
+            root --> appTransmute[transmute]
+            root --> appServicios[servicios]
         end
 
         kubevip["kube-vip<br/>VIP API 192.168.1.20"]
@@ -219,6 +227,7 @@ flowchart TB
         csi["Synology CSI<br/>StorageClass por defecto"]
         cnpg["CloudNativePG<br/>operador PostgreSQL"]
         authentik["Authentik (SSO/IdP)<br/>authentik.bonchan.org"]
+        ldap["Authentik LDAP outpost<br/>LoadBalancer 192.168.1.130"]
         monitor["Monitorización<br/>Prometheus · Loki · Alloy<br/>Grafana · grafana.bonchan.org"]
         hubble["Hubble UI<br/>hubble.bonchan.org"]
         cloudflared["cloudflared<br/>Tunnel → hs-lakasa.bonchan.org"]
@@ -229,6 +238,9 @@ flowchart TB
         whisper["Whisper STT (nodo IA)<br/>LoadBalancer 192.168.1.129:10300"]
         garage["Garage (S3)<br/>garage.bonchan.org"]
         media["Media stack<br/>jellyfin/radarr/sonarr/..."]
+        bentopdf["BentoPDF<br/>bentopdf.bonchan.org"]
+        transmute["Transmute<br/>transmute.bonchan.org"]
+        servicios["Servicios (portal usuarios)<br/>servicios.bonchan.org"]
     end
 
     nas[("NAS Synology<br/>LUNs iSCSI")]
@@ -255,6 +267,10 @@ flowchart TB
     appWhisper -.->|gestiona| whisper
     appGarage -.->|gestiona| garage
     appMedia -.->|gestiona| media
+    appBentopdf -.->|gestiona| bentopdf
+    appTransmute -.->|gestiona| transmute
+    appServicios -.->|gestiona| servicios
+    appAuth -.->|gestiona| ldap
 
     users -->|HTTPS| gateway
     gateway -->|HTTPRoute| homepage
@@ -267,8 +283,12 @@ flowchart TB
     gateway -->|HTTPRoute| routerSvc
     gateway -->|HTTPRoute| garage
     gateway -->|HTTPRoute| media
+    gateway -->|HTTPRoute| bentopdf
+    gateway -->|HTTPRoute| transmute
+    gateway -->|HTTPRoute| servicios
     ciliumLb -->|IP LB| gateway
     ciliumLb -->|IP LB dedicada| whisper
+    ciliumLb -->|IP LB dedicada| ldap
     cert <-->|valida dominio| cloudflare
     cert -->|wildcard TLS| gateway
     cnpg -->|Cluster PG| authentik

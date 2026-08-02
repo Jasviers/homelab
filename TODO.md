@@ -36,7 +36,7 @@
 
 [x] Monitorización (grafana, prometheus, loki y alloy)
 
-[x] Asegurar que todos los logins vayan por authentik (Solo Grafana y argoCD de momento)
+[x] Asegurar que todos los logins vayan por authentik (Grafana, ArgoCD, Hubble, Proxmox, router, Home Assistant, Jellyfin, Transmute)
 
 [x] Mejoras de documentación
 
@@ -78,7 +78,19 @@
 
 [x] Homepage con servios para usuarios (servicios.bonchan.org)
 
+[x] VPN foosha (Site B — túnel site-to-site con el homelab principal)
+
+[x] Solucionar rutas proxmox y router
+
+[x] Provider LDAP en Authentik para directorio de la NAS Synology
+
 ---
+
+[ ] Gestion de usuarios unificada y sencilla
+
+[ ] Servidor de correo y webmail (stallwart y snappymail?)
+
+[ ] Desplegar un FoundryVTT
 
 [ ] backups (proxmox backups + velero)
 
@@ -88,9 +100,7 @@
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
-[ ] VPN foosha (Site B — túnel site-to-site con el homelab principal)
-
-[ ] Solucionar certificados de proxmox para rutas en el gateway api
+[ ] Posible problema con los rate limits
 
 ---
 
