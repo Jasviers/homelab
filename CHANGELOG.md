@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.1](https://github.com/Jasviers/homelab/compare/v1.19.0...v1.19.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* staltwart image ([9a69e67](https://github.com/Jasviers/homelab/commit/9a69e67263ad64687e3dd38b94652f210e22f531))
+* staltwart image ([c4a461d](https://github.com/Jasviers/homelab/commit/c4a461d3b89d042778480b0fa8999fbc4db6fda9))
+
 ## [1.19.0](https://github.com/Jasviers/homelab/compare/v1.18.1...v1.19.0) (2026-08-03)
 
 
