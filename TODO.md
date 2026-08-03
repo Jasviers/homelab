@@ -88,7 +88,7 @@
 
 [ ] Gestion de usuarios unificada y sencilla
 
-[ ] Servidor de correo y webmail (stallwart y snappymail?)
+[x] Servidor de correo y webmail (stallwart y snappymail?)
 
 [ ] Desplegar un FoundryVTT
 
