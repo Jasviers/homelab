@@ -87,6 +87,11 @@ data:
             href: https://transmute.bonchan.org
             description: Convertir audio, vídeo e imágenes
             target: _blank
+        - SnappyMail:
+            icon: snappymail.png
+            href: https://webmail.bonchan.org
+            description: Correo web
+            target: _blank
 
   bookmarks.yaml: |
     []
