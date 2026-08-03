@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.0](https://github.com/Jasviers/homelab/compare/v1.18.1...v1.19.0) (2026-08-03)
+
+
+### Features
+
+* deploy mailserver ([ec1e734](https://github.com/Jasviers/homelab/commit/ec1e7341f5633b906860b737d9a548ea856f74d4))
+* deploy mailserver ([70b83cf](https://github.com/Jasviers/homelab/commit/70b83cf7e22307ff7024e97e7efb8af71739314a))
+
 ## [1.18.1](https://github.com/Jasviers/homelab/compare/v1.18.0...v1.18.1) (2026-08-03)
 
 
