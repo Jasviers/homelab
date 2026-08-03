@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: stalwart
-          image: stalwartlabs/mail-server:latest
+          image: stalwartlabs/stalwart:v0.16.16
           imagePullPolicy: Always
           env:
             - name: LDAP_BIND_PASSWORD
