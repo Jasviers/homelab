@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.1](https://github.com/Jasviers/homelab/compare/v1.18.0...v1.18.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* try to fix timeouts with flaresolverr ([0bdcf5d](https://github.com/Jasviers/homelab/commit/0bdcf5d0ce68124c8630c3dca292db1cafe5d799))
+* try to fix timeouts with flaresolverr ([5b80285](https://github.com/Jasviers/homelab/commit/5b80285eb59fb1a1143ec7449699dd07fec47b85))
+
 ## [1.18.0](https://github.com/Jasviers/homelab/compare/v1.17.9...v1.18.0) (2026-08-02)
 
 
