@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: mail-bonchan-org
+  namespace: stalwart
+spec:
+  secretName: mail-bonchan-org-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - mail.bonchan.org
