@@ -78,6 +78,8 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `media.yml` | `media` | `services/media` |
 | `bentopdf.yml` | `bentopdf` | `services/bentopdf` |
 | `transmute.yml` | `transmute` | `services/transmute` |
+| `stalwart.yml` | `stalwart` | `services/stalwart` |
+| `snappymail.yml` | `snappymail` | `services/snappymail` |
 
 Algunas `Application` usan `argocd.argoproj.io/sync-wave` para ordenar el despliegue: el operador CNPG (`-1`) se instala antes de que Authentik (`1`) cree su `Cluster` de PostgreSQL, y la monitorización (`2`) va después.
 
@@ -214,7 +216,7 @@ Kustomization que despliega [Homepage](https://gethomepage.dev) como portal/dash
 Kustomization que despliega una **segunda instancia** de [Homepage](https://gethomepage.dev) —el mismo software que `homepage/`—, pero como portal **para el resto de usuarios de la casa** (no de administración del clúster), expuesto en `servicios.bonchan.org`:
 
 - `deployment.yml` / `service.yml` / `namespace.yml`: la app (`ghcr.io/gethomepage/homepage:v1.13.2`) y su `Service` ClusterIP en el puerto 3000. A diferencia de `homepage/`, no lleva `ServiceAccount`/RBAC ni hace autodescubrimiento de Kubernetes (`kubernetes.yaml`, `docker.yaml` y `proxmox.yaml` van vacíos en el `configmap.yml`): es una lista de enlaces estática.
-- `configmap.yml`: configuración de Homepage con una lista fija de servicios en `services.yaml` (Jellyfin, Jellyseerr, BentoPDF, Transmute) pensada para el resto de la casa, no para el operador del homelab.
+- `configmap.yml`: configuración de Homepage con una lista fija de servicios en `services.yaml` (Jellyfin, Jellyseerr, BentoPDF, Transmute, SnappyMail) pensada para el resto de la casa, no para el operador del homelab.
 - `httproute.yml`: `HTTPRoute` que enruta `servicios.bonchan.org` al Service.
 - `backendtrafficpolicy.yml`: health check activo (`/api/healthcheck`) y rate limiting local (50 req/s).
 
@@ -233,7 +235,7 @@ Se despliega con sync-wave `2` (junto con monitorización). El OIDC se configura
 
 Kustomization que añade una configuración personalizada a CoreDNS (el DNS interno del clúster) mediante un `ConfigMap` en `kube-system`, gestionado por ArgoCD con sync-wave `0` (antes de las apps que dependen de resolver `*.bonchan.org` desde dentro del clúster):
 
-- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`, `servicios.bonchan.org`, `proxmox.bonchan.org`, `router.bonchan.org`, `foosha-router.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), más `ldap.bonchan.org` a la IP dedicada del outpost LDAP (`192.168.1.130`), con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
+- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`, `servicios.bonchan.org`, `proxmox.bonchan.org`, `router.bonchan.org`, `foosha-router.bonchan.org`, `stalwart.bonchan.org`, `webmail.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), más `ldap.bonchan.org` (`192.168.1.130`) y `mail.bonchan.org` (`192.168.1.131`) a sus respectivas IPs dedicadas de LoadBalancer, con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
 
 > CoreDNS ya viene con k3s; este manifiesto solo añade la personalización. Si se necesita resolver más subdominios internos, basta con añadir entradas al bloque `hosts` de `coredns-custom.yml`.
 
@@ -664,4 +666,87 @@ Transmute tiene **soporte OIDC nativo** (a diferencia de Jellyfin, que necesita 
 Variables OIDC en `deployment.yml`: `OIDC_ISSUER_URL` apunta a `https://authentik.bonchan.org/application/o/transmute/` (CoreDNS resuelve ese host dentro del clúster, así que no hace falta `OIDC_INTERNAL_URL`), `OIDC_AUTO_CREATE_USERS=true` (crea la cuenta al primer login) y `OIDC_AUTO_LAUNCH=false` (se mantiene el login local como fallback; poner a `true` para redirigir directo a Authentik).
 
 El `client_secret` **no se versiona** y va en los dos lados con el **mismo valor**: en `authentik-oidc-secrets` (clave `transmute-client-secret`, que el chart de Authentik lee por entorno) y en el Secret `transmute-oidc-secret` (clave `client-secret`) del namespace `transmute`, del que el deployment toma `OIDC_CLIENT_SECRET`. Ambos se crean en el runbook de bootstrap (sección "Otros clientes OIDC"); **la clave en Authentik debe existir desde el primer arranque** o `authentik-server`/`worker` quedan en `CreateContainerConfigError`.
+
+## stalwart/ y snappymail/
+
+Servidor de correo autoalojado (`stalwart/`) y su webmail (`snappymail/`),
+integrados con el **mismo directorio LDAP de Authentik** que usa la NAS (ver
+"Provider LDAP" más arriba). A diferencia del resto de servicios, el correo
+público (MX propio) requiere piezas fuera del clúster que no gestiona
+GitOps: port-forward en el router y registros DNS manuales en Cloudflare.
+
+**`stalwart/`** — [Stalwart](https://stalw.art) (SMTP/IMAP/JMAP), expuesto en
+dos sitios distintos porque mezcla HTTP y protocolos TCP puros:
+
+- `stalwart.bonchan.org` (UI de administración + JMAP), vía `HTTPRoute` a
+  través del Gateway, igual que cualquier otro servicio HTTP. Solo aparece en
+  `homepage.bonchan.org` (grupo *Plataforma*), no en `servicios.bonchan.org`:
+  es una herramienta de administración, no algo que use el resto de la casa.
+- `mail.bonchan.org` — SMTP (`25`, `587`, `465`), IMAP (`143`, `993`) y
+  ManageSieve (`4190`) no son HTTP y no pueden pasar por el Gateway. Se
+  exponen con una `Service` `LoadBalancer` dedicada (`stalwart-mail`) en
+  **`192.168.1.131`** (Cilium LB IPAM, siguiente IP libre tras el Gateway
+  `.128`, whisper `.129` y el outpost LDAP `.130`), igual que el outpost LDAP.
+  Este hostname es también el **target del registro MX** de `bonchan.org` y
+  el nombre del certificado TLS de SMTP/IMAP.
+- `pvc.yml`: PVC `stalwart-data` de 50Gi en `synology-iscsi-storage` (RocksDB
+  embebido: usuarios, cola, mensajes — sin Postgres externo, un único pod).
+- `certificate.yml`: `Certificate` de cert-manager para `mail.bonchan.org`
+  (mismo patrón que `ldap.bonchan.org` en `authentik/`), montado en el pod en
+  `/certs/mail-bonchan-org`.
+- `configmap.yml`: `config.toml` **mínimo** (solo el storage RocksDB y el
+  listener HTTP de arranque). A propósito no declara los listeners de
+  correo, TLS ni el directorio LDAP: la sintaxis de `config.toml` cambia
+  entre versiones de Stalwart, así que esa parte se configura desde el
+  asistente inicial de la propia UI (`stalwart.bonchan.org`), que siempre
+  corresponde a la versión realmente desplegada. Ver el paso a paso de
+  bootstrap más abajo.
+- `deployment.yml`: imagen `stalwartlabs/mail-server` **sin versión fijada**
+  a propósito — comprobar el tag estable antes de un despliegue serio y
+  fijarlo (patrón `bentopdf`/`transmute`). `securityContext` añade la
+  capability `NET_BIND_SERVICE` (necesaria para escuchar en el puerto 25,
+  privilegiado) y elimina el resto.
+
+**`snappymail/`** — [SnappyMail](https://snappymail.antor.link) como webmail,
+en `webmail.bonchan.org`. Sí aparece en ambos portales (`homepage.bonchan.org`
+y `servicios.bonchan.org`, grupo *Aplicaciones*): es lo que usan los usuarios
+del homelab para leer su correo.
+
+- `pvc.yml`: PVC pequeña (2Gi) en `synology-nfs-storage` para su configuración
+  y caché (`/var/lib/snappymail/_data_`), igual que la config de Jellyfin.
+- No habla con LDAP directamente: se configura (panel admin de SnappyMail,
+  paso manual) para usar como servidor IMAP/SMTP el Service **interno** de
+  Stalwart (`stalwart.stalwart.svc.cluster.local`, puertos 993/587) — es
+  Stalwart quien valida el login contra LDAP, SnappyMail solo hace de
+  cliente IMAP/SMTP.
+
+**Bootstrap manual** (ver también el runbook, fase 5.4):
+
+```bash
+# Antes o después del sync: password de bind LDAP para Stalwart, mismo valor
+# que authentik-ldap-secrets (no hay replicación de secrets entre namespaces
+# en este repo, se copia a mano). Si falta, el pod queda en CreateContainerConfigError.
+kubectl -n stalwart create secret generic stalwart-ldap-secrets \
+  --from-literal=bind-password="$(kubectl -n authentik get secret authentik-ldap-secrets -o jsonpath='{.data.bind-password}' | base64 -d)"
+```
+
+1. Asistente inicial de Stalwart (`stalwart.bonchan.org`): dominio
+   `bonchan.org`, hostname `mail.bonchan.org`, listeners SMTP/IMAP/Sieve en
+   los puertos que ya expone `stalwart-mail`, certificado TLS desde
+   `/certs/mail-bonchan-org/`, y un *Directory* LDAP con los mismos datos que
+   usa la NAS (`ldaps://ldap.bonchan.org:636`, bind DN
+   `cn=ldapservice,ou=users,dc=bonchan,dc=org`, base DN `dc=bonchan,dc=org`).
+2. Panel admin de SnappyMail (`webmail.bonchan.org`): dominio `bonchan.org` →
+   IMAP/SMTP en `stalwart.stalwart.svc.cluster.local`.
+3. Router ASUS: port-forward `25`/`465`/`587`/`993` → `192.168.1.131` (deja
+   `143`/`4190` solo accesibles desde la LAN).
+4. Cloudflare (manual, no versionado): MX `bonchan.org` → `mail.bonchan.org`
+   (prioridad 10), SPF (`v=spf1 mx ~all`), DKIM (selector y clave los genera
+   Stalwart al configurar el dominio) y DMARC (`_dmarc.bonchan.org`).
+
+> Muchos ISPs residenciales bloquean el puerto 25 y no permiten configurar el
+> PTR de la IP doméstica — dos causas típicas de que el correo saliente caiga
+> en spam o ni se entregue. Verifica ambas cosas; si el 25 está bloqueado, la
+> alternativa es enviar el correo saliente a través de un relay/smart-host
+> externo en vez de directamente.
 
