@@ -403,6 +403,49 @@ wildcard `address=/bonchan.org/192.168.1.128`); si esa fase ya está hecha, vuel
 a lanzar `ansible-playbook playbooks/home-services.yml`. Después, configura el
 cliente LDAP de DSM con los valores de la tabla de `services/README.md`.
 
+**Correo (Stalwart + SnappyMail).** Servidor de correo autoalojado y completo
+(MX propio, sin relay) integrado con el mismo directorio LDAP de Authentik.
+Ver `services/README.md`, sección "stalwart/", para el detalle completo.
+Resumen de lo manual:
+
+```bash
+# 1. Antes del sync: password de bind LDAP para Stalwart. Mismo valor que
+#    authentik-ldap-secrets (clave bind-password) — se copia a mano porque
+#    no hay ninguna herramienta de replicación de secrets entre namespaces
+#    en este repo. Si falta, el pod de Stalwart queda en CreateContainerConfigError.
+kubectl -n stalwart create secret generic stalwart-ldap-secrets \
+  --from-literal=bind-password="$(kubectl -n authentik get secret authentik-ldap-secrets -o jsonpath='{.data.bind-password}' | base64 -d)"
+```
+
+Tras el primer sync:
+
+1. Entra en `https://stalwart.bonchan.org`, completa el asistente inicial
+   (contraseña de admin — si no aparece el asistente, revisa
+   `kubectl -n stalwart logs deploy/stalwart` para la contraseña generada) y
+   configura a mano: el dominio `bonchan.org`, el hostname `mail.bonchan.org`,
+   los listeners SMTP/IMAP/Sieve en los puertos ya expuestos por el Service
+   `stalwart-mail` (25/587/465/143/993/4190), el certificado TLS montado en
+   `/certs/mail-bonchan-org/tls.crt` y `tls.key`, y un *Directory* de tipo
+   LDAP con los mismos datos que usa la NAS (`ldaps://ldap.bonchan.org:636`,
+   bind DN `cn=ldapservice,ou=users,dc=bonchan,dc=org`, base DN
+   `dc=bonchan,dc=org`).
+2. Desde `https://webmail.bonchan.org`, configura SnappyMail (panel admin) con
+   el dominio `bonchan.org` apuntando como servidor IMAP/SMTP al Service
+   interno `stalwart.stalwart.svc.cluster.local` (puertos 993/587).
+3. Port-forward manual en el router ASUS: `25`, `465`, `587`, `993` →
+   `192.168.1.131` (deja `143`/`4190` solo en LAN).
+4. Registros públicos manuales en Cloudflare: MX (`bonchan.org` →
+   `mail.bonchan.org`, prioridad 10; comprueba antes si `mail.bonchan.org` ya
+   resuelve por el wildcard que gestiona `scripts/false-ddns.sh`, si no añade
+   un registro A explícito), SPF (`v=spf1 mx ~all`), DKIM (selector y clave
+   los genera Stalwart al configurar el dominio, se copian a mano) y DMARC
+   (`_dmarc.bonchan.org`).
+
+> ISPs residenciales suelen bloquear el puerto 25 y no dejan configurar el
+> PTR de la IP doméstica — verifica ambas cosas antes de dar por bueno el
+> envío/recepción externos; si el 25 está bloqueado, la única salida es un
+> relay/smart-host externo para el correo saliente.
+
 ---
 
 ## Fase 6 — Servicios en `luffy` (Pi-hole y Home Assistant) (🤖)
