@@ -6,10 +6,10 @@ metadata:
   labels:
     app.kubernetes.io/name: flaresolverr
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 3
   strategy:
-    type: Recreate
+    type: RollingUpdate
   selector:
     matchLabels:
       app.kubernetes.io/name: flaresolverr
@@ -35,6 +35,8 @@ spec:
               value: info
             - name: TZ
               value: Europe/Madrid
+            - name: BROWSER_TIMEOUT
+              value: "60000"
           ports:
             - name: http
               containerPort: 8191
@@ -44,16 +46,19 @@ spec:
               port: http
             initialDelaySeconds: 20
             periodSeconds: 15
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /
               port: http
             initialDelaySeconds: 40
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources:
             requests:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: "1"
+              cpu: "1500m"
               memory: 1Gi
