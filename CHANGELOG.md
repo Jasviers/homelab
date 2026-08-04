@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.20.0](https://github.com/Jasviers/homelab/compare/v1.19.1...v1.20.0) (2026-08-04)
+
+
+### Features
+
+* add bazarr for subtitles ([3a83076](https://github.com/Jasviers/homelab/commit/3a83076353c762145265878c77e3d2e93328a998))
+* add bazarr for subtitles ([58e6a0f](https://github.com/Jasviers/homelab/commit/58e6a0f9bb4c3427a78b6daa517a0539568f61c4))
+
+
+### Bug Fixes
+
+* stalwart config and postgres probes ([10b84bd](https://github.com/Jasviers/homelab/commit/10b84bd51a6651484a32e0ee14dad6904eca6608))
+* stalwart config and postgres probes ([d383a47](https://github.com/Jasviers/homelab/commit/d383a479cf6772554e899b538d8f685051db8265))
+
 ## [1.19.1](https://github.com/Jasviers/homelab/compare/v1.19.0...v1.19.1) (2026-08-03)
 
 
