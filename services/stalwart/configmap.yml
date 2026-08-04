@@ -17,7 +17,39 @@ data:
     fts = "rocksdb"
     blob = "rocksdb"
     lookup = "rocksdb"
+    directory = "ldap"
 
     [store.rocksdb]
     type = "rocksdb"
     path = "/opt/stalwart/data"
+
+    [directory."ldap"]
+    type = "ldap"
+    url = "ldaps://ldap.bonchan.org:636"
+    base-dn = "dc=bonchan,dc=org"
+    timeout = "15s"
+
+    [directory."ldap".tls]
+    enable = true
+    allow-invalid-certs = false
+
+    [directory."ldap".bind]
+    dn = "cn=ldapservice,ou=users,dc=bonchan,dc=org"
+    secret = "%{env:LDAP_BIND_PASSWORD}%"
+
+    [directory."ldap".bind.auth]
+    enable = true
+    dn = "cn=?,ou=users,dc=bonchan,dc=org"
+    search = true
+
+    [directory."ldap".filter]
+    name = "(&(objectClass=person)(cn=?))"
+    email = "(&(objectClass=person)(mail=?))"
+
+    [directory."ldap".attributes]
+    name = "cn"
+    email = "mail"
+    email-alias = "mailAlternateAddress"
+    description = "cn"
+    groups = "memberOf"
+    class = "objectClass"
