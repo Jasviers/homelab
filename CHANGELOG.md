@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.1](https://github.com/Jasviers/homelab/compare/v1.20.0...v1.20.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* bazarr probes ([c2a1691](https://github.com/Jasviers/homelab/commit/c2a1691ec4f35b1bbefd082e6cadefcb20a2954f))
+* bazarr probes ([b87439f](https://github.com/Jasviers/homelab/commit/b87439f0cc4d3807317918dc8378433b9436ca39))
+
 ## [1.20.0](https://github.com/Jasviers/homelab/compare/v1.19.1...v1.20.0) (2026-08-04)
 
 
