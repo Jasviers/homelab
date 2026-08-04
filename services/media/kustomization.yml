@@ -11,3 +11,4 @@ resources:
   - prowlarr
   - flaresolverr
   - qbittorrent
+  - bazarr
