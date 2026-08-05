@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.2](https://github.com/Jasviers/homelab/compare/v1.20.1...v1.20.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* stalwart folder persmissions ([013d2dd](https://github.com/Jasviers/homelab/commit/013d2dd04d5b307491650667d2b35cf71e9bdd41))
+* stalwart folder persmissions ([a6d01a4](https://github.com/Jasviers/homelab/commit/a6d01a44216d6c72381dea1668614c7eb4c5909a))
+
 ## [1.20.1](https://github.com/Jasviers/homelab/compare/v1.20.0...v1.20.1) (2026-08-04)
 
 
