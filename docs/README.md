@@ -21,6 +21,7 @@ corrigiendo un runbook, y un runbook puede enlazar al postmortem que lo originó
 | [00 — Bootstrap del homelab desde cero](runbooks/00-bootstrap-homelab.md) | ✅ | Despliegue completo: Proxmox → Packer → Terraform → Ansible (k3s) → servicios GitOps. |
 | [01 — Recovery parcial](runbooks/01-recovery-parcial.md) | ✅ | Caída de un nodo, pérdida de quorum o pérdida de datos en el NAS. |
 | [02 — Gestión de buckets en Garage](runbooks/02-garage-buckets.md) | ✅ | Crear/borrar buckets, gestionar claves de acceso y permisos en Garage (S3). |
+| [03 — Migración de disco de un nodo Proxmox](runbooks/03-migracion-disco-nodo.md) | ✅ | Sustituir el disco físico de `zoro` o `nami` preservando las VMs (migración en vivo o backup/restore vía NAS). |
 
 ## Postmortems
 
