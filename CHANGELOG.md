@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.3](https://github.com/Jasviers/homelab/compare/v1.20.2...v1.20.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* change zoro disk and improvements for full work ([b1a0795](https://github.com/Jasviers/homelab/commit/b1a079584c0aab2a93c383bafadd9f5217a730be))
+* change zoro disk and improvements for full work ([432ca1d](https://github.com/Jasviers/homelab/commit/432ca1df35fff7362acedf480418f5f7c42b19d3))
+
 ## [1.20.2](https://github.com/Jasviers/homelab/compare/v1.20.1...v1.20.2) (2026-08-04)
 
 
