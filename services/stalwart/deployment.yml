@@ -26,7 +26,7 @@ spec:
           imagePullPolicy: Always
           args:
             - --config
-            - /opt/stalwart/etc/config.toml
+            - /opt/stalwart/etc/config.json
           env:
             - name: LDAP_BIND_PASSWORD
               valueFrom:
@@ -76,9 +76,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /opt/stalwart
-            - name: config
-              mountPath: /opt/stalwart/etc/config.toml
-              subPath: config.toml
             - name: mail-cert
               mountPath: /certs/mail-bonchan-org
               readOnly: true
@@ -86,9 +83,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: stalwart-data
-        - name: config
-          configMap:
-            name: stalwart-config
         - name: mail-cert
           secret:
             secretName: mail-bonchan-org-tls
