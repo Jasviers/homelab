@@ -88,9 +88,7 @@
 
 [ ] Gestion de usuarios unificada y sencilla
 
-[x] Servidor de correo y webmail (stallwart y snappymail?)
-
-[ ] Desplegar un FoundryVTT
+[x] Servidor de correo y webmail (stallwart y snappymail)
 
 [ ] backups (proxmox backups + velero)
 
@@ -109,8 +107,6 @@
 [ ] Network policies para aislar servicios
 
 [ ] vault
-
-[ ] SSO para pihole
 
 [ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 
