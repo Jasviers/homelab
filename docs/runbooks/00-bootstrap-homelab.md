@@ -364,10 +364,15 @@ kubectl -n router create secret generic router-oidc-secret \
 > kubectl -n router  get securitypolicy -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.ancestors[0].conditions[0].status}{"\n"}{end}'
 > ```
 
-**b) Home Assistant y Jellyfin — configuración manual en cada sistema.** Home
-Assistant: `configuration.yaml` en `luffy`. Jellyfin: plugin SSO-Auth desde su
-propia UI (pega `$JELLYFIN_OIDC_SECRET` tal cual; ver detalle en
-`services/README.md`).
+**b) Home Assistant — configuración manual.** `configuration.yaml` en `luffy`.
+
+> **Jellyfin ya no usa este cliente OIDC.** Jellyfin cambió el login a LDAP
+> (plugin LDAP-Auth contra el directorio de Authentik, ver
+> `services/README.md`, sección "Login de Jellyfin contra LDAP"). El
+> provider OIDC del blueprint `jellyfin.yaml` sigue activo y
+> `authentik-oidc-secrets` sigue necesitando la clave
+> `jellyfin-client-secret` para que Authentik arranque, aunque
+> `$JELLYFIN_OIDC_SECRET` ya no se pegue en ninguna UI.
 
 **Transmute** es un caso mixto: el otro lado sí es un Secret de Kubernetes (como
 Hubble/Grafana). Transmute lee su `OIDC_CLIENT_SECRET` desde el Secret

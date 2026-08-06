@@ -313,7 +313,7 @@ Tras aplicar, los usuarios aparecen en Control Panel → User & Group, pestaña 
 - El `uidNumber` es `uid_start_number + pk` del usuario. **No cambiar `uid_start_number`/`gid_start_number`** una vez que la NAS haya creado ficheros con esos UID/GID, o se rompe la propiedad de los datos.
 - El bind DN da lectura de todo el directorio: su password vive solo en el Secret y en DSM.
 
-Otros consumidores posibles del mismo provider, **no configurados** hoy: Proxmox VE (realm LDAP; ahora usa OIDC), Jellyfin (plugin LDAP-Auth; ahora usa el plugin SSO-Auth) y Grafana. Las apps *arr, Garage, Home Assistant y Transmute no soportan LDAP.
+Jellyfin es otro consumidor de este mismo directorio, vía el plugin LDAP-Auth (ver sección "Login de Jellyfin contra LDAP" más abajo, dentro de `media/`). Otros consumidores posibles, **no configurados** hoy: Proxmox VE (realm LDAP; ahora usa OIDC) y Grafana. Las apps *arr, Garage, Home Assistant y Transmute no soportan LDAP.
 
 ## monitor/
 
@@ -625,21 +625,22 @@ A diferencia del resto de servicios (1 namespace por app), aquí todo comparte n
 >
 > El resto de apps (Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent) no tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, si se restringe el acceso solo a la LAN).
 
-### SSO sobre Jellyfin (OIDC contra Authentik)
+### Login de Jellyfin contra LDAP
 
-Jellyfin no tiene soporte OIDC nativo; se usa el plugin de terceros [SSO-Auth](https://github.com/9p4/jellyfin-plugin-sso) (repo de plugin: `https://raw.githubusercontent.com/9p4/jellyfin-plugin-sso/manifest-release/manifest.json`, instalable desde Dashboard → Plugins → Repositories → Catalog en la propia UI).
+Jellyfin no tiene soporte LDAP nativo; se usa el plugin de terceros [LDAP-Auth](https://github.com/jellyfin/jellyfin-plugin-ldapauth) (viene en el catálogo por defecto de Dashboard → Plugins → Catalog). Se autentica contra el mismo directorio LDAP que expone el outpost de Authentik para la NAS Synology y Stalwart (ver sección "Provider LDAP" más arriba) — no hay blueprint de Authentik específico para Jellyfin en este modo, es configuración manual del plugin.
 
-El blueprint `authentik/blueprints/jellyfin.yaml` crea un provider OAuth2/OIDC **confidential** (`client_id: jellyfin`, callback `https://jellyfin.bonchan.org/sso/OID/redirect/authentik`) y la aplicación correspondiente. El `client_secret` se inyecta vía la variable `JELLYFIN_CLIENT_SECRET` desde el Secret **no versionado** `authentik-oidc-secrets` (clave `jellyfin-client-secret`); añádela igual que el resto de clientes OIDC (ver runbook de bootstrap, sección "Otros clientes OIDC").
+En Jellyfin, tras instalar el plugin, configúralo a mano en Dashboard → Plugins → LDAP-Auth:
 
-En Jellyfin, tras instalar el plugin, configúralo a mano en Dashboard → Plugins → SSO-Auth → Add new OID Provider:
+- **Conexión**: `LDAP Server` `ldap.bonchan.org` (por nombre, no por IP — el certificado no cubre la IP), `LDAP Port` `636`, SSL/LDAPS habilitado, `LDAP Base DN` `ou=users,dc=bonchan,dc=org`, `LDAP Bind User` `cn=ldapservice,ou=users,dc=bonchan,dc=org`, `LDAP Bind Password` el valor de `bind-password` del Secret `authentik-ldap-secrets` (namespace `authentik`).
+- **Atributos**: `LDAP Search Filter` `(&(objectClass=posixAccount)(cn={username}))`, `LDAP Search Attributes` `uid, cn, mail`, `LDAP Uid Attribute` `uid`, `LDAP Username Attribute` `cn`.
 
-- **Nombre del provider**: `authentik` (debe coincidir exactamente con el path `.../sso/OID/redirect/<nombre>` del blueprint).
-- **OID Endpoint**: `https://authentik.bonchan.org/application/o/jellyfin/`
-- **Client ID**: `jellyfin`
-- **Client Secret**: el mismo valor que se puso en `authentik-oidc-secrets` (clave `jellyfin-client-secret`).
-- **Enabled** y **Enable Authorization by Plugin**: activados.
+> **El atributo `uid` de este directorio no es el nombre de usuario.** A diferencia del esquema POSIX habitual, el outpost LDAP de Authentik rellena `uid` con un hash opaco (identificador único interno) y pone el **username real en `cn`**, igual que ya usa el Bind DN (`cn=ldapservice,...`). Un filtro con `uid={username}` nunca encuentra al usuario — hay que buscar por `cn`. `LDAP Uid Attribute` sí puede seguir siendo `uid`: solo necesita ser único, no legible.
 
-Reinicia Jellyfin si no aparece el botón de login con Authentik. Al no ser un componente versionado en git (vive en el PVC de configuración), este paso hay que repetirlo si el PVC se recrea desde cero.
+- **Administradores** (opcional): `LDAP Admin Base DN` vacío, `LDAP Admin Filter` `(memberOf=cn=Jellyfin Admins,ou=groups,dc=bonchan,dc=org)` — usa el atributo `memberOf` que el outpost añade a cada usuario con el DN de sus grupos. Con el Base DN vacío se evalúa sobre el DN del propio usuario, que ya cae dentro del árbol. **Requiere crear antes el grupo `Jellyfin Admins`** en Authentik (Directory → Groups) y añadir ahí a los usuarios admin — hoy no existe, así que el filtro no da acceso de administrador a nadie hasta crearlo.
+
+Al no ser un componente versionado en git (vive en el PVC de configuración), este paso hay que repetirlo si el PVC se recrea desde cero. Aplican las mismas advertencias que al resto de clientes del directorio: los usuarios federados desde fuentes externas no pueden hacer bind (sin password local), y no hay soporte de MFA en el bind LDAP.
+
+> **Migrado desde OIDC.** Jellyfin usaba antes el plugin SSO-Auth contra un provider OIDC dedicado (blueprint `authentik/blueprints/jellyfin.yaml`, `client_id: jellyfin`). Ese blueprint sigue activo en Authentik (y `authentik-oidc-secrets` sigue necesitando la clave `jellyfin-client-secret` para que `authentik-server`/`worker` arranquen), pero Jellyfin ya no lo usa para el login — si se decide no volver a OIDC, ese provider y su entrada en el runbook de bootstrap se pueden retirar en una limpieza aparte.
 
 ## whisper/
 
