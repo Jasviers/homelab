@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transmute
+  namespace: transmute
+  labels:
+    app.kubernetes.io/name: transmute
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: transmute
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: transmute
+    spec:
+      containers:
+        - name: transmute
+          image: ghcr.io/transmute-app/transmute:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3313
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: APP_URL
+              value: https://transmute.bonchan.org
+            - name: OIDC_ISSUER_URL
+              value: https://authentik.bonchan.org/application/o/transmute/
+            - name: OIDC_CLIENT_ID
+              value: transmute
+            - name: OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: transmute-oidc-secret
+                  key: client-secret
+            - name: OIDC_DISPLAY_NAME
+              value: Authentik
+            - name: OIDC_USERNAME_CLAIM
+              value: preferred_username
+            - name: OIDC_AUTO_CREATE_USERS
+              value: "true"
+            - name: OIDC_AUTO_LAUNCH
+              value: "false"
+          startupProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: transmute-data

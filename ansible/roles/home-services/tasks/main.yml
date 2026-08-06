@@ -18,6 +18,19 @@
     mode: "0644"
   register: dnsmasq_records
 
+- name: Create Home Assistant config directory
+  file:
+    path: "{{ home_services_dir }}/homeassistant"
+    state: directory
+    mode: "0755"
+
+- name: Seed Home Assistant configuration.yaml (solo si no existe, no pisa config existente)
+  template:
+    src: homeassistant-configuration.yaml.j2
+    dest: "{{ home_services_dir }}/homeassistant/configuration.yaml"
+    mode: "0644"
+    force: false
+
 - name: Template docker-compose file
   template:
     src: docker-compose.yml.j2

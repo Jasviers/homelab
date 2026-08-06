@@ -23,18 +23,10 @@ services:
     volumes:
       - "./homeassistant:/config"
       - "/etc/localtime:/etc/localtime:ro"
+    devices:
+      - "/dev/ttyUSB0:/dev/ttyUSB0:rwm"
     restart: unless-stopped
     network_mode: host
-
-  whisper:
-    container_name: whisper
-    image: "rhasspy/wyoming-whisper:latest"
-    command: --model {{ whisper_model }} --language {{ whisper_language }} --beam-size 1 --threads 4
-    volumes:
-      - "./whisper:/data"
-    ports:
-      - "10300:10300"
-    restart: unless-stopped
 
   piper:
     container_name: piper

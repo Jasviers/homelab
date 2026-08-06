@@ -31,8 +31,9 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - tunnel
-            - --config
-            - /etc/cloudflared/config.yaml
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
             - run
           securityContext:
             allowPrivilegeEscalation: false
@@ -42,6 +43,12 @@ spec:
                 - ALL
             runAsNonRoot: true
             runAsUser: 65532
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: tunnel-credentials
+                  key: token
           ports:
             - name: metrics
               containerPort: 2000
@@ -63,18 +70,3 @@ spec:
               memory: 64Mi
             limits:
               memory: 128Mi
-          volumeMounts:
-            - name: config
-              mountPath: /etc/cloudflared/config.yaml
-              subPath: config.yaml
-              readOnly: true
-            - name: creds
-              mountPath: /etc/cloudflared/creds
-              readOnly: true
-      volumes:
-        - name: config
-          configMap:
-            name: cloudflared
-        - name: creds
-          secret:
-            secretName: tunnel-credentials

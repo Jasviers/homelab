@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-models
+  namespace: ollama
+  labels:
+    app.kubernetes.io/name: ollama
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ollama-pull-models
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        workload-type: ai
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ai
+          effect: NoSchedule
+      containers:
+        - name: pull
+          image: ollama/ollama:0.32.1
+          env:
+            - name: OLLAMA_HOST
+              value: "http://ollama.ollama.svc.cluster.local:11434"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              ollama rm qwen3.5:4b-q4_K_M || true
+              ollama rm qwen3:4b-instruct-2507-q4_K_M || true
+              ollama pull qwen3:1.7b-q4_K_M
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

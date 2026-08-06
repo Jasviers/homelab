@@ -9,20 +9,75 @@ memory      = 6144
 disk_gb     = 80
 storage     = "local-lvm"
 
+cpu_type = "host"
+on_boot  = true
+
 vms = {
-    zoro = {
-      vm_name     = "vm-ubuntu26-zoro-01"
-      target_node = "zoro"
-      vm_id       = 210
-      ipv4_cidr   = "192.168.1.21/23"
-      description = "VM Ubuntu 26 desplegada en zoro"
+    zoro_cp = {
+      vm_name       = "vm-ubuntu26-zoro-01"
+      target_node   = "zoro"
+      vm_id         = 210
+      ipv4_cidr     = "192.168.1.21/23"
+      description   = "Control-plane k3s (etcd) en zoro, sin cargas de trabajo"
+      cores         = 2
+      memory        = 4096
+      disk_gb       = 80
+      startup_order = 1
     }
-    nami = {
-      vm_name     = "vm-ubuntu26-nami-01"
-      target_node = "nami"
-      vm_id       = 220
-      ipv4_cidr   = "192.168.1.22/23"
-      description = "VM Ubuntu 26 desplegada en nami"
+    nami_cp = {
+      vm_name       = "vm-ubuntu26-nami-01"
+      target_node   = "nami"
+      vm_id         = 220
+      ipv4_cidr     = "192.168.1.22/23"
+      description   = "Control-plane k3s (etcd) en nami, sin cargas de trabajo"
+      cores         = 2
+      memory        = 4096
+      disk_gb       = 80
+      startup_order = 1
+    }
+    zoro_cp2 = {
+      vm_name           = "vm-ubuntu26-zoro-03"
+      target_node       = "zoro"
+      vm_id             = 213
+      ipv4_cidr         = "192.168.1.23/23"
+      description       = "Control-plane k3s (etcd) #3 en zoro, solo para quorum de etcd (3 miembros); coexiste con zoro_cp en el mismo host físico, no mejora la HA real si zoro cae"
+      cores             = 2
+      memory            = 4096
+      disk_gb           = 80
+      startup_order     = 1
+      startup_up_delay  = 10
+    }
+    zoro_worker = {
+      vm_name         = "vm-ubuntu26-zoro-02"
+      target_node     = "zoro"
+      vm_id           = 211
+      ipv4_cidr       = "192.168.1.30/23"
+      description     = "Worker k3s en zoro"
+      memory          = 8192
+      memory_floating = 6144
+      startup_order   = 2
+    }
+    nami_worker = {
+      vm_name         = "vm-ubuntu26-nami-02"
+      target_node     = "nami"
+      vm_id           = 221
+      ipv4_cidr       = "192.168.1.31/23"
+      description     = "Worker k3s en nami"
+      memory          = 8192
+      memory_floating = 6144
+      startup_order   = 2
+    }
+    zoro_ai = {
+      vm_name         = "vm-ubuntu26-zoro-ai"
+      target_node     = "zoro"
+      vm_id           = 212
+      ipv4_cidr       = "192.168.1.40/23"
+      description     = "Nodo k3s para IA en zoro (taint dedicated=ai, label workload-type=ai)"
+      cores           = 8
+      memory          = 32768
+      memory_floating = 20480
+      disk_gb         = 200
+      startup_order   = 3
     }
 }
 

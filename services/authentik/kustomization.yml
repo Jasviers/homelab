@@ -12,6 +12,8 @@ resources:
   - postgres-cluster.yml
   - redis.yml
   - httproute.yml
+  - certificate.yml
+  - ldap-outpost.yml
 
 configMapGenerator:
   - name: authentik-blueprint-argocd
@@ -42,6 +44,21 @@ configMapGenerator:
   - name: authentik-blueprint-home-assistant
     files:
       - blueprints/home-assistant.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-jellyfin
+    files:
+      - blueprints/jellyfin.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-transmute
+    files:
+      - blueprints/transmute.yaml
+    options:
+      disableNameSuffixHash: true
+  - name: authentik-blueprint-ldap
+    files:
+      - blueprints/ldap.yaml
     options:
       disableNameSuffixHash: true
 
@@ -96,6 +113,29 @@ helmCharts:
               secretKeyRef:
                 name: authentik-oidc-secrets
                 key: home-assistant-client-secret
+          - name: JELLYFIN_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: jellyfin-client-secret
+          - name: TRANSMUTE_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: authentik-oidc-secrets
+                key: transmute-client-secret
+          - name: LDAP_BIND_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: authentik-ldap-secrets
+                key: bind-password
+        volumes:
+          - name: ldap-cert
+            secret:
+              secretName: ldap-bonchan-org-tls
+        volumeMounts:
+          - name: ldap-cert
+            mountPath: /certs/ldap-bonchan-org
+            readOnly: true
       blueprints:
         configMaps:
           - authentik-blueprint-argocd
@@ -104,6 +144,9 @@ helmCharts:
           - authentik-blueprint-proxmox
           - authentik-blueprint-router
           - authentik-blueprint-home-assistant
+          - authentik-blueprint-jellyfin
+          - authentik-blueprint-transmute
+          - authentik-blueprint-ldap
       authentik:
         postgresql:
           host: authentik-db-rw
@@ -119,6 +162,20 @@ helmCharts:
             memory: 350Mi
           limits:
             memory: 700Mi
+        # El clúster corre con etcd de un solo nodo (zoro-01, decisión deliberada
+        # para evitar la saturación de fsync del postmortem 2026-07-27; ver
+        # memoria del proyecto). Cualquier hipo del apiserver de unos 30-60s
+        # tumbaba el pod entero por el liveness por defecto (failureThreshold 3
+        # x period 10s = 30s), obligando a un reboot completo de varios minutos
+        # (migraciones + carga de GeoIP) en vez de dejar que se recupere solo.
+        livenessProbe:
+          failureThreshold: 18
+          periodSeconds: 10
+          timeoutSeconds: 5
+        startupProbe:
+          failureThreshold: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
       worker:
         resources:
           requests:

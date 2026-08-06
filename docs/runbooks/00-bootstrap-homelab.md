@@ -62,6 +62,16 @@ ansible-playbook playbooks/qdevice.yml
 
 *Resultado esperado:* playbooks en verde. El quorum se verifica en la Fase 6.
 
+### 1.1b Tuning del host Proxmox (🤖 Ansible)
+
+Fija el governor de CPU en `performance`, ajusta `vm.swappiness` y activa
+`ksmtuned` en `zoro`/`nami` (mini PCs que pueden venir en `powersave`/
+`schedutil` de fábrica — afecta a la latencia de etcd).
+
+```bash
+ansible-playbook playbooks/proxmox-tuning.yml
+```
+
 ### 1.2 Token de API de Proxmox (✋ manual)
 
 En la UI de Proxmox (*Datacenter → Permissions → API Tokens*) crea un token con
@@ -91,22 +101,30 @@ Proxmox indicado. Ver `packer/README.md`.
 
 ## Fase 3 — VMs del clúster con Terraform (🤖)
 
-Clona el template y crea las dos VMs del clúster (`vm-ubuntu26-zoro-01`
-`192.168.1.21` y `vm-ubuntu26-nami-01` `192.168.1.22`) con cloud-init.
+Clona el template y crea las 6 VMs del clúster con roles heterogéneos: 3
+control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, `vm-ubuntu26-nami-01`
+`192.168.1.22`, `vm-ubuntu26-zoro-03` `192.168.1.23`, 2 vCPU/4 GB cada una —
+la tercera solo para dar quorum de etcd, coexiste con `zoro-01` en el mismo
+host físico), 2 workers (`vm-ubuntu26-zoro-02`
+`192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/8 GB) y 1 nodo de
+IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/32 GB). Las VMs usan
+`cpu_type = "host"` (ambos nodos comparten CPU) y ballooning en workers/nodo
+IA — ver `terraform/proxmox-vm/README.md`.
 
 ```bash
 cd terraform/proxmox-vm
 
 cp terraform.tfvars.example terraform.tfvars
 # Edita terraform.tfvars: proxmox_endpoint, proxmox_api_token, template,
-# ssh_keys, ipv4_gateway... (las IPs/VMIDs de las VMs están en variables.tf > vms)
+# ssh_keys, ipv4_gateway... (las IPs/VMIDs/sizing de cada VM están en el mapa
+# `vms` de terraform.tfvars, con overrides por VM de cores/memory/disk_gb)
 
 terraform init
 terraform plan
 terraform apply
 ```
 
-*Resultado esperado:* `terraform apply` crea ambas VMs. Comprueba las salidas:
+*Resultado esperado:* `terraform apply` crea las 6 VMs. Comprueba las salidas:
 
 ```bash
 terraform output vm_ids
@@ -117,18 +135,42 @@ terraform output ipv4_addresses
 
 ## Fase 4 — Instalación de k3s con Ansible (🤖)
 
-Instala k3s en las dos VMs: inicializa el primer nodo con `--cluster-init`,
-recupera el token y une el segundo. Se despliega sin `servicelb`, `traefik` ni
-`local-storage` (el `LoadBalancer` lo da Cilium y el almacenamiento el CSI de
-Synology) y sin el networking integrado (`flannel`, `kube-proxy`,
-`network-policy`), que se sustituye por **Cilium**. El propio rol instala Cilium
-vía Helm desde tu máquina (requiere `helm` y `kubectl` locales) usando el
-endpoint `127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados.
-Al final descarga el kubeconfig a `~/.kube/config`.
+Instala k3s con roles diferenciados según el grupo de `ansible/inventory.ini`:
+los 3 nodos de `k3s_control_plane` se instalan como **server** con etcd
+embebido (el primero con `--cluster-init`, los otros dos se unen con
+`--server`/`--token`) y quedan tainted (`node-role.kubernetes.io/control-plane`)
+para no recibir cargas; los nodos de `k3s_workers` y `k3s_ai` se instalan como
+**agent** (worker), y el de `k3s_ai` añade además el taint `dedicated=ai` y el
+label `workload-type=ai` para que solo se programen ahí los pods que declaren
+la toleration/selector correspondiente. Se despliega sin `servicelb`, `traefik`
+ni `local-storage` (el `LoadBalancer` lo da Cilium y el almacenamiento el CSI
+de Synology) y sin el networking integrado (`flannel`, `kube-proxy`,
+`network-policy`), que se sustituye por **Cilium** (con tolerations para correr
+también en los nodos tainted). El propio rol instala Cilium vía Helm desde tu
+máquina (requiere `helm` y `kubectl` locales) usando el endpoint
+`127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados. Al final
+descarga el kubeconfig a `~/.kube/config`.
+
+> El quorum de etcd es de 3 miembros: tolera perder cualquier VM control-plane
+> suelta. Pero `zoro-01` y `zoro-03` viven en el mismo host físico `zoro`, así
+> que si `zoro` se apaga se pierden 2/3 miembros a la vez y el API server se
+> queda sin quorum igual — no mejora la HA real frente a la caída del host,
+> solo evita perder quorum por el fallo de una VM o del propio k3s en un nodo
+> suelto.
 
 ```bash
 cd ansible
 ansible-playbook playbooks/install-k3s.yml
+```
+
+### 4.1 Tuning de las VMs (🤖 Ansible)
+
+Ajusta `vm.swappiness` dentro de las 6 VMs (ya se mide swap en uso en 5 de
+las 6 bajo carga normal). No toca hardware virtual, se puede correr en
+cualquier momento sin coordinar con Terraform.
+
+```bash
+ansible-playbook playbooks/vm-tuning.yml
 ```
 
 ---
@@ -144,7 +186,7 @@ El dataplane de Cilium (con LB IPAM y L2 habilitados) ya lo instaló la Fase 4;
 aquí solo se aplica el pool de IPs y la política de anuncio L2.
 
 ```bash
-kustomize build services/cilium-lb | kubectl apply -f -
+kubectl apply -k services/cilium-lb/
 ```
 
 *Resultado esperado:* `CiliumLoadBalancerIPPool` `pool` con el rango
@@ -154,7 +196,7 @@ Comprobar: `kubectl get ciliumloadbalancerippool,ciliuml2announcementpolicy`.
 ### 5.2 ArgoCD (🤖)
 
 ```bash
-kustomize build --enable-helm services/argocd | kubectl apply -f -
+kubectl apply -k services/argocd/ --enable-helm
 ```
 
 Contraseña inicial del admin:
@@ -167,8 +209,9 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ### 5.3 App-of-apps (🤖)
 
 A partir de aquí ArgoCD sincroniza el resto desde el repo (cert-manager,
-gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator y el propio
-argocd).
+gateway, homepage, synology-csi, kubevip, authentik, cnpg-operator, monitor,
+cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media,
+bentopdf, transmute, servicios y el propio argocd).
 
 ```bash
 kubectl apply -f services/argocd-apps/root-app.yaml
@@ -221,9 +264,14 @@ blueprint; ArgoCD lo lee desde `argocd-secret` (clave `oidc.argocd.clientSecret`
 ```bash
 ARGOCD_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
 
-# Authentik: lo consume el worker para reconciliar el blueprint del provider.
-kubectl -n authentik create secret generic authentik-oidc-secrets \
-  --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+# Authentik: crea o actualiza el secret con la clave del provider.
+if kubectl -n authentik get secret authentik-oidc-secrets &>/dev/null; then
+  kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+    -p "{\"stringData\":{\"argocd-client-secret\":\"$ARGOCD_OIDC_SECRET\"}}"
+else
+  kubectl -n authentik create secret generic authentik-oidc-secrets \
+    --from-literal=argocd-client-secret="$ARGOCD_OIDC_SECRET"
+fi
 
 # ArgoCD: lo resuelve oidc.config vía $oidc.argocd.clientSecret.
 kubectl -n argocd patch secret argocd-secret --type merge \
@@ -274,6 +322,135 @@ kubectl -n kube-system create secret generic hubble-oidc-secret \
 
 La UI es de solo lectura; basta con que el usuario autentique en Authentik.
 
+**Otros clientes OIDC de Authentik (Proxmox, router ASUS, Home Assistant,
+Jellyfin):** todos sus blueprints (`services/authentik/blueprints/`) esperan sus
+claves en `authentik-oidc-secrets` **desde el primer arranque** (si faltan,
+`authentik-server`/`authentik-worker` se quedan en `CreateContainerConfigError`):
+
+```bash
+PROXMOX_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+ROUTER_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+HA_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+JELLYFIN_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+TRANSMUTE_OIDC_SECRET=$(openssl rand -base64 32 | tr -d '\n')
+
+kubectl -n authentik patch secret authentik-oidc-secrets --type merge \
+  -p "{\"stringData\":{\"proxmox-client-secret\":\"$PROXMOX_OIDC_SECRET\",\"router-client-secret\":\"$ROUTER_OIDC_SECRET\",\"home-assistant-client-secret\":\"$HA_OIDC_SECRET\",\"jellyfin-client-secret\":\"$JELLYFIN_OIDC_SECRET\",\"transmute-client-secret\":\"$TRANSMUTE_OIDC_SECRET\"}}"
+```
+
+A partir de aquí el "otro lado" del OIDC depende del servicio:
+
+**a) Proxmox y router ASUS — Secret de Kubernetes (como Hubble).** A estos dos no
+los protege su propio login, sino Envoy Gateway como Relying Party OIDC (una
+`SecurityPolicy` sobre su `HTTPRoute`), así que **necesitan un Secret con clave
+`client-secret` en su propio namespace**. Si falta, Envoy falla en cerrado y la
+ruta responde **HTTP 500** (`direct_response`) sin llegar al backend:
+
+```bash
+kubectl -n proxmox create secret generic proxmox-oidc-secret \
+  --from-literal=client-secret="$PROXMOX_OIDC_SECRET"
+kubectl -n router create secret generic router-oidc-secret \
+  --from-literal=client-secret="$ROUTER_OIDC_SECRET"
+```
+
+> Si ya perdiste las variables de shell, se recuperan del propio Authentik:
+> `kubectl -n authentik get secret authentik-oidc-secrets -o jsonpath='{.data.proxmox-client-secret}' | base64 -d`
+>
+> Comprueba que quedan aceptadas (si sale `Accepted=False Invalid: OIDC: secret
+> ... does not exist`, es que falta el Secret):
+>
+> ```bash
+> kubectl -n proxmox get securitypolicy -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.ancestors[0].conditions[0].status}{"\n"}{end}'
+> kubectl -n router  get securitypolicy -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.ancestors[0].conditions[0].status}{"\n"}{end}'
+> ```
+
+**b) Home Assistant — configuración manual.** `configuration.yaml` en `luffy`.
+
+> **Jellyfin ya no usa este cliente OIDC.** Jellyfin cambió el login a LDAP
+> (plugin LDAP-Auth contra el directorio de Authentik, ver
+> `services/README.md`, sección "Login de Jellyfin contra LDAP"). El
+> provider OIDC del blueprint `jellyfin.yaml` sigue activo y
+> `authentik-oidc-secrets` sigue necesitando la clave
+> `jellyfin-client-secret` para que Authentik arranque, aunque
+> `$JELLYFIN_OIDC_SECRET` ya no se pegue en ninguna UI.
+
+**Transmute** es un caso mixto: el otro lado sí es un Secret de Kubernetes (como
+Hubble/Grafana). Transmute lee su `OIDC_CLIENT_SECRET` desde el Secret
+`transmute-oidc-secret` (clave `client-secret`) en su propio namespace, con el
+**mismo valor** que se acaba de poner en `authentik-oidc-secrets`:
+
+```bash
+kubectl create namespace transmute --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n transmute create secret generic transmute-oidc-secret \
+  --from-literal=client-secret="$TRANSMUTE_OIDC_SECRET"
+```
+
+**Provider LDAP (NAS Synology).** No es OIDC: es un provider LDAP con su propio
+outpost. Necesita dos Secrets, uno **antes** del sync y otro **después** (ver
+`services/README.md`, sección "Provider LDAP"):
+
+```bash
+# Antes del sync: password de la cuenta de bind ldapservice. Si falta,
+# authentik-server/worker se quedan en CreateContainerConfigError.
+kubectl -n authentik create secret generic authentik-ldap-secrets \
+  --from-literal=bind-password="$(openssl rand -base64 32 | tr -d '\n')"
+
+# Después del sync, cuando el blueprint ya ha creado el outpost: copiar su token
+# desde Authentik UI > Applications > Outposts > ldap > "View Deployment Info".
+kubectl -n authentik create secret generic authentik-ldap-outpost \
+  --from-literal=token="<AUTHENTIK_TOKEN>"
+kubectl -n authentik rollout restart deploy/authentik-ldap-outpost
+```
+
+El DNS que usa la NAS lo pone el rol `home-services` de la fase 6
+(`home_services_dns_overrides`: `ldap.bonchan.org → 192.168.1.130`, excepción al
+wildcard `address=/bonchan.org/192.168.1.128`); si esa fase ya está hecha, vuelve
+a lanzar `ansible-playbook playbooks/home-services.yml`. Después, configura el
+cliente LDAP de DSM con los valores de la tabla de `services/README.md`.
+
+**Correo (Stalwart + SnappyMail).** Servidor de correo autoalojado y completo
+(MX propio, sin relay) integrado con el mismo directorio LDAP de Authentik.
+Ver `services/README.md`, sección "stalwart/", para el detalle completo.
+Resumen de lo manual:
+
+```bash
+# 1. Antes del sync: password de bind LDAP para Stalwart. Mismo valor que
+#    authentik-ldap-secrets (clave bind-password) — se copia a mano porque
+#    no hay ninguna herramienta de replicación de secrets entre namespaces
+#    en este repo. Si falta, el pod de Stalwart queda en CreateContainerConfigError.
+kubectl -n stalwart create secret generic stalwart-ldap-secrets \
+  --from-literal=bind-password="$(kubectl -n authentik get secret authentik-ldap-secrets -o jsonpath='{.data.bind-password}' | base64 -d)"
+```
+
+Tras el primer sync:
+
+1. Entra en `https://stalwart.bonchan.org`, completa el asistente inicial
+   (contraseña de admin — si no aparece el asistente, revisa
+   `kubectl -n stalwart logs deploy/stalwart` para la contraseña generada) y
+   configura a mano: el dominio `bonchan.org`, el hostname `mail.bonchan.org`,
+   los listeners SMTP/IMAP/Sieve en los puertos ya expuestos por el Service
+   `stalwart-mail` (25/587/465/143/993/4190), el certificado TLS montado en
+   `/certs/mail-bonchan-org/tls.crt` y `tls.key`, y un *Directory* de tipo
+   LDAP con los mismos datos que usa la NAS (`ldaps://ldap.bonchan.org:636`,
+   bind DN `cn=ldapservice,ou=users,dc=bonchan,dc=org`, base DN
+   `dc=bonchan,dc=org`).
+2. Desde `https://webmail.bonchan.org`, configura SnappyMail (panel admin) con
+   el dominio `bonchan.org` apuntando como servidor IMAP/SMTP al Service
+   interno `stalwart.stalwart.svc.cluster.local` (puertos 993/587).
+3. Port-forward manual en el router ASUS: `25`, `465`, `587`, `993` →
+   `192.168.1.131` (deja `143`/`4190` solo en LAN).
+4. Registros públicos manuales en Cloudflare: MX (`bonchan.org` →
+   `mail.bonchan.org`, prioridad 10; comprueba antes si `mail.bonchan.org` ya
+   resuelve por el wildcard que gestiona `scripts/false-ddns.sh`, si no añade
+   un registro A explícito), SPF (`v=spf1 mx ~all`), DKIM (selector y clave
+   los genera Stalwart al configurar el dominio, se copian a mano) y DMARC
+   (`_dmarc.bonchan.org`).
+
+> ISPs residenciales suelen bloquear el puerto 25 y no dejan configurar el
+> PTR de la IP doméstica — verifica ambas cosas antes de dar por bueno el
+> envío/recepción externos; si el 25 está bloqueado, la única salida es un
+> relay/smart-host externo para el correo saliente.
+
 ---
 
 ## Fase 6 — Servicios en `luffy` (Pi-hole y Home Assistant) (🤖)
@@ -301,6 +478,13 @@ ssh root@zoro 'pvecm status'
 # Nodos del clúster
 kubectl get nodes
 
+# Cilium operativo (todos los nodos Ready, WireGuard activo, L2 announcements)
+cilium-dbg status --verbose
+
+# IP pool de LoadBalancer asignado
+kubectl get ciliumloadbalancerippool pool -o wide
+kubectl get ciliuml2announcementpolicy pool
+
 # Todas las Application sincronizadas
 kubectl -n argocd get applications
 
@@ -317,9 +501,11 @@ kubectl get storageclass
 # Acceso a los servicios (resolución vía Pi-hole)
 #   https://argocd.bonchan.org
 #   https://homepage.bonchan.org
+#   https://hubble.bonchan.org
 ```
 
-Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, todas las
+Todo correcto cuando: el quorum está `Quorate`, los nodos `Ready`, Cilium reporta
+`5/5 reachable` con WireGuard activo, el pool LB IPAM listo, todas las
 `Application` en `Synced/Healthy`, el `ClusterIssuer` y el certificado wildcard
 en `READY=True`, y los servicios responden por HTTPS bajo `*.bonchan.org`.
 

@@ -8,3 +8,14 @@ spec:
     - ip:
         address: 192.168.0.1
         port: 80
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: foosha-router
+  namespace: router
+spec:
+  endpoints:
+    - ip:
+        address: 192.168.20.1
+        port: 80

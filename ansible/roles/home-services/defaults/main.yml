@@ -6,9 +6,13 @@ home_services_timezone: "Europe/Madrid"
 pihole_web_password: "changeme"
 pihole_dns_upstream: "1.1.1.1;1.0.0.1"
 
-whisper_model: "base-int8"
-whisper_language: "es"
-piper_voice: "es_ES-davefx-medium"
+piper_voice: "es_ES-carlfm-high"
+
+home_services_ha_trusted_proxies:
+  - "192.168.1.0/24"
+  - "172.30.33.0/24"
+  - "127.0.0.1"
+  - "::1"
 
 home_services_dns_servers:
   - { name: "luffy", ip: "192.168.1.2" }
@@ -18,3 +22,7 @@ home_services_dns_servers:
 
 home_services_gateway_domain: "bonchan.org"
 home_services_gateway_ip: "192.168.1.128"
+
+home_services_dns_overrides:
+  - { name: "ldap.bonchan.org", ip: "192.168.1.130" }
+  - { name: "mail.bonchan.org", ip: "192.168.1.131" }

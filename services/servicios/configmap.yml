@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: servicios
+  namespace: servicios
+  labels:
+    app.kubernetes.io/name: servicios
+data:
+  settings.yaml: |
+    title: Servicios Bonchan
+    favicon: https://gethomepage.dev/img/favicon.ico
+    headerStyle: clean
+    language: es
+    theme: dark
+    color: slate
+    cardBlur: xs
+    hideVersion: true
+    background:
+      image: https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80
+      blur: sm
+      saturate: 50
+      brightness: 50
+      opacity: 50
+    layout:
+      Servicios:
+        style: row
+        columns: 4
+
+  widgets.yaml: |
+    - search:
+        provider: google
+        target: _blank
+    - openmeteo:
+        label: Madrid
+        latitude: 40.4168
+        longitude: -3.7038
+        timezone: Europe/Madrid
+        units: metric
+        cache: 5
+    - openmeteo:
+        label: Sepúlveda
+        latitude: 41.2967
+        longitude: -3.7469
+        timezone: Europe/Madrid
+        units: metric
+        cache: 5
+    - openmeteo:
+        label: Vera
+        latitude: 37.2453
+        longitude: -1.8676
+        timezone: Europe/Madrid
+        units: metric
+        cache: 5
+    - openmeteo:
+        label: San Millán
+        latitude: 42.3264
+        longitude: -2.8617
+        timezone: Europe/Madrid
+        units: metric
+        cache: 5
+    - datetime:
+        text_size: xl
+        format:
+          dateStyle: long
+          timeStyle: short
+          hourCycle: h23
+
+  services.yaml: |
+    - Servicios:
+        - Jellyfin:
+            icon: jellyfin.png
+            href: https://jellyfin.bonchan.org
+            description: Películas y series
+            target: _blank
+        - Jellyseerr:
+            icon: jellyseerr.png
+            href: https://jellyseerr.bonchan.org
+            description: Pide nuevas películas y series
+            target: _blank
+        - BentoPDF:
+            icon: bentopdf.png
+            href: https://pdf.bonchan.org/es/
+            description: Editar y convertir PDFs
+            target: _blank
+        - Transmute:
+            icon: si-ffmpeg
+            href: https://transmute.bonchan.org
+            description: Convertir audio, vídeo e imágenes
+            target: _blank
+        - SnappyMail:
+            icon: snappymail.png
+            href: https://webmail.bonchan.org
+            description: Correo web
+            target: _blank
+
+  bookmarks.yaml: |
+    []
+
+  kubernetes.yaml: ""
+  docker.yaml: ""
+  proxmox.yaml: ""
+  custom.css: ""
+  custom.js: ""

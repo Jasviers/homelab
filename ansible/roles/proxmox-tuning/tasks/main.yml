@@ -1,0 +1,39 @@
+---
+# Proxmox VE ya trae /usr/sbin/ksmtuned y el servicio ksmtuned.service
+# habilitados de fábrica (no es el paquete "ksmtuned" de Debian, que no
+# tiene nada que ver e intentar instalarlo aquí solo añade riesgo de fallo
+# de apt sin aportar nada).
+- name: "Install cpupower"
+  apt:
+    name: linux-cpupower
+    state: present
+
+- name: "Deploy systemd unit to set the CPU governor on boot"
+  template:
+    src: cpu-governor.service.j2
+    dest: /etc/systemd/system/cpu-governor.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: cpu_governor_unit
+
+- name: "Enable and start the CPU governor unit"
+  systemd:
+    name: cpu-governor.service
+    enabled: true
+    state: started
+    daemon_reload: "{{ cpu_governor_unit.changed }}"
+
+- name: "Set vm.swappiness on the Proxmox host"
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: "{{ proxmox_tuning_swappiness }}"
+    sysctl_file: /etc/sysctl.d/99-proxmox-tuning.conf
+    sysctl_set: true
+    reload: true
+
+- name: "Ensure ksmtuned is enabled and running"
+  systemd:
+    name: ksmtuned
+    enabled: true
+    state: started

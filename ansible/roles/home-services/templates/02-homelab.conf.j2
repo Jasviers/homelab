@@ -7,3 +7,7 @@ host-record={{ server.name }},{{ server.ip }}
 
 # Gateway API: *.{{ home_services_gateway_domain }} -> balanceador (Cilium LB IPAM)
 address=/{{ home_services_gateway_domain }}/{{ home_services_gateway_ip }}
+
+{% for override in home_services_dns_overrides %}
+address=/{{ override.name }}/{{ override.ip }}
+{% endfor %}
