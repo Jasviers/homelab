@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.4](https://github.com/Jasviers/homelab/compare/v1.20.3...v1.20.4) (2026-08-06)
+
+
+### Bug Fixes
+
+* change seerr version and stalwart config command ([6eb9009](https://github.com/Jasviers/homelab/commit/6eb900995cf51daaa9484f37060858a3065a7c3b))
+* change seerr version and stalwart config command ([345d7fb](https://github.com/Jasviers/homelab/commit/345d7fbf71b461d794b25d1939f6c603c68197b5))
+
 ## [1.20.3](https://github.com/Jasviers/homelab/compare/v1.20.2...v1.20.3) (2026-08-05)
 
 
