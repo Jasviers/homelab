@@ -122,8 +122,7 @@ pvecm add <ip-nodo-par>
 
 ```bash
 cd ansible
-ansible-playbook playbooks/proxmox-repos.yml -l <nodo>
-ansible-playbook playbooks/proxmox-tuning.yml -l <nodo>
+ansible-playbook playbooks/proxmox-config.yml -l <nodo>
 ansible-playbook playbooks/qdevice.yml
 ```
 

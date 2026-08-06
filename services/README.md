@@ -328,6 +328,7 @@ Reparto de responsabilidades:
 - **loki/** (chart `loki`): almacenamiento de logs en modo `SingleBinary` sobre filesystem (PVC del Synology CSI, retención 7 días). Cuando exista MinIO se puede migrar a object storage (S3).
 - **grafana/** (chart `grafana`): Grafana **local** para dashboards y alertas. Datasources de Prometheus y Loki preconfigurados, sidecar de dashboards activado y un par de dashboards de arranque (node-exporter, vistas de k8s, logs de Loki). Expuesta en `grafana.bonchan.org` vía `httproute.yml`.
 - **alloy/** (chart `alloy`): Alloy como **DaemonSet** que recoge los **logs** de los pods (vía la API de k8s) y los envía a Loki. Es el sucesor del Grafana Agent: no hace falta un agente aparte para hablar con Grafana Cloud.
+- **cilium/** (`servicemonitors.yaml`, sin chart): tres `ServiceMonitor` en `kube-system` para que Prometheus scrapee las métricas que Cilium ya expone (el DaemonSet lo instala Ansible, no ArgoCD — ver sección "Taints de nodos" más arriba y `ansible/roles/install-k3s`): `cilium-agent` (dataplane eBPF por nodo), `cilium-operator` (operador, réplica única) y `hubble` (métricas del relay de Hubble, distintas de la UI que expone `services/hubble/`). Sin esto Prometheus no vería nada de Cilium/Hubble pese a que ambos ya publican `/metrics`.
 - **tempo/**: pendiente. Las trazas solo aportan valor con apps instrumentadas emitiendo OTLP; se añadirá cuando haya una.
 
 Secretos que **no se versionan** y hay que crear a mano tras el primer sync:
@@ -603,16 +604,18 @@ El Secret `router-oidc-secret` **no se versiona**; hay que crearlo a mano tras e
 
 ## media/
 
-Kustomization que despliega el stack multimedia (Jellyfin + Jellyseerr + Radarr + Sonarr + Prowlarr + qBittorrent) como un único namespace `media`, en `jellyfin.bonchan.org`, `jellyseerr.bonchan.org`, `radarr.bonchan.org`, `sonarr.bonchan.org`, `prowlarr.bonchan.org` y `qbittorrent.bonchan.org`.
+Kustomization que despliega el stack multimedia (Jellyfin + Jellyseerr + Radarr + Sonarr + Prowlarr + qBittorrent + Bazarr + FlareSolverr) como un único namespace `media`, en `jellyfin.bonchan.org`, `jellyseerr.bonchan.org`, `radarr.bonchan.org`, `sonarr.bonchan.org`, `prowlarr.bonchan.org`, `qbittorrent.bonchan.org` y `bazarr.bonchan.org`.
 
-A diferencia del resto de servicios (1 namespace por app), aquí todo comparte namespace porque Jellyfin/Radarr/Sonarr/qBittorrent necesitan ver **exactamente el mismo volumen** para que Radarr/Sonarr puedan importar con *hardlink* (instantáneo, sin duplicar espacio) en vez de copiar. `media-library` usa la StorageClass `synology-nfs-storage` (carpetas compartidas del CSI de Synology, no LUNs iSCSI) con `accessModes: ReadWriteMany`, así que ese volumen compartido puede montarse en varios Pods sin necesidad de fijarlos al mismo nodo. Al ser un único namespace con varias apps, sigue el mismo patrón que `monitor/`: una carpeta por app (cada una con su propio `kustomization.yml` con `namespace: media`) referenciadas desde el `kustomization.yml` raíz junto con los recursos compartidos:
+A diferencia del resto de servicios (1 namespace por app), aquí todo comparte namespace porque Jellyfin/Radarr/Sonarr/qBittorrent/Bazarr necesitan ver **exactamente el mismo volumen** para que Radarr/Sonarr puedan importar con *hardlink* (instantáneo, sin duplicar espacio) en vez de copiar. `media-library` usa la StorageClass `synology-nfs-storage` (carpetas compartidas del CSI de Synology, no LUNs iSCSI) con `accessModes: ReadWriteMany`, así que ese volumen compartido puede montarse en varios Pods sin necesidad de fijarlos al mismo nodo. Al ser un único namespace con varias apps, sigue el mismo patrón que `monitor/`: una carpeta por app (cada una con su propio `kustomization.yml` con `namespace: media`) referenciadas desde el `kustomization.yml` raíz junto con los recursos compartidos:
 
 - `namespace.yml`: el único `Namespace` (`media`) para todas las apps.
 - `media-library-pvc.yml`: PVC compartido de 500Gi en `synology-nfs-storage` (`ReadWriteMany`) — el único recurso que no pertenece a una app concreta, por eso vive en la raíz.
-- `jellyfin/`, `jellyseerr/`, `radarr/`, `sonarr/`, `prowlarr/`, `qbittorrent/`: cada carpeta tiene `pvc.yml` (config propia en `synology-nfs-storage`, 10Gi para Jellyfin, 1-2Gi para el resto), `deployment.yml`, `service.yml` y `httproute.yml` (con las anotaciones de Homepage bajo el grupo `Media`), publicando en `<app>.bonchan.org`.
-- `jellyfin/deployment.yml`, `radarr/deployment.yml`, `sonarr/deployment.yml`, `qbittorrent/deployment.yml`: montan `media-library` en `/data` (Jellyfin en solo lectura, el resto en lectura-escritura). Dentro de `/data`, la convención es `/data/torrents/{movies,tv}` para las descargas y `/data/media/{movies,tv}` para la biblioteca final — así el hardlink entre ambas carpetas es posible por estar en el mismo filesystem. Esta estructura se crea a mano (o desde la propia UI) en el primer arranque; no está en git porque vive dentro del PVC.
+- `jellyfin/`, `jellyseerr/`, `radarr/`, `sonarr/`, `prowlarr/`, `qbittorrent/`, `bazarr/`: cada carpeta tiene `pvc.yml` (config propia en `synology-nfs-storage`, 10Gi para Jellyfin, 1-2Gi para el resto), `deployment.yml`, `service.yml` y `httproute.yml` (con las anotaciones de Homepage bajo el grupo `Media`), publicando en `<app>.bonchan.org`.
+- `jellyfin/deployment.yml`, `radarr/deployment.yml`, `sonarr/deployment.yml`, `qbittorrent/deployment.yml`, `bazarr/deployment.yml`: montan `media-library` en `/data` (Jellyfin en solo lectura, el resto en lectura-escritura — Bazarr necesita escribir para dejar los `.srt` junto al vídeo). Dentro de `/data`, la convención es `/data/torrents/{movies,tv}` para las descargas y `/data/media/{movies,tv}` para la biblioteca final — así el hardlink entre ambas carpetas es posible por estar en el mismo filesystem. Esta estructura se crea a mano (o desde la propia UI) en el primer arranque; no está en git porque vive dentro del PVC.
 - `jellyseerr/deployment.yml`, `prowlarr/deployment.yml`: no montan `media-library` (solo hablan por API con Jellyfin/Radarr/Sonarr).
-- Como todas las apps están en el mismo namespace `media`, el Gateway solo necesita una entrada (`media`) en la allowlist de `services/gateway/gateway.yml` para dar acceso a las 6 rutas.
+- `bazarr/`: [Bazarr](https://www.bazarr.media) gestiona subtítulos — se conecta por API a Radarr y Sonarr (root folders `/data/media/movies`/`/data/media/tv`, el mismo `media-library`) para descargar el subtítulo que falte de cada película/episodio ya importado.
+- `flaresolverr/`: [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) es un proxy que resuelve los desafíos anti-bot de Cloudflare (y captchas similares) con un navegador headless, para que Prowlarr pueda seguir indexando trackers protegidos por ese tipo de check. No monta `media-library` (no procesa ficheros, solo HTTP) y no tiene `HTTPRoute`: es un servicio puramente interno, consumido por Prowlarr vía `flaresolverr.media.svc.cluster.local:8191` (Settings → Indexers → añadirlo como proxy FlareSolverr), por eso tampoco aparece en Homepage ni en `servicios.bonchan.org`. 2 réplicas por resiliencia (cada instancia de Chromium headless puede colgarse) y `nodeAffinity` que evita programarse en nodos con el rol `etcd` (`node-role.kubernetes.io/etcd`) — un navegador headless es intensivo en CPU/disco y este clúster ya tuvo un incidente de latencia de etcd por I/O compartida (ver `docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`).
+- Como todas las apps HTTP están en el mismo namespace `media`, el Gateway solo necesita una entrada (`media`) en la allowlist de `services/gateway/gateway.yml` para dar acceso a las 7 rutas.
 
 > **Manual tras el primer despliegue** (nada de esto se versiona en git, es configuración desde cada UI):
 >
@@ -622,8 +625,10 @@ A diferencia del resto de servicios (1 namespace por app), aquí todo comparte n
 > 4. **Radarr/Sonarr**: root folder `/data/media/movies` / `/data/media/tv`; añadir qBittorrent como *download client* (`qbittorrent.media.svc.cluster.local:8080`) y usar categorías (`radarr`/`sonarr`) para que qBittorrent separe las descargas por app.
 > 5. **Jellyfin**: crear las bibliotecas apuntando a `/data/media/movies` y `/data/media/tv` (montado en solo lectura).
 > 6. **Jellyseerr**: conectarlo a Jellyfin (`jellyfin.media.svc.cluster.local:8096`) y a Radarr/Sonarr (`radarr.media.svc.cluster.local:7878` / `sonarr.media.svc.cluster.local:8989`) desde su asistente de configuración inicial.
+> 7. **Bazarr**: conectarlo a Radarr/Sonarr (Settings → Radarr/Sonarr) con las mismas URLs y API keys que usa Jellyseerr; en Settings → Languages añadir los idiomas de subtítulo deseados y en Settings → Providers los proveedores de subtítulos.
+> 8. **Prowlarr + FlareSolverr**: si algún indexador falla por un check anti-bot de Cloudflare, añadir `http://flaresolverr.media.svc.cluster.local:8191` como *FlareSolverr proxy* en Settings → Indexers y asignarlo al indexador afectado.
 >
-> El resto de apps (Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent) no tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, si se restringe el acceso solo a la LAN).
+> El resto de apps (Jellyseerr, Radarr, Sonarr, Prowlarr, qBittorrent, Bazarr, FlareSolverr) no tiene SSO con Authentik configurado — cada una gestiona su propio login (o ninguno, si se restringe el acceso solo a la LAN).
 
 ### Login de Jellyfin contra LDAP
 
@@ -649,6 +654,19 @@ Kustomization que despliega Whisper (STT, protocolo Wyoming) en el nodo de IA, m
 - `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja al compartir CPU con Ollama en el mismo nodo), `--language es`.
 - `pvc.yml`: PVC de 5Gi en `synology-iscsi-storage` montado en `/data` para no volver a descargar el modelo en cada reinicio.
 - `service.yml`: a diferencia del resto de servicios HTTP, Wyoming es un protocolo TCP a medida y **no** puede publicarse vía `HTTPRoute`. Se expone con una IP `LoadBalancer` propia de Cilium LB IPAM (`192.168.1.129:10300`), igual que el Gateway tiene la suya.
+
+## bentopdf/
+
+Kustomization que despliega [BentoPDF](https://github.com/alam00000/bentopdf) (suite de manipulación de PDFs: unir, dividir, comprimir, convertir, firmar...) en `pdf.bonchan.org`. Sustituyó a Stirling-PDF (commit `b2c4ec9 "feat: change stirling service to bentopdf"`), retirado por demasiado pesado para el recurso disponible (no arrancaba con 2Gi de límite); a diferencia de `metallb/`, no se conservó su manifiesto en `old_services/`.
+
+Es el servicio más simple del repo: **100% client-side/WASM**, el servidor solo sirve los estáticos de la SPA, así que no tiene estado ni almacenamiento propio:
+
+- `namespace.yml`: namespace `bentopdf`.
+- `deployment.yml`: 1 réplica de `ghcr.io/alam00000/bentopdf-simple:2.8.7`, sin PVC. `resources` mínimos (`requests` 10m CPU/32Mi, `limits` 250m/128Mi) acordes a que es solo un servidor de estáticos. `securityContext` restrictivo (`runAsNonRoot`, `drop: [ALL]`, `RuntimeDefault`).
+- `service.yml` / `httproute.yml`: `Service` ClusterIP en `8080` y `HTTPRoute` que publica `pdf.bonchan.org`, con anotaciones de autodescubrimiento de Homepage (grupo *Aplicaciones*) — aparece tanto en `homepage.bonchan.org` como en `servicios.bonchan.org`.
+- `backendtrafficpolicy.yml`: health check activo (`/`) y rate limiting local (50 req/s), mismo patrón que `servicios/` y `proxmox/`.
+
+No tiene SSO ni backend propio: al procesarse todo en el navegador del usuario, no hay sesión ni datos que proteger en el servidor — cualquiera con acceso a `pdf.bonchan.org` puede usarlo.
 
 ## transmute/
 

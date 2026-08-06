@@ -68,8 +68,14 @@ Fija el governor de CPU en `performance`, ajusta `vm.swappiness` y activa
 `ksmtuned` en `zoro`/`nami` (mini PCs que pueden venir en `powersave`/
 `schedutil` de fábrica — afecta a la latencia de etcd).
 
+Si en el paso 1.1 ejecutaste `playbooks/qdevice.yml`, este tuning **ya se
+aplicó** (`qdevice.yml` importa `playbooks/proxmox-config.yml`, que aplica
+`proxmox-repos` + `proxmox-tuning`); no hay nada más que hacer. Si en cambio
+solo corriste la variante "solo repos" (`playbooks/proxmox-repos.yml`),
+aplícalo ahora:
+
 ```bash
-ansible-playbook playbooks/proxmox-tuning.yml
+ansible-playbook playbooks/proxmox-config.yml
 ```
 
 ### 1.2 Token de API de Proxmox (✋ manual)
@@ -163,15 +169,16 @@ cd ansible
 ansible-playbook playbooks/install-k3s.yml
 ```
 
-### 4.1 Tuning de las VMs (🤖 Ansible)
+### 4.1 Tuning de las VMs (ya aplicado, sin acción manual)
 
-Ajusta `vm.swappiness` dentro de las 6 VMs (ya se mide swap en uso en 5 de
-las 6 bajo carga normal). No toca hardware virtual, se puede correr en
-cualquier momento sin coordinar con Terraform.
-
-```bash
-ansible-playbook playbooks/vm-tuning.yml
-```
+`vm.swappiness=10` dentro de las 6 VMs no se aplica aquí: viene ya horneado
+en la plantilla de Packer (rol `vm-tuning`, invocado desde
+`playbooks/packer-template.yml` al construir `ubuntu26-template`) y las VMs
+lo heredan en el clonado de Terraform. Hoy **no existe** un playbook
+independiente para reaplicarlo bajo demanda contra VMs ya desplegadas; si
+hiciera falta cambiar el valor en una VM viva, hay que editarlo a mano
+(`/etc/sysctl.d/99-vm-tuning.conf`) o reconstruir la plantilla y recrear la
+VM.
 
 ---
 
