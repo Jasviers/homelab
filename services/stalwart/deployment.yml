@@ -24,6 +24,9 @@ spec:
         - name: stalwart
           image: stalwartlabs/stalwart:v0.16.16
           imagePullPolicy: Always
+          args:
+            - --config
+            - /opt/stalwart/etc/config.toml
           env:
             - name: LDAP_BIND_PASSWORD
               valueFrom:
