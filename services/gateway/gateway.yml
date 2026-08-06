@@ -4,6 +4,64 @@ metadata:
   name: envoy
 spec:
   controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: homelab-proxy-config
+    namespace: envoy-gateway-system
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: homelab-proxy-config
+  namespace: envoy-gateway-system
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        replicas: 2
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1
+        container:
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+        pod:
+          nodeSelector:
+            bonchan.org/gateway-node: "true"
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      gateway.envoyproxy.io/owning-gateway-name: homelab
+      envoyPDB:
+        minAvailable: 1
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: gateway-homelab
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  interfaces:
+    - ^eth0$
+  loadBalancerIPs: true
+  nodeSelector:
+    matchLabels:
+      bonchan.org/gateway-node: "true"
+  serviceSelector:
+    matchLabels:
+      gateway.envoyproxy.io/owning-gateway-name: homelab
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
@@ -16,9 +74,6 @@ metadata:
 spec:
   gatewayClassName: envoy
   listeners:
-    # Listener HTTP solo para redirigir a HTTPS (ver https-redirect.yml).
-    # Solo admite rutas del propio namespace del Gateway, de modo que
-    # ninguna app pueda servir tráfico en claro por el puerto 80.
     - name: http
       protocol: HTTP
       port: 80
@@ -34,9 +89,6 @@ spec:
         mode: Terminate
         certificateRefs:
           - name: bonchan-org-tls
-      # Solo los namespaces listados pueden adjuntar HTTPRoutes al Gateway.
-      # Se usa el label kubernetes.io/metadata.name (lo añade k8s a cada
-      # namespace automáticamente), así no hay que etiquetarlos a mano.
       allowedRoutes:
         namespaces:
           from: Selector
@@ -52,3 +104,11 @@ spec:
                   - kube-system
                   - proxmox
                   - router
+                  - ollama
+                  - garage
+                  - media
+                  - bentopdf
+                  - transmute
+                  - servicios
+                  - stalwart
+                  - snappymail

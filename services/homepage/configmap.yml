@@ -15,11 +15,29 @@ data:
     favicon: https://gethomepage.dev/img/favicon.ico
     headerStyle: clean
     language: es
+    theme: dark
+    color: slate
+    cardBlur: xs
+    background:
+      image: https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80
+      blur: sm
+      saturate: 50
+      brightness: 50
+      opacity: 50
     layout:
-      Cluster Management:
+      Infraestructura:
+        style: row
+        columns: 5
+      Plataforma:
         style: row
         columns: 4
         icon: si-kubernetes
+      Monitorizacion:
+        style: row
+        columns: 2
+      Media:
+        style: row
+        columns: 3
 
   widgets.yaml: |
     - kubernetes:
@@ -49,18 +67,24 @@ data:
 
   bookmarks.yaml: |
     - Homelab:
-        - Repositorio:
+        - GItHub:
             - abbr: GH
               href: https://github.com/Jasviers/homelab
-        - Proxmox zoro:
-            - abbr: PVE
-              href: https://zoro.bonchan.org:8006
-        - Proxmox nami:
-            - abbr: PVE
-              href: https://nami.bonchan.org:8006
+        - Home Assistant:
+            - abbr: HA
+              href: https://hs-lakasa.bonchan.org
+        - Pihole:
+            - abbr: DNS
+              href: http://luffy.bonchan.org/admin
         - NAS Synology:
             - abbr: NAS
               href: https://nas.bonchan.org
+        - YouTube:
+            - icon: youtube.png
+              href: https://youtube.com
+        - Cloudflare:
+            - icon: cloudflare.png
+              href: https://dash.cloudflare.com
 
   docker.yaml: ""
   proxmox.yaml: ""

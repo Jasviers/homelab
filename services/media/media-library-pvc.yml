@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-library
+  namespace: media
+  labels:
+    app.kubernetes.io/name: media-library
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: synology-nfs-storage
+  resources:
+    requests:
+      storage: 500Gi

@@ -5,6 +5,7 @@ namespace: monitoring
 
 resources:
   - httproute.yml
+  - backendtrafficpolicy.yaml
 
 helmCharts:
   - name: grafana
@@ -15,7 +16,7 @@ helmCharts:
     valuesInline:
       persistence:
         enabled: true
-        storageClassName: synology-iscsi-storage
+        storageClassName: synology-nfs-storage
         size: 5Gi
 
       admin:

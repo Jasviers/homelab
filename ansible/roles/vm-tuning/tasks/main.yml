@@ -1,0 +1,8 @@
+---
+- name: "Set vm.swappiness inside the guest"
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: "{{ vm_tuning_swappiness }}"
+    sysctl_file: /etc/sysctl.d/99-vm-tuning.conf
+    sysctl_set: true
+    reload: true

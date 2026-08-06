@@ -26,6 +26,9 @@ helmCharts:
         vip_interface: eth0
         vip_leaderelection: "true"
         cp_namespace: kube-system
+        vip_leaseduration: "30"
+        vip_renewdeadline: "20"
+        vip_retryperiod: "4"
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       tolerations:

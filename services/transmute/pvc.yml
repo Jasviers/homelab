@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: transmute-data
+  namespace: transmute
+  labels:
+    app.kubernetes.io/name: transmute
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: synology-nfs-storage
+  resources:
+    requests:
+      storage: 200Gi

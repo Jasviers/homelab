@@ -1,0 +1,8 @@
+default_config:
+
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+{% for proxy in home_services_ha_trusted_proxies %}
+    - {{ proxy }}
+{% endfor %}

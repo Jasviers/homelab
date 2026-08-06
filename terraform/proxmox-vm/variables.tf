@@ -25,13 +25,20 @@ variable "proxmox_insecure" {
 
 variable "vms" {
   type = map(object({
-    vm_name     = string
-    target_node = string
-    vm_id       = optional(number)
-    ipv4_cidr   = string
-    description = optional(string)
+    vm_name          = string
+    target_node      = string
+    vm_id            = optional(number)
+    ipv4_cidr        = string
+    description      = optional(string)
+    cores            = optional(number)
+    memory           = optional(number)
+    disk_gb          = optional(number)
+    storage          = optional(string)
+    memory_floating  = optional(number)
+    startup_order    = optional(number)
+    startup_up_delay = optional(number)
   }))
-  description = "Definiciones de las VMs que se desplegarán por defecto."
+  description = "Definiciones de las VMs que se desplegarán por defecto. cores/memory/disk_gb/storage son overrides opcionales por VM; si se omiten, se usan los globales del mismo nombre. memory_floating/startup_order/startup_up_delay son opcionales (ballooning y orden de arranque)."
 }
 
 variable "template" {
@@ -92,6 +99,18 @@ variable "network_bridge" {
   type        = string
   description = "Bridge de red (ej: vmbr0)."
   default     = "vmbr0"
+}
+
+variable "cpu_type" {
+  type        = string
+  description = "Tipo de CPU por defecto para las VMs (ej: host, x86-64-v3)."
+  default     = "host"
+}
+
+variable "on_boot" {
+  type        = bool
+  description = "Si las VMs deben arrancar automáticamente con el host Proxmox."
+  default     = true
 }
 
 variable "ipv4_gateway" {
