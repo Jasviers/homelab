@@ -1,5 +1,5 @@
 ---
-cilium_chart_version: "1.19.4"
+cilium_chart_version: "1.19.5"
 cilium_helm_repo_url: "https://helm.cilium.io/"
 
 # Default de referencia (válido solo si todos los nodos son server); el
