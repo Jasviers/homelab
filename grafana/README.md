@@ -22,7 +22,7 @@ Las subcarpetas son organización para humanos. Lo que decide la carpeta real en
 ## Añadir un dashboard
 
 1. Guardar el JSON en `dashboards/<carpeta>/<nombre>.json`.
-2. Añadir la entrada en `kustomization.yaml`:
+1. Añadir la entrada en `kustomization.yaml`:
 
 ```yaml
 configMapGenerator:
@@ -37,7 +37,7 @@ configMapGenerator:
         grafana_folder: "Infra"
 ```
 
-3. Comprobar el render antes de commitear:
+1. Comprobar el render antes de commitear:
 
 ```sh
 kustomize build --enable-helm services/monitor | grep -A5 "name: grafana-dashboard-etcd"
