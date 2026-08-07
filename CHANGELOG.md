@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.20.5](https://github.com/Jasviers/homelab/compare/v1.20.4...v1.20.5) (2026-08-06)
+
+
+### Bug Fixes
+
+* last changes to fix seerr ([aeb725f](https://github.com/Jasviers/homelab/commit/aeb725f2708b0470a2bdfde6d4507c73173e35f1))
+* last changes to fix seerr ([919250f](https://github.com/Jasviers/homelab/commit/919250fde9c6a5e7fd4746343db67750cb4de8cd))
+* stalwart configuration ([ebebe0e](https://github.com/Jasviers/homelab/commit/ebebe0ec5c768634cbf5e9be94a4393ff262d1d7))
+* stalwart configuration ([eab1093](https://github.com/Jasviers/homelab/commit/eab10938ea29d2bd336629d30950a93ee5eef6f3))
+
 ## [1.20.4](https://github.com/Jasviers/homelab/compare/v1.20.3...v1.20.4) (2026-08-06)
 
 
