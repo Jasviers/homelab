@@ -86,7 +86,7 @@
 
 ---
 
-[ ] Gestion de usuarios unificada y sencilla
+[x] Gestion de usuarios unificada y sencilla
 
 [x] Servidor de correo y webmail (stallwart y snappymail)
 
