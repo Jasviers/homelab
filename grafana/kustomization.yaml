@@ -1,0 +1,145 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+configMapGenerator:
+  - name: grafana-dashboard-homelab-overview
+    files:
+      - dashboards/home/homelab-overview.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Home"
+
+  - name: grafana-dashboard-node-fleet
+    files:
+      - dashboards/infra/node-fleet.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Infra"
+
+  - name: grafana-dashboard-k8s-views-global
+    files:
+      - dashboards/kubernetes/k8s-views-global.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-k8s-views-namespaces
+    files:
+      - dashboards/kubernetes/k8s-views-namespaces.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-k8s-views-nodes
+    files:
+      - dashboards/kubernetes/k8s-views-nodes.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-k8s-views-pods
+    files:
+      - dashboards/kubernetes/k8s-views-pods.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-k8s-system-api-server
+    files:
+      - dashboards/kubernetes/k8s-system-api-server.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-k8s-system-coredns
+    files:
+      - dashboards/kubernetes/k8s-system-coredns.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Kubernetes"
+
+  - name: grafana-dashboard-services-overview
+    files:
+      - dashboards/apps/services-overview.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Apps"
+
+  - name: grafana-dashboard-cilium-agent
+    files:
+      - dashboards/networking/cilium-agent.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Networking"
+
+  - name: grafana-dashboard-hubble-overview
+    files:
+      - dashboards/networking/hubble-overview.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Networking"
+
+  - name: grafana-dashboard-envoy-gateway-global
+    files:
+      - dashboards/networking/envoy-gateway-global.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Networking"
+
+  - name: grafana-dashboard-envoy-proxy-global
+    files:
+      - dashboards/networking/envoy-proxy-global.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Networking"
+
+  - name: grafana-dashboard-app-logs
+    files:
+      - dashboards/logs/app-logs.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Logs"
