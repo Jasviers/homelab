@@ -106,6 +106,7 @@ LAN principal (`192.168.0.0/23`) mediante un túnel VPN site-to-site.
 | [terraform/](terraform/proxmox-vm/) | Despliegue de las VMs del clúster desde el template (`proxmox-vm` como root module, `modules/proxmox-vm` como módulo reutilizable versionado). |
 | [ansible/](ansible/) | Playbooks y roles: configuración de Proxmox y quorum (QDevice), actualización de paquetes, instalación/desinstalación de k3s, preparación del template de Packer y despliegue de los servicios de `luffy` (Pi-hole, Home Assistant y Piper) vía Docker Compose. |
 | [services/](services/) | Manifiestos GitOps de los servicios del clúster gestionados por ArgoCD (kube-vip, Cilium LB IPAM, ArgoCD, cert-manager, Envoy Gateway API, Homepage, Synology CSI, CNPG, Authentik, monitorización, Hubble, Cloudflared, Ollama, Whisper, Garage, Media, CoreDNS, Proxmox, Router, BentoPDF, Transmute, Servicios). |
+| [grafana/](grafana/) | Dashboards de Grafana versionados como JSON. Se empaquetan en ConfigMaps y los consume la app `monitor` de ArgoCD (`resources: ../../grafana`); no tiene `Application` propia. |
 | [old_services/](old_services/) | Servicios retirados, conservados como referencia y **no** gestionados por ArgoCD (p. ej. MetalLB, sustituido por Cilium LB IPAM). |
 | [scripts/](scripts/) | Scripts auxiliares: DDNS contra Cloudflare y firewall de la red IOT en el router. |
 | [docs/](docs/) | Documentación operativa: runbooks (manuales paso a paso) y postmortems *blameless*. |
