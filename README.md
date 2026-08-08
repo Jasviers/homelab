@@ -66,23 +66,29 @@ LAN principal (`192.168.0.0/23`) mediante un túnel VPN site-to-site.
 
 ## Clúster k3s
 
-6 VMs Ubuntu 26 repartidas entre los 2 nodos Proxmox forman el clúster k3s, con roles dedicados: 3 control-plane (etcd embebido, sin cargas de trabajo), 2 workers y 1 nodo para IA con taint. Desplegado sin `servicelb`, `traefik`, `local-storage` ni el networking integrado (`flannel`, `kube-proxy` y `network-policy`):
+6 VMs Ubuntu 26 repartidas entre los 2 nodos Proxmox forman el clúster k3s, con roles dedicados: 2 control-plane (etcd embebido, sin cargas de trabajo), 3 workers y 1 nodo para IA con taint. Desplegado sin `servicelb`, `traefik`, `local-storage` ni el networking integrado (`flannel`, `kube-proxy` y `network-policy`):
 
 | VM | IP | Nodo Proxmox | VMID | Rol k3s |
 | --- | --- | --- | --- | --- |
 | `vm-ubuntu26-zoro-01` | `192.168.1.21` | `zoro` | 210 | control-plane (server + etcd), taint `node-role.kubernetes.io/control-plane` |
 | `vm-ubuntu26-nami-01` | `192.168.1.22` | `nami` | 220 | control-plane (server + etcd), mismo taint |
-| `vm-ubuntu26-zoro-03` | `192.168.1.23` | `zoro` | 213 | control-plane (server + etcd), mismo taint; solo para quorum de etcd |
 | `vm-ubuntu26-zoro-02` | `192.168.1.30` | `zoro` | 211 | worker (agent), sin taint |
 | `vm-ubuntu26-nami-02` | `192.168.1.31` | `nami` | 221 | worker (agent), sin taint |
+| `vm-ubuntu26-zoro-04` | `192.168.1.32` | `zoro` | 214 | worker (agent), sin taint |
 | `vm-ubuntu26-zoro-ai` | `192.168.1.40` | `zoro` | 212 | worker (agent) para IA, taint `dedicated=ai` + label `workload-type=ai` |
 
-> El quorum de etcd es 3 miembros (2 en `zoro`, 1 en `nami`): tolera la caída de cualquier VM control-plane individual. Pero como dos de los tres miembros (`zoro-01` y `zoro-03`) viven en el mismo host físico `zoro`, si ese host se apaga se pierden 2/3 y el API server se queda sin quorum igualmente — no mejora la HA real frente a la caída del host, solo evita perder quorum por el fallo de una VM o del propio k3s en un nodo suelto.
+> El clúster tiene 2 control-plane declarados (`zoro-01` en `zoro`, `nami-01`
+> en `nami`), pero hoy etcd corre deliberadamente en modo single-node sobre
+> `zoro-01` (`nami-01` está apagado a propósito) para evitar la saturación de
+> fsync del postmortem `docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`.
+> Con solo 2 miembros declarados, el quorum de etcd (mayoría de 2) no tolera
+> perder ninguno — no hay HA real de control-plane hoy; ver
+> `docs/runbooks/01-recovery-parcial.md`.
 >
-> El nodo de IA (`vm-ubuntu26-zoro-ai`, 8 vCPU / 32 GB) solo admite pods que declaren explícitamente `tolerations: [{key: dedicated, operator: Equal, value: ai, effect: NoSchedule}]` y `nodeSelector: {workload-type: ai}` — cualquier despliegue sin esa toleration/selector nunca se programa ahí. Se bajó de 48 a 32 GB porque dejaba a `zoro` con solo ~2 GB libres para el propio host Proxmox; con el resto de VMs de `zoro` (control-plane ×2 + worker) el nuevo total deja ~16 GB libres. Todas las VMs usan `cpu_type = "host"` (ambos nodos Proxmox comparten CPU) y ballooning (`memory_floating`) en workers y nodo IA — ver `terraform/proxmox-vm/README.md`.
+> El nodo de IA (`vm-ubuntu26-zoro-ai`, 8 vCPU / 16 GB) solo admite pods que declaren explícitamente `tolerations: [{key: dedicated, operator: Equal, value: ai, effect: NoSchedule}]` y `nodeSelector: {workload-type: ai}` — cualquier despliegue sin esa toleration/selector nunca se programa ahí. Se bajó de 32 a 16 GB (antes de 48 a 32) para liberar presupuesto en `zoro` y poder sumar el segundo worker (`vm-ubuntu26-zoro-04`, también a 16 GB como `vm-ubuntu26-zoro-02`); con el resto de VMs de `zoro` (control-plane 8 GB + 2 workers de 16 GB) el total sube a ~56 GB de 62 GB físicos, dejando solo ~6 GB libres para el host — justo. Todas las VMs usan `cpu_type = "host"` (ambos nodos Proxmox comparten CPU); `memory_floating` (ballooning) solo está activo en los workers — ver `terraform/proxmox-vm/README.md`.
 
 - **kube-vip** publica una VIP de alta disponibilidad para el *control plane* de k3s en `192.168.1.20` (modo ARP, *leader election* entre los nodos control-plane). Es el endpoint estable del API de Kubernetes, registrado en Pi-hole como `kubevip`.
-- **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar). Tolera todos los taints (`tolerations: [{operator: Exists}]`) para correr también en los 3 nodos control-plane y en el nodo de IA.
+- **Cilium** es el CNI del clúster (dataplane eBPF con *kube-proxy replacement*), sustituyendo a flannel y kube-proxy. Lo instala el rol de Ansible `install-k3s` vía Helm, no GitOps (es la red que el resto necesita para arrancar). Tolera todos los taints (`tolerations: [{operator: Exists}]`) para correr también en los 2 nodos control-plane y en el nodo de IA.
 - **Cilium LB IPAM + L2 announcements** asigna IPs `LoadBalancer` del rango reservado `192.168.1.128/25` (192.168.1.128 – 192.168.1.255), sustituyendo a MetalLB. El pool y la política L2 se definen en `services/cilium-lb/`.
 - **Cifrado pod-to-pod con WireGuard** habilitado en Cilium: el tráfico entre pods de distintos nodos viaja cifrado de forma transparente, sin gestión manual de claves.
 - **Envoy Gateway** (Gateway API) es el único punto de entrada HTTP/HTTPS del clúster: tiene la IP `192.168.1.128` y termina TLS para `*.bonchan.org` con un certificado wildcard emitido por cert-manager. El resto de servicios se publican como `HTTPRoute` bajo subdominios (p. ej. `argocd.bonchan.org`, `homepage.bonchan.org`).
@@ -116,7 +122,7 @@ LAN principal (`192.168.0.0/23`) mediante un túnel VPN site-to-site.
 
 1. **Proxmox** (`ansible/playbooks/qdevice.yml`): configura los repos sin suscripción y el QDevice de quorum (árbitro en `luffy`).
 2. **Packer** (`packer/ubuntu26`): construye el template `ubuntu26-template` en Proxmox.
-3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las 6 VMs del clúster con cloud-init (3 control-plane, 2 workers, 1 nodo de IA).
+3. **Terraform** (`terraform/proxmox-vm`): clona el template y crea las 6 VMs del clúster con cloud-init (2 control-plane, 3 workers, 1 nodo de IA).
 4. **Ansible** (`ansible/playbooks/install-k3s.yml`): instala k3s en las VMs, despliega Cilium y descarga el kubeconfig.
 5. **Servicios** (`services/`): se aplican manualmente el pool de Cilium LB (`services/cilium-lb`) y ArgoCD; después se registra la `Application` raíz (*app-of-apps*) y ArgoCD sincroniza el resto de servicios desde este repositorio.
 6. **Servicios de `luffy`** (`ansible/playbooks/home-services.yml`): despliega Pi-hole, Home Assistant y Piper en la Raspberry.
@@ -147,10 +153,10 @@ flowchart TB
         nami["nami · Proxmox 2<br/>192.168.1.4"]
         vm1["vm-zoro-01 (control-plane)<br/>192.168.1.21"]
         vm2["vm-nami-01 (control-plane)<br/>192.168.1.22"]
-        vm6["vm-zoro-03 (control-plane, solo quorum)<br/>192.168.1.23"]
         vm3["vm-zoro-02 (worker)<br/>192.168.1.30"]
         vm4["vm-nami-02 (worker)<br/>192.168.1.31"]
         vm5["vm-zoro-ai (IA: Ollama · Whisper, taint)<br/>192.168.1.40"]:::ai
+        vm7["vm-zoro-04 (worker)<br/>192.168.1.32"]
         kvip["kube-vip<br/>VIP API k3s<br/>192.168.1.20"]
         gw["Envoy Gateway (Cilium LB)<br/>192.168.1.128<br/>*.bonchan.org"]
     end
@@ -159,12 +165,12 @@ flowchart TB
     zoro -.->|hospeda| vm1
     zoro -.->|hospeda| vm3
     zoro -.->|hospeda| vm5
-    zoro -.->|hospeda| vm6
+    zoro -.->|hospeda| vm7
     nami -.->|hospeda| vm2
     nami -.->|hospeda| vm4
-    vm3 & vm4 & vm5 ==>|clúster k3s| gw
-    vm1 & vm2 & vm6 -.->|VIP control-plane| kvip
-    vm1 & vm2 & vm3 & vm4 & vm5 & vm6 -.->|iSCSI| nas
+    vm3 & vm4 & vm5 & vm7 ==>|clúster k3s| gw
+    vm1 & vm2 -.->|VIP control-plane| kvip
+    vm1 & vm2 & vm3 & vm4 & vm5 & vm7 -.->|iSCSI| nas
 
     subgraph iot["Red IOT 192.168.52.0/24 (br52, aislada)"]
         dispositivos["Dispositivos IOT"]
@@ -192,7 +198,7 @@ flowchart TB
 flowchart TB
     repo["Repositorio Git<br/>github.com/Jasviers/homelab"]
 
-    subgraph k3s["Clúster k3s (3 control-plane + 2 workers + 1 IA)"]
+    subgraph k3s["Clúster k3s (2 control-plane + 3 workers + 1 IA)"]
         subgraph argocd["ArgoCD (GitOps)"]
             root["Application: root<br/>(app-of-apps)"]
             root --> appKubevip[kube-vip]

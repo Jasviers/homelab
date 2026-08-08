@@ -87,14 +87,14 @@ Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Applicati
 
 ## Taints de nodos
 
-El clúster tiene 4 nodos tainted (los aplica el rol de Ansible `install-k3s` al
+El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
 instalar k3s, no GitOps):
 
-- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`/`zoro-03`): taint
+- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
   `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
   kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
   (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
-- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/48 GB, sin GPU): taint
+- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/16 GB, sin GPU): taint
   `dedicated=ai:NoSchedule` + label `workload-type=ai`. Aloja `ollama/` y
   `whisper/` (ver secciones más abajo). Es el patrón a seguir para cualquier
   servicio de IA futuro: su manifiesto debe incluir
@@ -685,6 +685,22 @@ Transmute tiene **soporte OIDC nativo** (a diferencia de Jellyfin, que necesita 
 Variables OIDC en `deployment.yml`: `OIDC_ISSUER_URL` apunta a `https://authentik.bonchan.org/application/o/transmute/` (CoreDNS resuelve ese host dentro del clúster, así que no hace falta `OIDC_INTERNAL_URL`), `OIDC_AUTO_CREATE_USERS=true` (crea la cuenta al primer login) y `OIDC_AUTO_LAUNCH=false` (se mantiene el login local como fallback; poner a `true` para redirigir directo a Authentik).
 
 El `client_secret` **no se versiona** y va en los dos lados con el **mismo valor**: en `authentik-oidc-secrets` (clave `transmute-client-secret`, que el chart de Authentik lee por entorno) y en el Secret `transmute-oidc-secret` (clave `client-secret`) del namespace `transmute`, del que el deployment toma `OIDC_CLIENT_SECRET`. Ambos se crean en el runbook de bootstrap (sección "Otros clientes OIDC"); **la clave en Authentik debe existir desde el primer arranque** o `authentik-server`/`worker` quedan en `CreateContainerConfigError`.
+
+## foundryvtt/
+
+Kustomization que despliega [FoundryVTT](https://foundryvtt.com) (mesa de rol virtual) en `foundry.bonchan.org`, usando la imagen comunitaria [`felddy/foundryvtt`](https://github.com/felddy/foundryvtt-docker). Como `transmute`, es un servicio con estado y un único pod:
+
+- `pvc.yml`: PVC `foundryvtt-data` de 200Gi en `synology-nfs-storage` (`ReadWriteOnce`), montado en `/data` — ahí vive toda la configuración, mundos, módulos y sistemas instalados.
+- `deployment.yml`: 1 réplica con `strategy: Recreate`. `resources` altos (`requests` 500m CPU/1Gi, `limits` 4 CPU/4Gi) para no ir justo durante una partida con módulos pesados. Fija `spec.hostname: foundryvtt` explícitamente en el pod: **Foundry ata la licencia al hostname del contenedor**, y sin este campo Kubernetes usaría el nombre del pod (que cambia en cada `Recreate`), lo que podría invalidar la licencia en cada reinicio.
+- Autenticación de descarga vía `FOUNDRY_USERNAME`/`FOUNDRY_PASSWORD` (credenciales de foundryvtt.com) y `FOUNDRY_ADMIN_KEY`, las tres desde el Secret **no versionado** `foundryvtt-credentials` (namespace `foundryvtt`, claves `username`/`password`/`admin-key`) — se crea a mano igual que el resto de secrets del clúster (ver runbook de bootstrap).
+- `CONTAINER_PRESERVE_CONFIG=true` para que la configuración generada desde la GUI de Foundry no se pierda en cada reinicio del pod (no se versiona `options.json`).
+- Variables de proxy inverso (`FOUNDRY_HOSTNAME`, `FOUNDRY_PROXY_SSL=true`, `FOUNDRY_PROXY_PORT=443`) para que los enlaces de invitación y el websocket funcionen bien detrás del Gateway/Cloudflare.
+- `httproute.yml`: publica `foundry.bonchan.org` con `timeouts` de 600s (mismo patrón que `transmute`, para subidas de assets grandes). El namespace `foundryvtt` está en la allowlist del listener HTTPS del Gateway (`services/gateway/gateway.yml`).
+- `backendtrafficpolicy.yml`: solo health check activo (`/`), **sin** rate limiting — a diferencia de `bentopdf`/`transmute`, es una app interactiva con muchas peticiones pequeñas concurrentes durante una partida (tiles, tokens, sonidos), y un límite de 50 req/s la cortaría en marcha.
+
+No tiene SSO propio: se apoya solo en el login nativo de Foundry y en el `FOUNDRY_ADMIN_KEY`.
+
+⚠️ El túnel `cloudflared` de este clúster es hoy **remotely-managed** (solo `TUNNEL_TOKEN`, ver sección `cloudflared/` más arriba) — el hostname público `foundry.bonchan.org` se añade a mano como "Public Hostname" en el panel de Cloudflare Zero Trust, apuntando al Gateway (`192.168.1.128`), no en un manifiesto de este repo.
 
 ## stalwart/ y snappymail/
 
