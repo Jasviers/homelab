@@ -90,6 +90,8 @@
 
 [x] Servidor de correo y webmail (stallwart y snappymail)
 
+[ ] Desplegar un foundryVTT
+
 [ ] backups (proxmox backups + velero)
 
 [ ] Mejoras de monitorización

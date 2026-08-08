@@ -107,15 +107,14 @@ Proxmox indicado. Ver `packer/README.md`.
 
 ## Fase 3 — VMs del clúster con Terraform (🤖)
 
-Clona el template y crea las 6 VMs del clúster con roles heterogéneos: 3
-control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, `vm-ubuntu26-nami-01`
-`192.168.1.22`, `vm-ubuntu26-zoro-03` `192.168.1.23`, 2 vCPU/4 GB cada una —
-la tercera solo para dar quorum de etcd, coexiste con `zoro-01` en el mismo
-host físico), 2 workers (`vm-ubuntu26-zoro-02`
-`192.168.1.30`, `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/8 GB) y 1 nodo de
-IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/32 GB). Las VMs usan
-`cpu_type = "host"` (ambos nodos comparten CPU) y ballooning en workers/nodo
-IA — ver `terraform/proxmox-vm/README.md`.
+Clona el template y crea las 6 VMs del clúster con roles heterogéneos: 2
+control-plane (`vm-ubuntu26-zoro-01` `192.168.1.21`, 2 vCPU/8 GB;
+`vm-ubuntu26-nami-01` `192.168.1.22`, 2 vCPU/4 GB), 3 workers
+(`vm-ubuntu26-zoro-02` `192.168.1.30` y `vm-ubuntu26-zoro-04` `192.168.1.32`,
+4 vCPU/16 GB cada una; `vm-ubuntu26-nami-02` `192.168.1.31`, 4 vCPU/8 GB) y 1
+nodo de IA (`vm-ubuntu26-zoro-ai` `192.168.1.40`, 8 vCPU/16 GB). Las VMs usan
+`cpu_type = "host"` (ambos nodos comparten CPU) y ballooning solo en los
+workers — ver `terraform/proxmox-vm/README.md`.
 
 ```bash
 cd terraform/proxmox-vm
@@ -142,8 +141,8 @@ terraform output ipv4_addresses
 ## Fase 4 — Instalación de k3s con Ansible (🤖)
 
 Instala k3s con roles diferenciados según el grupo de `ansible/inventory.ini`:
-los 3 nodos de `k3s_control_plane` se instalan como **server** con etcd
-embebido (el primero con `--cluster-init`, los otros dos se unen con
+los 2 nodos de `k3s_control_plane` se instalan como **server** con etcd
+embebido (el primero con `--cluster-init`, el otro se une con
 `--server`/`--token`) y quedan tainted (`node-role.kubernetes.io/control-plane`)
 para no recibir cargas; los nodos de `k3s_workers` y `k3s_ai` se instalan como
 **agent** (worker), y el de `k3s_ai` añade además el taint `dedicated=ai` y el
@@ -157,12 +156,13 @@ máquina (requiere `helm` y `kubectl` locales) usando el endpoint
 `127.0.0.1:6443` del apiserver, con LB IPAM y anuncios L2 habilitados. Al final
 descarga el kubeconfig a `~/.kube/config`.
 
-> El quorum de etcd es de 3 miembros: tolera perder cualquier VM control-plane
-> suelta. Pero `zoro-01` y `zoro-03` viven en el mismo host físico `zoro`, así
-> que si `zoro` se apaga se pierden 2/3 miembros a la vez y el API server se
-> queda sin quorum igual — no mejora la HA real frente a la caída del host,
-> solo evita perder quorum por el fallo de una VM o del propio k3s en un nodo
-> suelto.
+> El quorum de etcd es de 2 miembros declarados (`zoro-01`, `nami-01`): una
+> mayoría de 2 no tolera perder ninguno. En la práctica, hoy etcd corre
+> deliberadamente en modo single-node sobre `zoro-01` (`nami-01` apagado a
+> propósito) para evitar la saturación de fsync del postmortem
+> `docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`; ver
+> `docs/runbooks/01-recovery-parcial.md` para el procedimiento de
+> recuperación.
 
 ```bash
 cd ansible

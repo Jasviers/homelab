@@ -12,7 +12,7 @@ Definido en `inventory.ini`:
 | `proxmox` | `zoro`, `nami` | Nodos Proxmox |
 | `raspberry_pi` | `luffy` | Raspberry Pi 4B |
 | `k3s_control_plane` | `192.168.1.21`, `192.168.1.22` | VMs control-plane de k3s (server + etcd embebido), sin cargas de trabajo (taint `node-role.kubernetes.io/control-plane`) |
-| `k3s_workers` | `192.168.1.30`, `192.168.1.31` | VMs worker de k3s (agent), sin taint |
+| `k3s_workers` | `192.168.1.30`, `192.168.1.31`, `192.168.1.32` | VMs worker de k3s (agent), sin taint |
 | `k3s_ai` | `192.168.1.40` | VM worker de k3s (agent) para IA, taint `dedicated=ai` + label `workload-type=ai` |
 | `k8s_cluster` | grupo padre de `k3s_control_plane` + `k3s_workers` + `k3s_ai` | Todas las VMs del clúster k3s |
 

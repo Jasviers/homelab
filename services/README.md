@@ -87,14 +87,14 @@ Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Applicati
 
 ## Taints de nodos
 
-El clúster tiene 4 nodos tainted (los aplica el rol de Ansible `install-k3s` al
+El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
 instalar k3s, no GitOps):
 
-- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`/`zoro-03`): taint
+- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
   `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
   kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
   (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
-- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/48 GB, sin GPU): taint
+- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/16 GB, sin GPU): taint
   `dedicated=ai:NoSchedule` + label `workload-type=ai`. Aloja `ollama/` y
   `whisper/` (ver secciones más abajo). Es el patrón a seguir para cualquier
   servicio de IA futuro: su manifiesto debe incluir
