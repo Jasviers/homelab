@@ -55,11 +55,15 @@ terraform apply -target=module.vms["zoro"]
 
 ## Escenario 2 — Pérdida de quorum (mayoría de control-plane caída)
 
-El quorum de etcd es de 3 miembros (`zoro-01`, `zoro-03` y `nami-01`): hace
-falta que se caigan al menos 2 de los 3 para que el API server se quede sin
-quorum. Como `zoro-01` y `zoro-03` comparten el host físico `zoro`, este
-escenario ocurre igualmente si el host `zoro` se apaga (se pierden esos 2
-miembros de golpe), aunque nami siga arriba.
+El clúster tiene 2 control-plane declarados (`zoro-01`, `nami-01`). Con solo
+2 miembros, el quorum de etcd (mayoría de 2) **no tolera perder ninguno** —
+a diferencia del esquema anterior de 3 miembros, que sí toleraba perder uno.
+En la práctica hoy etcd corre deliberadamente en modo single-node sobre
+`zoro-01` (`nami-01` está apagado a propósito, ver postmortem
+`docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`), así que
+cualquier caída de `zoro-01` deja al API server sin quorum de inmediato — no
+hay margen de tolerancia a fallos hasta que se decida reactivar `nami-01` o
+sumar otro control-plane.
 
 ### 2.1 Diagnosticar
 

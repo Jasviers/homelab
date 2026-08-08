@@ -1,0 +1,25 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: foundryvtt
+  namespace: foundryvtt
+  annotations:
+    gethomepage.dev/enabled: "true"
+    gethomepage.dev/name: FoundryVTT
+    gethomepage.dev/description: Mesa de rol virtual
+    gethomepage.dev/group: Aplicaciones
+    gethomepage.dev/icon: foundryvtt.png
+    gethomepage.dev/href: https://foundry.bonchan.org
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: envoy-gateway-system
+  hostnames:
+    - foundry.bonchan.org
+  rules:
+    - backendRefs:
+        - name: foundryvtt
+          port: 30000
+      timeouts:
+        request: 600s
+        backendRequest: 600s

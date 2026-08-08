@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: foundryvtt-data
+  namespace: foundryvtt
+  labels:
+    app.kubernetes.io/name: foundryvtt
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: synology-nfs-storage
+  resources:
+    requests:
+      storage: 200Gi
