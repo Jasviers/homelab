@@ -84,21 +84,23 @@
 
 [x] Provider LDAP en Authentik para directorio de la NAS Synology
 
----
-
 [x] Gestion de usuarios unificada y sencilla
 
 [x] Servidor de correo y webmail (stallwart y snappymail)
 
 [x] Desplegar un foundryVTT
 
+---
+
 [ ] backups (proxmox backups + velero)
 
-[ ] Mejoras de monitorización
+[ ] Exporters para todo el hardware y software
 
-[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
+[ ] Paneles de monitorización en grafana para cada componente
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
+
+[ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 [ ] Posible problema con los rate limits
 
@@ -108,7 +110,7 @@
 
 [ ] Network policies para aislar servicios
 
-[ ] vault
+[ ] vault/sops/?
 
 [ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 
