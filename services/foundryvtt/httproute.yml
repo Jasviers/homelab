@@ -8,7 +8,7 @@ metadata:
     gethomepage.dev/name: FoundryVTT
     gethomepage.dev/description: Mesa de rol virtual
     gethomepage.dev/group: Aplicaciones
-    gethomepage.dev/icon: foundryvtt.png
+    gethomepage.dev/icon: si-foundryvirtualtabletop
     gethomepage.dev/href: https://foundry.bonchan.org
 spec:
   parentRefs:
