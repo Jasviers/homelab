@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.1](https://github.com/Jasviers/homelab/compare/v1.21.0...v1.21.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* change foundry icon on homepage ([89eb0d5](https://github.com/Jasviers/homelab/commit/89eb0d5c8a7f1a1d9e8691099073d4d60fff3fe2))
+* change foundry icon on homepage ([094153b](https://github.com/Jasviers/homelab/commit/094153b7f276baeddbd9ed3736c04b441413a9ae))
+
 ## [1.21.0](https://github.com/Jasviers/homelab/compare/v1.20.5...v1.21.0) (2026-08-08)
 
 
