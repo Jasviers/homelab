@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.21.0](https://github.com/Jasviers/homelab/compare/v1.20.5...v1.21.0) (2026-08-08)
+
+
+### Features
+
+* change workers distribution ([a709f0d](https://github.com/Jasviers/homelab/commit/a709f0d3191f8d685cccf8dfd32be205e3f5dfaa))
+* change workers distribution ([9057498](https://github.com/Jasviers/homelab/commit/9057498baa89766c7b7b70667a788d978c3fb86a))
+* deploy foundryvtt ([8e962e8](https://github.com/Jasviers/homelab/commit/8e962e8c529cd2106972f58a7cb79807d2eb3cb3))
+
 ## [1.20.5](https://github.com/Jasviers/homelab/compare/v1.20.4...v1.20.5) (2026-08-06)
 
 
