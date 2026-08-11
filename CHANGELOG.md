@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.2](https://github.com/Jasviers/homelab/compare/v1.21.1...v1.21.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* change jellyfin limits ([790ba50](https://github.com/Jasviers/homelab/commit/790ba5061ba8dd8cc0c4ea6e91170d2f5fe794a0))
+* change jellyfin limits ([87c81f1](https://github.com/Jasviers/homelab/commit/87c81f1631984ac1912b24d6001a4ef160d6a709))
+
 ## [1.21.1](https://github.com/Jasviers/homelab/compare/v1.21.0...v1.21.1) (2026-08-09)
 
 
