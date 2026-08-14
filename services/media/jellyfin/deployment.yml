@@ -57,6 +57,8 @@ spec:
             - name: media-library
               mountPath: /data
               readOnly: true
+            - name: transcodes
+              mountPath: /transcodes
       volumes:
         - name: config
           persistentVolumeClaim:
@@ -64,3 +66,6 @@ spec:
         - name: media-library
           persistentVolumeClaim:
             claimName: media-library
+        - name: transcodes
+          emptyDir:
+            sizeLimit: 100Gi
