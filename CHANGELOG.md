@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.3](https://github.com/Jasviers/homelab/compare/v1.21.2...v1.21.3) (2026-08-14)
+
+
+### Bug Fixes
+
+* pvc for transcodes in jellyfin ([77bb78c](https://github.com/Jasviers/homelab/commit/77bb78c587d64e627fb988de7a976178548a8784))
+* pvc for transcodes in jellyfin ([4badbfe](https://github.com/Jasviers/homelab/commit/4badbfe38a21897092abdb425163cc61402415d7))
+
 ## [1.21.2](https://github.com/Jasviers/homelab/compare/v1.21.1...v1.21.2) (2026-08-11)
 
 
