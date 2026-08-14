@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.21.4](https://github.com/Jasviers/homelab/compare/v1.21.3...v1.21.4) (2026-08-14)
+
+
+### Bug Fixes
+
+* change security context and add init container ([44df2b1](https://github.com/Jasviers/homelab/commit/44df2b1fb2ae459a96b87fa0fbe06a7713b4a290))
+* change security context and add init container ([df4adb7](https://github.com/Jasviers/homelab/commit/df4adb74b41877511438fbbd60809de39495ce67))
+* change tanscodes pvc to NFS storage ([5831992](https://github.com/Jasviers/homelab/commit/5831992b498e619e58acc1e6e0063224ccb3a089))
+* change tanscodes pvc to NFS storage ([1f3eda9](https://github.com/Jasviers/homelab/commit/1f3eda990129285980519acdb48e885547d60882))
+
 ## [1.21.3](https://github.com/Jasviers/homelab/compare/v1.21.2...v1.21.3) (2026-08-14)
 
 
