@@ -5,6 +5,7 @@ namespace: media
 
 resources:
   - pvc.yml
+  - pvc-transcodes.yml
   - deployment.yml
   - service.yml
   - httproute.yml

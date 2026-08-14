@@ -67,5 +67,5 @@ spec:
           persistentVolumeClaim:
             claimName: media-library
         - name: transcodes
-          emptyDir:
-            sizeLimit: 100Gi
+          persistentVolumeClaim:
+            claimName: jellyfin-transcodes
