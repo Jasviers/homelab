@@ -25,3 +25,15 @@ helmCharts:
         envoyGateway:
           extensionApis:
             enableBackend: true
+      deployment:
+        replicas: 2
+        pod:
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      control-plane: envoy-gateway
+      podDisruptionBudget:
+        minAvailable: 1
