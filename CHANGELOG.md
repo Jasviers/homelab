@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.21.6](https://github.com/Jasviers/homelab/compare/v1.21.5...v1.21.6) (2026-08-15)
+
+
+### Bug Fixes
+
+* change envoy proxy to have one per worker ([cf62053](https://github.com/Jasviers/homelab/commit/cf620534c2f54ff48e926b200d3724dbd2aff9a8))
+* change envoy proxy to have one per worker ([ff4a74b](https://github.com/Jasviers/homelab/commit/ff4a74b996002d1d96148f527c42052524ded015))
+
 ## [1.21.5](https://github.com/Jasviers/homelab/compare/v1.21.4...v1.21.5) (2026-08-15)
 
 
