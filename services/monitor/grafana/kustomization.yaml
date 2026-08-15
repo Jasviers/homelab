@@ -71,6 +71,11 @@ helmCharts:
             allowUiUpdates: true
         datasources:
           enabled: false
+        alerts:
+          enabled: true
+          searchNamespace: ALL
+          label: grafana_alert
+          resource: both
 
       resources:
         requests:

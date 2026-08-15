@@ -16,3 +16,4 @@ downloaded_iso_path/
 charts/
 
 services/synology-csi/client-info.yml
+grafana/alerting/contact-points.yaml

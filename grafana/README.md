@@ -1,6 +1,6 @@
-# Grafana dashboards
+# Grafana: dashboards y alerting
 
-Dashboards de Grafana versionados. Cada JSON se empaqueta como un ConfigMap que el sidecar de Grafana descubre y monta automáticamente.
+Dashboards y reglas de alerta de Grafana versionados. Cada YAML/JSON se empaqueta como un ConfigMap (o Secret, para el contact point) que el sidecar de Grafana descubre y monta automáticamente.
 
 No tiene Application propia en ArgoCD: se consume desde `services/monitor/kustomization.yaml` con `resources: - ../../grafana`, así que forma parte de la app `monitor`.
 
@@ -58,3 +58,23 @@ Editar en la UI → *Save* → *Export → Save to file* (sin marcar "export for
 **Límite de 1 MiB por ConfigMap.** Por eso un ConfigMap por dashboard y no uno agregado. Un dashboard de comunidad muy grande puede no caber por esta vía.
 
 **Carpetas.** El sidecar coloca el dashboard según la anotación `grafana_folder`. Esto depende de `folderAnnotation: grafana_folder` **junto con** `provider.foldersFromFilesStructure: true` en los values del chart; con solo la primera, las anotaciones se ignoran.
+
+## Alerting
+
+Se usa **Grafana Unified Alerting** (el nativo de Grafana, evalúa PromQL directo contra el datasource `Prometheus` ya provisionado) en vez de Alertmanager de `kube-prometheus-stack`, que se deja apagado a propósito. Mismo patrón que los dashboards: ConfigMap/Secret + sidecar (`sidecar.alerts` en `services/monitor/grafana/kustomization.yaml`), montado directamente en `/etc/grafana/provisioning/alerting/` (a diferencia de los dashboards, aquí no hay subcarpetas por `grafana_folder`: la carpeta de cada grupo de reglas se declara dentro del propio YAML con el campo `folder:`).
+
+Tipos de recurso en `grafana/alerting/`:
+
+- **`policies.yaml`** (ConfigMap): notification policy, hoy una sola ruta a Home Assistant para todo.
+- **`rules-*.yaml`** (ConfigMap, uno por grupo de reglas): reglas de alerta. El bloque `data` sigue el formato que genera la propia UI de Grafana (query A + reduce/threshold B/C) — si se edita a mano y no carga, recrear desde la UI y usar *Export → Export as code*.
+- **`contact-points.yaml`** (**Secret**, no ConfigMap — contiene la URL del webhook): **no se versiona** (`.gitignore`). Copiar `contact-points.yaml.example`, rellenar la URL real, y crear el Secret a mano:
+
+```sh
+kubectl -n monitoring create secret generic grafana-alerting-contact-points \
+  --from-file=contact-points.yaml=./grafana/alerting/contact-points.yaml
+kubectl -n monitoring label secret grafana-alerting-contact-points grafana_alert=1
+```
+
+El sidecar de alerting acepta tanto ConfigMap como Secret (`resource: both`), igual que el chart permite para dashboards — se usa Secret solo para lo que contiene datos no destinados a git, mismo criterio que `grafana-admin`/`grafana-oidc`.
+
+**Trampa**: tras crear/editar el Secret a mano, el sidecar no se entera hasta el próximo evento `WATCH` sobre ese objeto — si no aparece la regla, revisar logs del contenedor `grafana-sc-alerts` del pod de Grafana antes de asumir que el YAML está mal.

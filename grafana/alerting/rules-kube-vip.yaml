@@ -1,0 +1,53 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: homelab-infra
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: kube-vip-restart-loop
+        title: "kube-vip reiniciándose repetidamente"
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: increase(kube_pod_container_status_restarts_total{namespace="kube-system", pod=~"kube-vip.*"}[15m])
+              intervalMs: 60000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [3]
+        labels:
+          severity: critical
+        annotations:
+          summary: "kube-vip ha reiniciado más de 3 veces en los últimos 15 minutos"
+          description: "Suele indicar pérdida de lease por latencia alta de etcd (ver postmortem 2026-07-27-etcd-fsync-kubevip-crashloop.md). Revisar latencia de disco en el host Proxmox que aloja el control-plane activo."

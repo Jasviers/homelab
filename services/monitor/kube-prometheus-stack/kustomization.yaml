@@ -17,6 +17,9 @@ helmCharts:
       alertmanager:
         enabled: false
 
+      defaultRules:
+        create: false
+
       grafana:
         enabled: false
 
