@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.21.5](https://github.com/Jasviers/homelab/compare/v1.21.4...v1.21.5) (2026-08-15)
+
+
+### Bug Fixes
+
+* add HA to gateway api ([af75daa](https://github.com/Jasviers/homelab/commit/af75daae61e22ba2afeb2e764b0abd44a20b7925))
+* add HA to gateway api ([f1fbb42](https://github.com/Jasviers/homelab/commit/f1fbb42f7a8774cf1efa9eca53c0793f9403f7ff))
+* change jellyfin limits ([5a9b3fe](https://github.com/Jasviers/homelab/commit/5a9b3fe1e3101e7727c2b3871165fb28e3dacd22))
+* change security context and add init container ([7091af0](https://github.com/Jasviers/homelab/commit/7091af05cd36892c1780f70eb0a12983b3b97c4e))
+* change tanscodes pvc to NFS storage ([c74b39a](https://github.com/Jasviers/homelab/commit/c74b39af4d326e3bb353b65f622d9ef2ca10aa18))
+* pvc for transcodes in jellyfin ([ecf1619](https://github.com/Jasviers/homelab/commit/ecf1619fc3f7344999d95a612b8ad9716a3b1e83))
+
 ## [1.21.1](https://github.com/Jasviers/homelab/compare/v1.21.0...v1.21.1) (2026-08-09)
 
 
