@@ -20,7 +20,7 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyDeployment:
-        replicas: 2
+        replicas: 3
         strategy:
           type: RollingUpdate
           rollingUpdate:
