@@ -159,11 +159,10 @@ recientes) antes de asumir que "todo encendido" es lo correcto.
 ## Verificación
 
 ```bash
-ssh root@<nodo> 'pvecm status'        # Quorate: Yes, ambos nodos listados
-kubectl get nodes                     # todos Ready
-kubectl -n kube-system get pods       # todos Running
-scripts/etcd-disk-health.sh           # PSI io normal en el disco nuevo
-kubectl get pvc -A | grep -v Bound    # no debe haber Pending
+ssh root@<nodo> 'pvecm status'                    # Quorate: Yes, ambos nodos listados
+kubectl get nodes                                 # todos Ready
+kubectl -n kube-system get pods                   # todos Running
+kubectl get pvc -A | grep -v Bound                # no debe haber Pending
 ```
 
 ## Rollback / si algo falla

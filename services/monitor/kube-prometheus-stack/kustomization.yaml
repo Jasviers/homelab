@@ -29,6 +29,10 @@ helmCharts:
       nodeExporter:
         enabled: true
 
+      kubeEtcd:
+        endpoints:
+          - 192.168.1.21
+
       prometheus:
         prometheusSpec:
           retention: 30d
