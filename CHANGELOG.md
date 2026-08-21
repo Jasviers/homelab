@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.22.0](https://github.com/Jasviers/homelab/compare/v1.21.6...v1.22.0) (2026-08-21)
+
+
+### Features
+
+* add alerting notifications with grafana and home assistant ([1c0a96d](https://github.com/Jasviers/homelab/commit/1c0a96dc9790fea512192f68b088dee661226867))
+* add monitoring over etcd ([20b121b](https://github.com/Jasviers/homelab/commit/20b121b374d33a4297b5e3d245e8f3d46697153c))
+* add monitoring over etcd (not ansible files) ([46aebe5](https://github.com/Jasviers/homelab/commit/46aebe58f7d9fdb7bde27358605f3425ad66e973))
+
+
+### Bug Fixes
+
+* add new rule to reduce alloy charge ([d412716](https://github.com/Jasviers/homelab/commit/d4127169414e7da7d07cc04b88489004c0386037))
+
 ## [1.21.6](https://github.com/Jasviers/homelab/compare/v1.21.5...v1.21.6) (2026-08-15)
 
 
