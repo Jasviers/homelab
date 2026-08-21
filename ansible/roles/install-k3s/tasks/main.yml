@@ -50,6 +50,25 @@
     - inventory_hostname in groups['k3s_ai']
     - not k3s_agent_unit.stat.exists
 
+- name: Ensure etcd metrics endpoint is enabled for Prometheus (control-plane only)
+  blockinfile:
+    path: /etc/rancher/k3s/config.yaml
+    create: true
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - etcd-expose-metrics"
+    block: |
+      etcd-expose-metrics: true
+  when: inventory_hostname in groups['k3s_control_plane']
+  register: k3s_etcd_metrics_config
+
+- name: Restart k3s to apply etcd metrics config (control-plane only)
+  systemd:
+    name: k3s
+    state: restarted
+  when:
+    - inventory_hostname in groups['k3s_control_plane']
+    - k3s_etcd_metrics_config is changed
+
 - name: Fetch k3s config from init control-plane node only
   fetch:
     src: /etc/rancher/k3s/k3s.yaml

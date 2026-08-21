@@ -24,6 +24,16 @@ configMapGenerator:
       annotations:
         grafana_folder: "Infra"
 
+  - name: grafana-dashboard-etcd
+    files:
+      - dashboards/infra/etcd.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: "Infra"
+
   - name: grafana-dashboard-k8s-views-global
     files:
       - dashboards/kubernetes/k8s-views-global.json
@@ -143,3 +153,27 @@ configMapGenerator:
         grafana_dashboard: "1"
       annotations:
         grafana_folder: "Logs"
+
+  - name: grafana-alerting-policies
+    files:
+      - alerting/policies.yaml
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_alert: "1"
+
+  - name: grafana-alerting-rules-kube-vip
+    files:
+      - alerting/rules-kube-vip.yaml
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_alert: "1"
+
+  - name: grafana-alerting-rules-etcd
+    files:
+      - alerting/rules-etcd.yaml
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_alert: "1"

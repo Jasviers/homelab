@@ -1,0 +1,99 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: homelab-etcd
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: etcd-fsync-latency-high
+        title: "etcd: latencia de fsync de disco alta (p99)"
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: histogram_quantile(0.99, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) by (le))
+              intervalMs: 60000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.5]
+        labels:
+          severity: critical
+        annotations:
+          summary: "p99 de etcd_disk_wal_fsync_duration_seconds por encima de 500ms durante 5 minutos"
+          description: "Es exactamente el síntoma del postmortem del 27-jul-2026 (llegó a ~4.8s): saturación de I/O en el disco del host Proxmox que aloja el control-plane activo. etcd recomienda <10ms; por encima de 500ms el consenso empieza a degradarse (leases de kube-vip, timeouts de apiserver)."
+
+      - uid: etcd-leader-changes-high
+        title: "etcd: cambios de líder frecuentes"
+        condition: C
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: increase(etcd_server_leader_changes_seen_total[15m])
+              intervalMs: 60000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [3]
+        labels:
+          severity: warning
+        annotations:
+          summary: "Más de 3 cambios de líder de etcd en 15 minutos"
+          description: "Con etcd corriendo single-node sobre zoro-01, un cambio de líder implica un reinicio del proceso -- varios en poco tiempo apuntan a crash-loop, no a elecciones normales de un clúster multi-nodo."
