@@ -92,6 +92,8 @@
 
 ---
 
+[ ] Investigar borgbackup y si tiene sentido usarlo en el homelab
+
 [ ] backups (proxmox backups + velero)
 
 [ ] Exporters para todo el hardware y software
@@ -102,9 +104,9 @@
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
-[ ] Posible problema con los rate limits
-
 ---
+
+[ ] Investigar cambiar vms por contenedores (Mejor rendimiento)
 
 [ ] Netbox (IPAM/DCIM)
 
