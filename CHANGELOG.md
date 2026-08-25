@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.23.0](https://github.com/Jasviers/homelab/compare/v1.22.0...v1.23.0) (2026-08-25)
+
+
+### Features
+
+* add exporters to monitor all infraestructure ([e6acaec](https://github.com/Jasviers/homelab/commit/e6acaecc1582a098568471ea53b3b3d8a7d44eba))
+
+
+### Bug Fixes
+
+* change jellyfin storageclass ([2cb935f](https://github.com/Jasviers/homelab/commit/2cb935f0c67fb65cd48a7f6b14c445c19d3fc0fd))
+
 ## [1.22.0](https://github.com/Jasviers/homelab/compare/v1.21.6...v1.22.0) (2026-08-21)
 
 
