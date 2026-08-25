@@ -17,3 +17,4 @@ charts/
 
 services/synology-csi/client-info.yml
 grafana/alerting/contact-points.yaml
+services/monitor/pve-exporter/pve.yaml

@@ -1,0 +1,65 @@
+---
+- name: Install node_exporter (paquete Debian)
+  apt:
+    name: prometheus-node-exporter
+    state: present
+
+- name: Ensure node_exporter is enabled and running
+  systemd:
+    name: prometheus-node-exporter
+    enabled: true
+    state: started
+
+- name: Install smartmontools (dependencia de smartctl_exporter)
+  apt:
+    name: smartmontools
+    state: present
+
+- name: Check if smartctl_exporter binary is already installed
+  stat:
+    path: /usr/local/bin/smartctl_exporter
+  register: smartctl_exporter_bin
+
+- name: Create temp dir for smartctl_exporter download
+  tempfile:
+    state: directory
+    prefix: smartctl_exporter
+  register: smartctl_exporter_tmp
+  when: not smartctl_exporter_bin.stat.exists
+
+- name: Download and extract smartctl_exporter
+  unarchive:
+    src: "https://github.com/prometheus-community/smartctl_exporter/releases/download/v{{ smartctl_exporter_version }}/smartctl_exporter-{{ smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch }}.tar.gz"
+    dest: "{{ smartctl_exporter_tmp.path }}"
+    remote_src: true
+  when: not smartctl_exporter_bin.stat.exists
+
+- name: Install smartctl_exporter binary to /usr/local/bin
+  copy:
+    src: "{{ smartctl_exporter_tmp.path }}/smartctl_exporter-{{ smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch }}/smartctl_exporter"
+    dest: /usr/local/bin/smartctl_exporter
+    mode: "0755"
+    remote_src: true
+  when: not smartctl_exporter_bin.stat.exists
+
+- name: Clean up smartctl_exporter temp dir
+  file:
+    path: "{{ smartctl_exporter_tmp.path }}"
+    state: absent
+  when: not smartctl_exporter_bin.stat.exists
+
+- name: Deploy smartctl_exporter systemd unit
+  template:
+    src: smartctl-exporter.service.j2
+    dest: /etc/systemd/system/smartctl-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: smartctl_exporter_unit
+
+- name: Enable and (re)start smartctl_exporter
+  systemd:
+    name: smartctl-exporter
+    enabled: true
+    state: "{{ 'restarted' if (smartctl_exporter_unit.changed or not smartctl_exporter_bin.stat.exists) else 'started' }}"
+    daemon_reload: "{{ smartctl_exporter_unit.changed }}"

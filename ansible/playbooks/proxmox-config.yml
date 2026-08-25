@@ -6,3 +6,4 @@
   roles:
     - proxmox-repos
     - proxmox-tuning
+    - host-exporters
