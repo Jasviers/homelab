@@ -37,3 +37,29 @@ services:
     ports:
       - "10200:10200"
     restart: unless-stopped
+
+  node-exporter:
+    container_name: node-exporter
+    image: "prom/node-exporter:v1.12.1"
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - "/proc:/host/proc:ro"
+      - "/sys:/host/sys:ro"
+      - "/:/host:ro,rslave"
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+
+  pihole-exporter:
+    container_name: pihole-exporter
+    image: "ekofr/pihole-exporter:v1.2.0"
+    environment:
+      PIHOLE_HOSTNAME: "127.0.0.1"
+      PIHOLE_PASSWORD: "{{ pihole_web_password }}"
+      PORT: "9617"
+    restart: unless-stopped
+    network_mode: host

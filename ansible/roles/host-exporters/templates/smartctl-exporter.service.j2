@@ -1,0 +1,13 @@
+[Unit]
+Description=Prometheus SMART exporter
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/smartctl_exporter
+User=root
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

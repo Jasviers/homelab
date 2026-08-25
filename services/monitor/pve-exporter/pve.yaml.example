@@ -1,0 +1,5 @@
+default:
+  user: prometheus@pve
+  token_name: prometheus-exporter
+  token_value: REEMPLAZAR_CON_EL_TOKEN_REAL
+  verify_ssl: true

@@ -12,4 +12,7 @@ resources:
   - grafana
   - alloy
   - cilium
+  - snmp-exporter
+  - pve-exporter
+  - external-hosts
   - ../../grafana

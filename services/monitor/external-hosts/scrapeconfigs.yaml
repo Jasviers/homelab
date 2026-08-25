@@ -1,0 +1,74 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: proxmox-hosts-node-exporter
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets: ["192.168.1.3:9100"]
+      labels:
+        host: zoro
+    - targets: ["192.168.1.4:9100"]
+      labels:
+        host: nami
+  metricsPath: /metrics
+  scheme: HTTP
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: proxmox-hosts-smartctl-exporter
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets: ["192.168.1.3:9633"]
+      labels:
+        host: zoro
+    - targets: ["192.168.1.4:9633"]
+      labels:
+        host: nami
+  metricsPath: /metrics
+  scheme: HTTP
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: luffy-node-exporter
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets: ["192.168.1.2:9100"]
+      labels:
+        host: luffy
+  metricsPath: /metrics
+  scheme: HTTP
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: luffy-pihole-exporter
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets: ["192.168.1.2:9617"]
+      labels:
+        host: luffy
+  metricsPath: /metrics
+  scheme: HTTP
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: luffy-home-assistant
+  namespace: monitoring
+spec:
+  staticConfigs:
+    - targets: ["192.168.1.2:8123"]
+      labels:
+        host: luffy
+  metricsPath: /api/prometheus
+  scheme: HTTP
+  authorization:
+    credentials:
+      name: home-assistant-prometheus-token
+      key: token

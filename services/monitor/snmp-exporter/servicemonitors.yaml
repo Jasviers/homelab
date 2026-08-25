@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: snmp-exporter-nas
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: snmp-exporter
+      app.kubernetes.io/name: prometheus-snmp-exporter
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: http
+      path: /snmp
+      interval: 60s
+      scrapeTimeout: 30s
+      params:
+        module: [synology]
+        target: [192.168.1.1]
+      relabelings:
+        - sourceLabels: [__param_target]
+          targetLabel: instance
+          replacement: nas
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: snmp-exporter-router
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: snmp-exporter
+      app.kubernetes.io/name: prometheus-snmp-exporter
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  endpoints:
+    - port: http
+      path: /snmp
+      interval: 60s
+      scrapeTimeout: 30s
+      params:
+        module: [if_mib]
+        target: [192.168.0.1]
+      relabelings:
+        - sourceLabels: [__param_target]
+          targetLabel: instance
+          replacement: router-asus

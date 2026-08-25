@@ -94,6 +94,8 @@
 
 [ ] Investigar borgbackup y si tiene sentido usarlo en el homelab
 
+[ ] Monitorizar site b (foosha)
+
 [ ] backups (proxmox backups + velero)
 
 [ ] Exporters para todo el hardware y software
@@ -105,6 +107,8 @@
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 ---
+
+[ ] Revisar seguridad SNMP
 
 [ ] Investigar cambiar vms por contenedores (Mejor rendimiento)
 
