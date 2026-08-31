@@ -92,21 +92,25 @@
 
 ---
 
+[x] Exporters para todo el hardware y software
+
+[x] Monitorizar site b (foosha)
+
 [ ] Investigar borgbackup y si tiene sentido usarlo en el homelab
 
-[ ] Monitorizar site b (foosha)
-
 [ ] backups (proxmox backups + velero)
-
-[ ] Exporters para todo el hardware y software
 
 [ ] Paneles de monitorización en grafana para cada componente
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
 
+[ ] Desplegar un code-server
+
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 
 ---
+
+[ ] vault/sops/?
 
 [ ] Revisar seguridad SNMP
 
@@ -115,8 +119,6 @@
 [ ] Netbox (IPAM/DCIM)
 
 [ ] Network policies para aislar servicios
-
-[ ] vault/sops/?
 
 [ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 

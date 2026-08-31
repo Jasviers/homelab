@@ -1,0 +1,38 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: blackbox-http-services
+  namespace: monitoring
+spec:
+  module: http_2xx
+  interval: 60s
+  prober:
+    url: blackbox-exporter-prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      labels:
+        job: blackbox-http
+      targets:
+        - https://argocd.bonchan.org
+        - https://authentik.bonchan.org
+        - https://bazarr.bonchan.org
+        - https://foosha-router.bonchan.org
+        - https://foundry.bonchan.org
+        - https://garage.bonchan.org
+        - https://grafana.bonchan.org
+        - https://homepage.bonchan.org
+        - https://hubble.bonchan.org
+        - https://jellyfin.bonchan.org
+        - https://jellyseerr.bonchan.org
+        - https://ollama.bonchan.org
+        - https://pdf.bonchan.org
+        - https://prowlarr.bonchan.org
+        - https://proxmox.bonchan.org
+        - https://qbittorrent.bonchan.org
+        - https://radarr.bonchan.org
+        - https://router.bonchan.org
+        - https://servicios.bonchan.org
+        - https://sonarr.bonchan.org
+        - https://stalwart.bonchan.org
+        - https://transmute.bonchan.org
+        - https://webmail.bonchan.org
