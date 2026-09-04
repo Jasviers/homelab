@@ -9,25 +9,45 @@ on:
   workflow_dispatch:
   workflow_call:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
 jobs:
-  CI:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  terraform:
+    uses: Jasviers/actions/.github/workflows/ci.yml@v2
+    with:
+      language: terraform
+      working-directory: terraform
+      run-docker-build: false
+      skip-markdown-checks: true
+      skip-yamllint: true
+      skip-shellcheck: true
+      skip-hadolint: true
+    secrets: inherit
 
-      - name: Check Quality
-        uses: Jasviers/actions/source-analysis/quality-checks@v1
-        with:
-          language: python
-          skip-hadolint: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+  ansible:
+    uses: Jasviers/actions/.github/workflows/ci.yml@v2
+    with:
+      language: ansible
+      working-directory: ansible
+      run-docker-build: false
+      skip-markdown-checks: true
+      skip-yamllint: true
+      skip-shellcheck: true
+      skip-hadolint: true
+    secrets: inherit
 
-      - name: Check Compliance
-        uses: Jasviers/actions/source-analysis/compliance-checks@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+  kubernetes:
+    uses: Jasviers/actions/.github/workflows/ci.yml@v2
+    with:
+      language: kubernetes
+      working-directory: services
+      run-docker-build: false
+      skip-hadolint: true
+    secrets: inherit
