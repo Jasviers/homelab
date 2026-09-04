@@ -10,6 +10,7 @@ labels:
 resources:
   - namespace.yml
   - postgres-cluster.yml
+  - postgres-cluster-podmonitor.yml
   - redis.yml
   - httproute.yml
   - certificate.yml
@@ -162,12 +163,6 @@ helmCharts:
             memory: 350Mi
           limits:
             memory: 700Mi
-        # El clúster corre con etcd de un solo nodo (zoro-01, decisión deliberada
-        # para evitar la saturación de fsync del postmortem 2026-07-27; ver
-        # memoria del proyecto). Cualquier hipo del apiserver de unos 30-60s
-        # tumbaba el pod entero por el liveness por defecto (failureThreshold 3
-        # x period 10s = 30s), obligando a un reboot completo de varios minutos
-        # (migraciones + carga de GeoIP) en vez de dejar que se recupere solo.
         livenessProbe:
           failureThreshold: 18
           periodSeconds: 10

@@ -12,3 +12,4 @@ resources:
   - service-lb.yml
   - httproute.yml
   - backendtrafficpolicy.yml
+  - servicemonitor.yml
