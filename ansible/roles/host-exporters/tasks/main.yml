@@ -29,14 +29,19 @@
 
 - name: Download and extract smartctl_exporter
   unarchive:
-    src: "https://github.com/prometheus-community/smartctl_exporter/releases/download/v{{ smartctl_exporter_version }}/smartctl_exporter-{{ smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch }}.tar.gz"
+    src: "https://github.com/prometheus-community/smartctl_exporter/releases/\
+      download/v{{ smartctl_exporter_version }}/smartctl_exporter-{{ \
+      smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch }}.tar.gz"
     dest: "{{ smartctl_exporter_tmp.path }}"
     remote_src: true
   when: not smartctl_exporter_bin.stat.exists
 
 - name: Install smartctl_exporter binary to /usr/local/bin
   copy:
-    src: "{{ smartctl_exporter_tmp.path }}/smartctl_exporter-{{ smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch }}/smartctl_exporter"
+    src: >-
+      {{ smartctl_exporter_tmp.path }}/smartctl_exporter-{{
+      smartctl_exporter_version }}.linux-{{ smartctl_exporter_arch
+      }}/smartctl_exporter
     dest: /usr/local/bin/smartctl_exporter
     mode: "0755"
     remote_src: true
@@ -61,5 +66,7 @@
   systemd:
     name: smartctl-exporter
     enabled: true
-    state: "{{ 'restarted' if (smartctl_exporter_unit.changed or not smartctl_exporter_bin.stat.exists) else 'started' }}"
+    state: >-
+      {{ 'restarted' if (smartctl_exporter_unit.changed or not
+      smartctl_exporter_bin.stat.exists) else 'started' }}
     daemon_reload: "{{ smartctl_exporter_unit.changed }}"

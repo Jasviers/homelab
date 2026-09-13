@@ -9,9 +9,27 @@
     path: /etc/systemd/system/k3s-agent.service
   register: k3s_agent_unit
 
+- name: Determine control-plane API address
+  vars:
+    cp_host: "{{ groups['k3s_control_plane'][0] }}"
+  set_fact:
+    k3s_cp_address: "{{ hostvars[cp_host].ansible_default_ipv4.address }}"
+
 - name: Install k3s on init control-plane node
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --etcd-arg heartbeat-interval=500 --etcd-arg election-timeout=5000
+    curl -sfL https://get.k3s.io | sh -s - server \
+      --write-kubeconfig-mode "0644" \
+      --cluster-init \
+      --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule \
+      --flannel-backend=none \
+      --disable-network-policy \
+      --disable-kube-proxy \
+      --disable servicelb \
+      --disable traefik \
+      --disable local-storage \
+      --tls-san 192.168.1.20 \
+      --etcd-arg heartbeat-interval=500 \
+      --etcd-arg election-timeout=5000
   when:
     - inventory_hostname == groups['k3s_control_plane'][0]
     - not k3s_server_unit.stat.exists
@@ -30,7 +48,21 @@
 
 - name: Install k3s on the rest of the control-plane nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode "0644" --cluster-init --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule --flannel-backend=none --disable-network-policy --disable-kube-proxy --disable servicelb --disable traefik --disable local-storage --tls-san 192.168.1.20 --etcd-arg heartbeat-interval=500 --etcd-arg election-timeout=5000 --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}"
+    curl -sfL https://get.k3s.io | sh -s - server \
+      --write-kubeconfig-mode "0644" \
+      --cluster-init \
+      --node-taint node-role.kubernetes.io/control-plane=true:NoSchedule \
+      --flannel-backend=none \
+      --disable-network-policy \
+      --disable-kube-proxy \
+      --disable servicelb \
+      --disable traefik \
+      --disable local-storage \
+      --tls-san 192.168.1.20 \
+      --etcd-arg heartbeat-interval=500 \
+      --etcd-arg election-timeout=5000 \
+      --server https://{{ k3s_cp_address }}:6443 \
+      --token "{{ k3s_token.stdout }}"
   when:
     - inventory_hostname in groups['k3s_control_plane']
     - inventory_hostname != groups['k3s_control_plane'][0]
@@ -38,19 +70,26 @@
 
 - name: Install k3s on worker nodes
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}" --node-label bonchan.org/gateway-node=true
+    curl -sfL https://get.k3s.io | sh -s - agent \
+      --server https://{{ k3s_cp_address }}:6443 \
+      --token "{{ k3s_token.stdout }}" \
+      --node-label bonchan.org/gateway-node=true
   when:
     - inventory_hostname in groups['k3s_workers']
     - not k3s_agent_unit.stat.exists
 
 - name: Install k3s on the AI node (tainted, workloads by allowlist only)
   shell: |
-    curl -sfL https://get.k3s.io | sh -s - agent --server https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443 --token "{{ k3s_token.stdout }}" --node-taint dedicated=ai:NoSchedule --node-label workload-type=ai
+    curl -sfL https://get.k3s.io | sh -s - agent \
+      --server https://{{ k3s_cp_address }}:6443 \
+      --token "{{ k3s_token.stdout }}" \
+      --node-taint dedicated=ai:NoSchedule \
+      --node-label workload-type=ai
   when:
     - inventory_hostname in groups['k3s_ai']
     - not k3s_agent_unit.stat.exists
 
-- name: Ensure etcd metrics endpoint is enabled for Prometheus (control-plane only)
+- name: Enable etcd metrics endpoint for Prometheus (control-plane only)
   blockinfile:
     path: /etc/rancher/k3s/config.yaml
     create: true
@@ -73,14 +112,14 @@
   fetch:
     src: /etc/rancher/k3s/k3s.yaml
     dest: ~/.kube/config
-    flat: yes
+    flat: true
   when: inventory_hostname == groups['k3s_control_plane'][0]
 
 - name: Update kubeconfig server URL
   lineinfile:
     path: ~/.kube/config
     regexp: '^\s*server:\s*https://127\.0\.0\.1:6443'
-    line: "    server: https://{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}:6443"
+    line: "    server: https://{{ k3s_cp_address }}:6443"
   delegate_to: localhost
   become: false
   run_once: true
@@ -109,7 +148,7 @@
   become: false
   run_once: true
   vars:
-    cilium_k8s_service_host: "{{ hostvars[groups['k3s_control_plane'][0]]['ansible_facts']['default_ipv4']['address'] }}"
+    cilium_k8s_service_host: "{{ k3s_cp_address }}"
 
 - name: Install/upgrade Cilium via Helm
   shell: >

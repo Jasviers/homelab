@@ -1,15 +1,15 @@
 ---
 - name: Update apt package index
   apt:
-    update_cache: yes
+    update_cache: true
     cache_valid_time: 3600
 
 - name: Upgrade all packages to the latest version
   apt:
     upgrade: dist
-    autoclean: yes
+    autoclean: true
 
 - name: Remove unused packages
   apt:
-    autoremove: yes
-    purge: yes
+    autoremove: true
+    purge: true

@@ -92,13 +92,15 @@
 
 ---
 
+[x] Exporters para todo el hardware y software
+
+[x] Monitorizar site b (foosha)
+
+[x] Desplegar un code-server
+
 [ ] Investigar borgbackup y si tiene sentido usarlo en el homelab
 
-[ ] Monitorizar site b (foosha)
-
 [ ] backups (proxmox backups + velero)
-
-[ ] Exporters para todo el hardware y software
 
 [ ] Paneles de monitorización en grafana para cada componente
 
@@ -108,6 +110,8 @@
 
 ---
 
+[ ] vault/sops/?
+
 [ ] Revisar seguridad SNMP
 
 [ ] Investigar cambiar vms por contenedores (Mejor rendimiento)
@@ -115,8 +119,6 @@
 [ ] Netbox (IPAM/DCIM)
 
 [ ] Network policies para aislar servicios
-
-[ ] vault/sops/?
 
 [ ] Crear un helmchart generico para desplegar servicios en el cluster (con valores por defecto, etc.)
 

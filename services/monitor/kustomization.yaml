@@ -15,4 +15,5 @@ resources:
   - snmp-exporter
   - pve-exporter
   - external-hosts
+  - blackbox-exporter
   - ../../grafana
