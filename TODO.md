@@ -96,6 +96,8 @@
 
 [x] Monitorizar site b (foosha)
 
+[x] Desplegar un code-server
+
 [ ] Investigar borgbackup y si tiene sentido usarlo en el homelab
 
 [ ] backups (proxmox backups + velero)
@@ -103,8 +105,6 @@
 [ ] Paneles de monitorización en grafana para cada componente
 
 [ ] Monitorización de la red (Paneles en grafana, sistemas de monitorización de red, etc.)
-
-[ ] Desplegar un code-server
 
 [ ] Mejoras en DNS (control automatico de la configuración, posible sustitución de pihole por coredns o bind9, nebulasync?)
 

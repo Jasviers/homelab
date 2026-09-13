@@ -702,6 +702,18 @@ No tiene SSO propio: se apoya solo en el login nativo de Foundry y en el `FOUNDR
 
 ⚠️ El túnel `cloudflared` de este clúster es hoy **remotely-managed** (solo `TUNNEL_TOKEN`, ver sección `cloudflared/` más arriba) — el hostname público `foundry.bonchan.org` se añade a mano como "Public Hostname" en el panel de Cloudflare Zero Trust, apuntando al Gateway (`192.168.1.128`), no en un manifiesto de este repo.
 
+## code-server/
+
+Kustomization que despliega [code-server](https://coder.com) (VS Code en el navegador) en `code.bonchan.org`, usando la imagen [`lscr.io/linuxserver/code-server`](https://github.com/linuxserver/docker-code-server). Servicio con estado y un único pod, mismo patrón que `foundryvtt`/`transmute`:
+
+- `pvc.yml`: PVC `code-server-config` de 20Gi en `synology-nfs-storage` (`ReadWriteOnce`), montado en `/config` — configuración de VS Code, extensiones y workspaces.
+- `deployment.yml`: 1 réplica con `strategy: Recreate`. Puerto `8443` (el default de la imagen linuxserver, HTTP a pesar del número). Sin `securityContext` ni initContainer de permisos: la imagen (s6) hace el `chown` de `/config` al arrancar, igual que las apps `*arr` de `media/`.
+- Autenticación **solo con el login propio de code-server**: `HASHED_PASSWORD` (hash argon2) y `SUDO_PASSWORD_HASH` (hash tipo `$type$salt$hashed`, para `sudo` en la terminal integrada), ambos desde el Secret **no versionado** `code-server-credentials` (namespace `code-server`, claves `hashed-password`/`sudo-password-hash`) — se crea a mano igual que el resto de secrets del clúster (ver runbook de bootstrap). **Deliberadamente sin Authentik**: no hay `SecurityPolicy` ni blueprint OIDC; da acceso a una shell dentro del pod, así que se mantiene solo accesible por LAN/VPN.
+- `httproute.yml`: publica `code.bonchan.org` con `timeouts` de 600s (mismo patrón que `foundryvtt`/`transmute`, para los websockets del editor). El namespace `code-server` está en la allowlist del listener HTTPS del Gateway (`services/gateway/gateway.yml`).
+- `backendtrafficpolicy.yml`: health check activo contra `/healthz` y `connectionIdleTimeout`/`requestTimeout` de 10m (patrón `ollama`, para no cortar las conexiones websocket del editor en reposo). **Sin** rate limiting, igual que `foundryvtt` — es una app interactiva con muchas peticiones pequeñas.
+
+No se añade "Public Hostname" en Cloudflare: `code.bonchan.org` solo es accesible por LAN/VPN (el wildcard de Pi-hole ya resuelve el nombre al Gateway, no hace falta tocar DNS).
+
 ## stalwart/ y snappymail/
 
 Servidor de correo autoalojado (`stalwart/`) y su webmail (`snappymail/`),
