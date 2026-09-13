@@ -49,7 +49,7 @@
 
 - name: Update apt cache
   apt:
-    update_cache: yes
+    update_cache: true
   when: >-
     pve_no_subscription_repo.changed
     or ceph_no_subscription_repo.changed

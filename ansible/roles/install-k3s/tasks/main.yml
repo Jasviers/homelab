@@ -73,7 +73,7 @@
   fetch:
     src: /etc/rancher/k3s/k3s.yaml
     dest: ~/.kube/config
-    flat: yes
+    flat: true
   when: inventory_hostname == groups['k3s_control_plane'][0]
 
 - name: Update kubeconfig server URL

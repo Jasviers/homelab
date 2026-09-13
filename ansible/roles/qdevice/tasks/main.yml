@@ -3,7 +3,7 @@
   apt:
     name: corosync-qnetd
     state: present
-    update_cache: yes
+    update_cache: true
   when: inventory_hostname == qdevice_qnetd_host
 
 - name: Ensure corosync-qnetd is running and enabled
@@ -17,7 +17,7 @@
   apt:
     name: corosync-qdevice
     state: present
-    update_cache: yes
+    update_cache: true
   when: inventory_hostname in groups['proxmox']
 
 - name: Check current quorum status
