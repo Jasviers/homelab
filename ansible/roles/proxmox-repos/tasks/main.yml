@@ -36,14 +36,20 @@
 - name: Enable Proxmox VE no-subscription repository
   copy:
     dest: /etc/apt/sources.list.d/pve-no-subscription.list
-    content: "deb {{ proxmox_no_subscription_url }} {{ ansible_distribution_release }} {{ proxmox_no_subscription_component }}\n"
+    content: >
+      deb {{ proxmox_no_subscription_url }}
+      {{ ansible_distribution_release }}
+      {{ proxmox_no_subscription_component }}
     mode: "0644"
   register: pve_no_subscription_repo
 
 - name: Enable Ceph no-subscription repository
   copy:
     dest: /etc/apt/sources.list.d/ceph-no-subscription.list
-    content: "deb {{ proxmox_ceph_url }}/{{ proxmox_ceph_release }} {{ ansible_distribution_release }} {{ proxmox_ceph_component }}\n"
+    content: >
+      deb {{ proxmox_ceph_url }}/{{ proxmox_ceph_release }}
+      {{ ansible_distribution_release }}
+      {{ proxmox_ceph_component }}
     mode: "0644"
   register: ceph_no_subscription_repo
 
