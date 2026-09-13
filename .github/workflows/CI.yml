@@ -50,4 +50,5 @@ jobs:
       working-directory: services
       run-docker-build: false
       skip-hadolint: true
+      kubeconform-ignore-filename-pattern: 'services/authentik/blueprints/.*\.ya?ml$|services/synology-csi/client-info\.example\.yml$'
     secrets: inherit

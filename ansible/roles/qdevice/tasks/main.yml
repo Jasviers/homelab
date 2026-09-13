@@ -29,9 +29,12 @@
   delegate_to: "{{ groups['proxmox'][0] }}"
 
 - name: Set up QDevice on the Proxmox cluster
-  command: "pvecm qdevice setup {{ hostvars[qdevice_qnetd_host].ansible_host | default(qdevice_qnetd_host) }} -f"
+  command: >-
+    pvecm qdevice setup {{ hostvars[qdevice_qnetd_host].ansible_host
+    | default(qdevice_qnetd_host) }} -f
   register: qdevice_setup
-  changed_when: "'success' in qdevice_setup.stdout | lower or qdevice_setup.rc == 0"
+  changed_when: >-
+    'success' in qdevice_setup.stdout | lower or qdevice_setup.rc == 0
   run_once: true
   delegate_to: "{{ groups['proxmox'][0] }}"
   when: "'Qdevice' not in pvecm_status.stdout"
