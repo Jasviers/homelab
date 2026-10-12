@@ -4,5 +4,5 @@
   become: true
 
   roles:
-    - install-docker
-    - home-services
+    - install_docker
+    - home_services

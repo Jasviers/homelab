@@ -4,4 +4,4 @@
   become: true
 
   roles:
-    - uninstall-k3s
+    - uninstall_k3s
