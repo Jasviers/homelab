@@ -1,3 +1,4 @@
+---
 # Wyoming es un protocolo TCP a medida (JSON + audio), no HTTP: no puede
 # publicarse via HTTPRoute en el Gateway. Se expone con una IP LoadBalancer
 # propia (Cilium LB IPAM) para que Home Assistant en luffy la alcance
