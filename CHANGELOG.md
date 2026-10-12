@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.23.0](https://github.com/Jasviers/homelab/compare/v1.22.0...v1.23.0) (2026-10-12)
+
+
+### Features
+
+* add blackbox to test services ([9690f1d](https://github.com/Jasviers/homelab/commit/9690f1dd5660d0de8f55ac95cb8da112d89843c3))
+* add code server ([e42a87f](https://github.com/Jasviers/homelab/commit/e42a87f8f7189ef92fefbc411fe73670f935721b))
+* add exporters to monitor all infraestructure ([e6acaec](https://github.com/Jasviers/homelab/commit/e6acaecc1582a098568471ea53b3b3d8a7d44eba))
+* service monitor ([35f305a](https://github.com/Jasviers/homelab/commit/35f305a7d7e4b6cf923ac749610bf00c30cc341e))
+
+
+### Bug Fixes
+
+* add kubelinter config ([d969de9](https://github.com/Jasviers/homelab/commit/d969de93ed128d63510b4e0fb6da78d6dadaf33a))
+* add playbook entry point fot ci ([7dc2b1f](https://github.com/Jasviers/homelab/commit/7dc2b1f5db15e4a3490e52dba03fd5f200304405))
+* ansible lint findings ([2286e6e](https://github.com/Jasviers/homelab/commit/2286e6e5714967f636756548a7ce4d2fb26e735b))
+* change jellyfin storageclass ([2cb935f](https://github.com/Jasviers/homelab/commit/2cb935f0c67fb65cd48a7f6b14c445c19d3fc0fd))
+* changes to adapt format and pass ansible lint checks ([5733dea](https://github.com/Jasviers/homelab/commit/5733dea89f84f2f6770c598cb1e84ec1a37be446))
+* **ci:** pin reusable workflow to v2.3.1 ([8309681](https://github.com/Jasviers/homelab/commit/8309681f3b039261cb11a66154d84f6633289f87))
+* missing --- added ([75f34a7](https://github.com/Jasviers/homelab/commit/75f34a79f460ecf6e20a194d70b8cfa5f0b10b40))
+* more ansible and k9s findings ([50312ef](https://github.com/Jasviers/homelab/commit/50312eff8bca980085bb1182823498589ed8433d))
+* more ansible findings ([1930831](https://github.com/Jasviers/homelab/commit/19308311472d8a338251137714da379918a05b76))
+* remove bad yamlint config ([fb23794](https://github.com/Jasviers/homelab/commit/fb23794234180bc97ce85eb6f9f334346507ec79))
+* some yaml lints ([6ddedfe](https://github.com/Jasviers/homelab/commit/6ddedfec6d42c539c1544836112814e49f5c0638))
+* some yaml lints ([4d7983e](https://github.com/Jasviers/homelab/commit/4d7983eab9d2c57135340bcd7b03fc4f769660b5))
+* yml format add --- ([a240134](https://github.com/Jasviers/homelab/commit/a2401340d5ece05965d31135d9da4561c15cfa56))
+
 ## [1.22.0](https://github.com/Jasviers/homelab/compare/v1.21.6...v1.22.0) (2026-08-21)
 
 
