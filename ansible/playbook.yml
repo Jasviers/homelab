@@ -1,0 +1,23 @@
+---
+# Entry point used by CI to syntax-check every playbook in this project.
+# Not meant to be run directly - run the individual playbooks instead.
+- name: Syntax-check home-services.yml
+  import_playbook: playbooks/home-services.yml
+
+- name: Syntax-check install-k3s.yml
+  import_playbook: playbooks/install-k3s.yml
+
+- name: Syntax-check packer-template.yml
+  import_playbook: playbooks/packer-template.yml
+
+- name: Syntax-check proxmox-config.yml
+  import_playbook: playbooks/proxmox-config.yml
+
+- name: Syntax-check qdevice.yml
+  import_playbook: playbooks/qdevice.yml
+
+- name: Syntax-check uninstall-k3s.yml
+  import_playbook: playbooks/uninstall-k3s.yml
+
+- name: Syntax-check update-ubuntu.yml
+  import_playbook: playbooks/update-ubuntu.yml
