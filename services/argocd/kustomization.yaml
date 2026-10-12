@@ -4,13 +4,13 @@ kind: Kustomization
 
 namespace: argocd
 resources:
-- namespace.yaml
-- https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-- svc.yaml
-- backendtrafficpolicy.yaml
-- servicemonitors.yaml
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  - svc.yaml
+  - backendtrafficpolicy.yaml
+  - servicemonitors.yaml
 
 patches:
-- path: argocd-cm-patch.yaml
-- path: argocd-cmd-params-patch.yaml
-- path: argocd-rbac-cm-patch.yaml
+  - path: argocd-cm-patch.yaml
+  - path: argocd-cmd-params-patch.yaml
+  - path: argocd-rbac-cm-patch.yaml

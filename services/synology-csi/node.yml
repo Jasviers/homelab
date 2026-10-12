@@ -73,7 +73,7 @@ spec:
           args:
             - --v=5
             - --csi-address=$(ADDRESS)                         # the csi socket path inside the pod
-            - --kubelet-registration-path=$(REGISTRATION_PATH) # the csi socket path on the host node
+            - --kubelet-registration-path=$(REGISTRATION_PATH)  # the csi socket path on the host node
           env:
             - name: ADDRESS
               value: /csi/csi.sock
