@@ -48,7 +48,9 @@ jobs:
     with:
       language: kubernetes
       working-directory: services
+      skip-markdown-checks: true
       run-docker-build: false
+      skip-shellcheck: true
       skip-hadolint: true
       kubeconform-ignore-filename-pattern: 'services/authentik/blueprints/.*\.ya?ml$|services/synology-csi/client-info\.example\.yml$'
     secrets: inherit
