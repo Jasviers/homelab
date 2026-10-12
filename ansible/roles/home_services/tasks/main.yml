@@ -1,0 +1,50 @@
+---
+- name: Create home services directory
+  ansible.builtin.file:
+    path: "{{ home_services_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Create dnsmasq.d directory for Pi-hole
+  ansible.builtin.file:
+    path: "{{ home_services_dir }}/dnsmasq.d"
+    state: directory
+    mode: "0755"
+
+- name: Template dnsmasq records (servers and Gateway API)
+  ansible.builtin.template:
+    src: 02-homelab.conf.j2
+    dest: "{{ home_services_dir }}/dnsmasq.d/02-homelab.conf"
+    mode: "0644"
+  notify: Reload Pi-hole DNS
+
+- name: Create Home Assistant config directory
+  ansible.builtin.file:
+    path: "{{ home_services_dir }}/homeassistant"
+    state: directory
+    mode: "0755"
+
+- name: Seed Home Assistant configuration.yaml if missing
+  ansible.builtin.template:
+    src: homeassistant-configuration.yaml.j2
+    dest: "{{ home_services_dir }}/homeassistant/configuration.yaml"
+    mode: "0644"
+    force: false
+
+- name: Template docker-compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ home_services_dir }}/docker-compose.yml"
+    mode: "0644"
+  register: home_services_compose_file
+
+- name: Deploy stack with docker compose
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans
+    chdir: "{{ home_services_dir }}"
+  register: home_services_compose_up
+  changed_when: >-
+    ('Started' in home_services_compose_up.stderr)
+    or ('Created' in home_services_compose_up.stderr)
+    or ('Recreated' in home_services_compose_up.stderr)
+    or ('Pulling' in home_services_compose_up.stderr)

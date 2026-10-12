@@ -1,0 +1,11 @@
+---
+install_k3s_cilium_chart_version: "1.19.5"
+install_k3s_cilium_helm_repo_url: "https://helm.cilium.io/"
+
+# Default de referencia (válido solo si todos los nodos son server); el
+# rol lo sobreescribe en tiempo de ejecución con la IP real del nodo
+# control-plane init, porque los agents no exponen el apiserver en localhost.
+install_k3s_cilium_k8s_service_host: "127.0.0.1"
+install_k3s_cilium_k8s_service_port: 6443
+
+install_k3s_cilium_kubeconfig: "~/.kube/config"

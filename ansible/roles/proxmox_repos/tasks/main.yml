@@ -1,0 +1,63 @@
+---
+- name: Find enterprise repository files (.list)
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - "pve-enterprise.list"
+      - "ceph.list"
+  register: proxmox_repos_enterprise_list
+
+- name: Disable enterprise repositories (.list)
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: '^(deb\s+.*enterprise\.proxmox\.com.*)$'
+    replace: '# \1'
+  loop: "{{ proxmox_repos_enterprise_list.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Find enterprise repository files (.sources)
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns:
+      - "pve-enterprise.sources"
+      - "ceph.sources"
+  register: proxmox_repos_enterprise_sources
+
+- name: Disable enterprise repositories (.sources)
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^Enabled:'
+    line: "Enabled: false"
+  loop: "{{ proxmox_repos_enterprise_sources.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Enable Proxmox VE no-subscription repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/pve-no-subscription.list
+    content: >
+      deb {{ proxmox_repos_no_subscription_url }}
+      {{ ansible_distribution_release }}
+      {{ proxmox_repos_no_subscription_component }}
+    mode: "0644"
+  register: proxmox_repos_pve_no_subscription_repo
+
+- name: Enable Ceph no-subscription repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/ceph-no-subscription.list
+    content: >
+      deb {{ proxmox_repos_ceph_url }}/{{ proxmox_repos_ceph_release }}
+      {{ ansible_distribution_release }}
+      {{ proxmox_repos_ceph_component }}
+    mode: "0644"
+  register: proxmox_repos_ceph_no_subscription_repo
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  when: >-
+    proxmox_repos_pve_no_subscription_repo.changed
+    or proxmox_repos_ceph_no_subscription_repo.changed
+    or proxmox_repos_enterprise_list.matched > 0
+    or proxmox_repos_enterprise_sources.matched > 0

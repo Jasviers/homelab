@@ -4,6 +4,6 @@
   become: true
 
   roles:
-    - proxmox-repos
-    - proxmox-tuning
-    - host-exporters
+    - proxmox_repos
+    - proxmox_tuning
+    - host_exporters

@@ -1,5 +1,6 @@
 ---
-- import_playbook: proxmox-config.yml
+- name: Configure Proxmox repos and tuning before QDevice setup
+  import_playbook: proxmox-config.yml
 
 - name: Configure Proxmox QDevice quorum
   hosts: proxmox:raspberry_pi

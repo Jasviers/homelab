@@ -13,6 +13,9 @@ packer_cache/
 output-*/
 downloaded_iso_path/
 
+# Ansible
+.ansible/
+
 charts/
 
 services/synology-csi/client-info.yml

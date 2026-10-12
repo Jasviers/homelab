@@ -1,0 +1,4 @@
+---
+- name: Reload Pi-hole DNS
+  ansible.builtin.command: docker exec pihole pihole reloaddns
+  changed_when: true

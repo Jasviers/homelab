@@ -1,3 +1,4 @@
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: GatewayClass
 metadata:
@@ -113,3 +114,4 @@ spec:
                   - stalwart
                   - snappymail
                   - foundryvtt
+                  - code-server
