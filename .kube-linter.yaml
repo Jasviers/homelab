@@ -1,3 +1,4 @@
+---
 checks:
   doNotAutoAddDefaults: false
   exclude:
