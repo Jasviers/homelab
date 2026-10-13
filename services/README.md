@@ -8,7 +8,7 @@ El clúster k3s se despliega sin `servicelb`, `traefik`, `local-storage` ni el n
 
 1. **Cilium LB IPAM** (kustomize): define el `CiliumLoadBalancerIPPool` y la `CiliumL2AnnouncementPolicy` que dan IPs de tipo `LoadBalancer` en la red local (el dataplane Cilium ya lo instala Ansible). Imprescindible antes de cualquier servicio expuesto.
 2. **ArgoCD** (kustomize): una vez instalado, gestiona el resto de aplicaciones vía GitOps mediante un patrón *app-of-apps*.
-3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (kube-vip, cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage, cloudflared, hubble, coredns, proxmox, router, ollama, whisper, garage, media, bentopdf, transmute, servicios y el propio argocd).
+3. **Application raíz**: registra `argocd-apps/root-app.yaml`, que despliega el resto de `Application` (cert-manager, gateway, synology-csi, cnpg-operator, authentik, monitor, homepage, cloudflared, hubble, coredns, proxmox, router, whisper, garage, media, bentopdf, transmute, servicios y el propio argocd).
 
 ```bash
 # 1. Cilium LB IPAM (pool + política L2)
@@ -58,7 +58,6 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | --- | --- | --- |
 | `root-app.yaml` | `root` | `services/argocd-apps` (se gestiona a sí misma y registra las demás) |
 | `argocd-app.yaml` | `argocd-app` | `services/argocd` (ArgoCD se gestiona a sí mismo) |
-| `kubevip.yml` | `kube-vip` | `services/kubevip` |
 | `cilium-lb.yml` | `cilium-lb` | `services/cilium-lb` |
 | `certmanager-app.yaml` | `cert-manager` | `services/certmanager` |
 | `gateway.yml` | `gateway` | `services/gateway` |
@@ -72,7 +71,6 @@ Patrón *app-of-apps*: una `Application` raíz observa esta carpeta y despliega 
 | `coredns.yml` | `coredns` | `services/coredns` |
 | `proxmox.yml` | `proxmox` | `services/proxmox` |
 | `router.yml` | `router` | `services/router` |
-| `ollama.yml` | `ollama` | `services/ollama` |
 | `whisper.yml` | `whisper` | `services/whisper` |
 | `garage.yml` | `garage` | `services/garage` |
 | `media.yml` | `media` | `services/media` |
@@ -87,40 +85,14 @@ Para añadir un servicio nuevo: crea su carpeta bajo `services/` y un `Applicati
 
 ## Taints de nodos
 
-El clúster tiene 3 nodos tainted (los aplica el rol de Ansible `install-k3s` al
-instalar k3s, no GitOps):
+El único nodo tainted es el control-plane (`vm-ubuntu26-zoro-01`), con
+`node-role.kubernetes.io/control-plane=true:NoSchedule` (lo aplica el rol de
+Ansible `install-k3s` al instalar k3s, no GitOps). Solo lo tolera el DaemonSet
+de Cilium (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`); el
+resto de cargas se reparten entre los 3 workers.
 
-- **Control-plane** (`vm-ubuntu26-zoro-01`/`nami-01`): taint
-  `node-role.kubernetes.io/control-plane=true:NoSchedule`. Solo lo toleran
-  kube-vip (ver `kubevip/` más abajo) y el propio DaemonSet de Cilium
-  (`tolerations: [{operator: Exists}]` en `cilium-values.yaml.j2`).
-- **Nodo de IA** (`vm-ubuntu26-zoro-ai`, 8 vCPU/16 GB, sin GPU): taint
-  `dedicated=ai:NoSchedule` + label `workload-type=ai`. Aloja `ollama/` y
-  `whisper/` (ver secciones más abajo). Es el patrón a seguir para cualquier
-  servicio de IA futuro: su manifiesto debe incluir
-
-  ```yaml
-  tolerations:
-    - key: dedicated
-      operator: Equal
-      value: ai
-      effect: NoSchedule
-  nodeSelector:
-    workload-type: ai
-  ```
-
-  Sin esta toleration + selector, el pod nunca se programa ahí; el resto de
-  servicios (que no la declaran) nunca aterrizan en este nodo aunque haya
-  hueco, por el taint.
-
-## kubevip/
-
-Kustomization que instala [kube-vip](https://kube-vip.io) (chart oficial v0.6.6) para dar al *control plane* de k3s una **VIP de alta disponibilidad** en `192.168.1.20`:
-
-- `kustomization.yml`: chart `kube-vip` con `cp_enable: true` y `svc_enable: false` (solo control-plane; los `LoadBalancer` los gestiona Cilium LB IPAM), modo **ARP** (`vip_arp`), *leader election* entre nodos y `vip_interface: eth0`.
-- Corre como DaemonSet en los nodos control-plane (nodeSelector + tolerations sobre `node-role.kubernetes.io/control-plane`).
-
-La VIP `192.168.1.20` es el endpoint estable del API de Kubernetes y está registrada en Pi-hole como `kubevip` (ver `ansible/roles/home-services/defaults/main.yml`). Aunque ArgoCD la gestiona vía GitOps, conviene tenerla en cuenta desde el bootstrap del clúster.
+El antiguo nodo de IA (taint `dedicated=ai` + label `workload-type=ai`), Ollama
+y kube-vip están retirados — ver `old_services/`.
 
 ## certmanager/
 
@@ -235,7 +207,7 @@ Se despliega con sync-wave `2` (junto con monitorización). El OIDC se configura
 
 Kustomization que añade una configuración personalizada a CoreDNS (el DNS interno del clúster) mediante un `ConfigMap` en `kube-system`, gestionado por ArgoCD con sync-wave `0` (antes de las apps que dependen de resolver `*.bonchan.org` desde dentro del clúster):
 
-- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `ollama.bonchan.org`, `servicios.bonchan.org`, `proxmox.bonchan.org`, `router.bonchan.org`, `foosha-router.bonchan.org`, `stalwart.bonchan.org`, `webmail.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), más `ldap.bonchan.org` (`192.168.1.130`) y `mail.bonchan.org` (`192.168.1.131`) a sus respectivas IPs dedicadas de LoadBalancer, con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
+- `coredns-custom.yml`: bloque `bonchan.server` que resuelve los subdominios internos (`authentik.bonchan.org`, `grafana.bonchan.org`, `argocd.bonchan.org`, `homepage.bonchan.org`, `servicios.bonchan.org`, `proxmox.bonchan.org`, `router.bonchan.org`, `foosha-router.bonchan.org`, `stalwart.bonchan.org`, `webmail.bonchan.org`) directamente a la IP del Gateway (`192.168.1.128`), más `ldap.bonchan.org` (`192.168.1.130`) y `mail.bonchan.org` (`192.168.1.131`) a sus respectivas IPs dedicadas de LoadBalancer, con `fallthrough` para el resto. Así los pods del clúster resuelven los servicios internamente sin depender de Pi-hole ni de registros externos.
 
 > CoreDNS ya viene con k3s; este manifiesto solo añade la personalización. Si se necesita resolver más subdominios internos, basta con añadir entradas al bloque `hosts` de `coredns-custom.yml`.
 
@@ -513,36 +485,6 @@ Kustomization que expone la UI de administración del clúster Proxmox a través
 
 El Secret `proxmox-oidc-secret` **no se versiona**; hay que crearlo a mano tras el primer sync (ver paso 5.4 del runbook de bootstrap). Si falta, Envoy falla en cerrado y la ruta devuelve **HTTP 500** sin llegar al backend. El blueprint de Authentik (`services/authentik/blueprints/proxmox.yaml`) configura el provider OIDC y la aplicación correspondiente.
 
-## ollama/
-
-Kustomization que despliega [Ollama](https://ollama.com) en el nodo de IA (`vm-ubuntu26-zoro-ai`, sin GPU), expuesto en `ollama.bonchan.org`:
-
-- `deployment.yml`: un único Pod (`OLLAMA_KEEP_ALIVE: "-1"`, `OLLAMA_MAX_LOADED_MODELS: "1"`) que mantiene un único modelo residente en RAM: **`qwen3:1.7b-q4_K_M`**, dedicado a *tool calling* desde la integración Ollama de Home Assistant (respuestas cortas y rápidas para controlar dispositivos).
-  - `OLLAMA_NUM_PARALLEL: "1"`: sin GPU, decodificar en paralelo solo reparte los mismos vCPU entre peticiones simultáneas; en serie se sirve más rápido.
-  - `OLLAMA_CONTEXT_LENGTH: "8192"`: suficiente para el historial + definiciones de herramientas de una interacción de voz con HA. Antes estaba en `200000`, lo que reservaba un KV cache dimensionado para 200K tokens (~31Gi de RAM en reposo con el modelo de 4B que se usaba entonces) sin necesidad real.
-  - `OLLAMA_FLASH_ATTENTION: "1"` / `OLLAMA_KV_CACHE_TYPE: "q8_0"`: reducen el footprint de memoria/ancho de banda del KV cache.
-- `pvc.yml`: PVC de 40Gi en `synology-iscsi-storage` montado en `/root/.ollama` (persiste los modelos entre reinicios del pod).
-- `job-pull-models.yml`: `Job` (sync-wave `1`, tras el Deployment) que ejecuta `ollama pull` del modelo contra el Service; idempotente, así que ArgoCD puede reaplicarlo sin volver a descargar si el digest no cambió.
-- `httproute.yml`: publica la API en `ollama.bonchan.org` a través del Gateway (añadido a la allowlist de namespaces en `services/gateway/gateway.yml`).
-
-Recursos: `requests` 3 vCPU/4Gi, `limits` 7 vCPU/10Gi (bajado desde 24Gi/32Gi tras reducir el contexto; deja mucho más margen para Whisper en el mismo nodo).
-
-### Benchmark e historial de la elección de modelo
-
-Se probó originalmente con dos modelos residentes (`qwen3-coder:30b` MoE para código + `qwen3:4b-instruct-2507-q4_K_M` para HA), pero se descartó el modelo de 30B por problemas de rendimiento en este nodo sin GPU (commit `29d2389`, "ollama only use small model and big context").
-
-Con solo el modelo de 4B, medido en vivo contra `ollama.bonchan.org` (`/api/generate` y `/api/chat` con *tool calling*, hardware: Ryzen 5 7430U, 6c/12t, sin GPU):
-
-| Modelo | Tokens/s (generación) | Precisión *tool calling* (4 casos de prueba) |
-| --- | --- | --- |
-| `qwen3:4b-instruct-2507-q4_K_M` | ~10 tok/s | 4/4 correctos |
-| `qwen3:1.7b-q4_K_M` (sin *thinking*) | ~18-26 tok/s | 4/4 correctos |
-| `qwen3:0.6b-q4_K_M` (sin *thinking*) | ~25-50 tok/s | 3/4 (falló una consulta de estado) |
-
-La carga es *memory-bandwidth-bound* (el cuello de botella es leer los pesos del modelo en cada token, no el cómputo), por lo que tokens/s escala aproximadamente de forma inversa al tamaño del modelo. Se eligió **`qwen3:1.7b-q4_K_M`** como mejor compromiso: ~2x más rápido que el 4B con la misma precisión observada en las pruebas, mientras que el 0.6B ya empezaba a fallar *tool calls*. Si en uso real el 1.7B da problemas de precisión, el 4B queda como alternativa documentada (cambiar `job-pull-models.yml` y el nombre del modelo en la integración de HA).
-
-Para usar otro modelo o ajustar cuántos quedan cargados, edita `job-pull-models.yml` (qué se descarga) y `OLLAMA_MAX_LOADED_MODELS` en `deployment.yml` (cuántos quedan residentes a la vez).
-
 ## garage/
 
 Kustomization que despliega [Garage](https://garagehq.deuxfleurs.fr/) como almacenamiento de objetos compatible con S3, en `garage.bonchan.org`. Se eligió sobre MinIO porque MinIO Community Edition quedó sin mantenimiento (repositorio archivado en 2026); Garage es un binario único en Rust, ligero, con años de uso en producción por terceros y sin depender de una empresa que monetice el mismo artefacto.
@@ -649,9 +591,9 @@ Al no ser un componente versionado en git (vive en el PVC de configuración), es
 
 ## whisper/
 
-Kustomization que despliega Whisper (STT, protocolo Wyoming) en el nodo de IA, migrado desde el rol de Ansible `home-services` (antes corría en `luffy`):
+Kustomization que despliega Whisper (STT, protocolo Wyoming) en los workers (sin `nodeSelector`; hasta octubre de 2026 corría en el nodo de IA, ya retirado), migrado desde el rol de Ansible `home-services` (antes corría en `luffy`):
 
-- `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja al compartir CPU con Ollama en el mismo nodo), `--language es`.
+- `deployment.yml`: imagen `rhasspy/wyoming-whisper`, modelo **`small-int8`** (mejor precisión que el `base-int8` anterior, manteniendo latencia baja), `--language es`.
 - `pvc.yml`: PVC de 5Gi en `synology-iscsi-storage` montado en `/data` para no volver a descargar el modelo en cada reinicio.
 - `service.yml`: a diferencia del resto de servicios HTTP, Wyoming es un protocolo TCP a medida y **no** puede publicarse vía `HTTPRoute`. Se expone con una IP `LoadBalancer` propia de Cilium LB IPAM (`192.168.1.129:10300`), igual que el Gateway tiene la suya.
 
@@ -710,7 +652,7 @@ Kustomization que despliega [code-server](https://coder.com) (VS Code en el nave
 - `deployment.yml`: 1 réplica con `strategy: Recreate`. Puerto `8443` (el default de la imagen linuxserver, HTTP a pesar del número). Sin `securityContext` ni initContainer de permisos: la imagen (s6) hace el `chown` de `/config` al arrancar, igual que las apps `*arr` de `media/`.
 - Autenticación **solo con el login propio de code-server**: `HASHED_PASSWORD` (hash argon2) y `SUDO_PASSWORD_HASH` (hash tipo `$type$salt$hashed`, para `sudo` en la terminal integrada), ambos desde el Secret **no versionado** `code-server-credentials` (namespace `code-server`, claves `hashed-password`/`sudo-password-hash`) — se crea a mano igual que el resto de secrets del clúster (ver runbook de bootstrap). **Deliberadamente sin Authentik**: no hay `SecurityPolicy` ni blueprint OIDC; da acceso a una shell dentro del pod, así que se mantiene solo accesible por LAN/VPN.
 - `httproute.yml`: publica `code.bonchan.org` con `timeouts` de 600s (mismo patrón que `foundryvtt`/`transmute`, para los websockets del editor). El namespace `code-server` está en la allowlist del listener HTTPS del Gateway (`services/gateway/gateway.yml`).
-- `backendtrafficpolicy.yml`: health check activo contra `/healthz` y `connectionIdleTimeout`/`requestTimeout` de 10m (patrón `ollama`, para no cortar las conexiones websocket del editor en reposo). **Sin** rate limiting, igual que `foundryvtt` — es una app interactiva con muchas peticiones pequeñas.
+- `backendtrafficpolicy.yml`: health check activo contra `/healthz` y `connectionIdleTimeout`/`requestTimeout` de 10m (para no cortar las conexiones websocket del editor en reposo). **Sin** rate limiting, igual que `foundryvtt` — es una app interactiva con muchas peticiones pequeñas.
 
 No se añade "Public Hostname" en Cloudflare: `code.bonchan.org` solo es accesible por LAN/VPN (el wildcard de Pi-hole ya resuelve el nombre al Gateway, no hace falta tocar DNS).
 

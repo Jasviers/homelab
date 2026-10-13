@@ -1,13 +1,13 @@
 # Proxmox VM (Terraform)
 
-Este root module usa el módulo `../modules/proxmox-vm` para desplegar el clúster k3s del homelab: 6 VMs heterogéneas repartidas entre `zoro` y `nami` (2 control-plane, 3 workers, 1 nodo de IA).
+Este root module usa el módulo `../modules/proxmox-vm` para desplegar el clúster k3s del homelab: 4 VMs repartidas entre `zoro` y `nami` (1 control-plane, 3 workers).
 
 ## Archivos principales
 
-- `main.tf`: referencia el módulo y crea las 6 VMs vía `for_each` sobre `vms`.
+- `main.tf`: referencia el módulo y crea las 4 VMs vía `for_each` sobre `vms`.
 - `providers.tf`: configuración del provider de Proxmox vía API.
 - `variables.tf`: variables del root module; `vms` admite overrides opcionales por VM (`cores`, `memory`, `disk_gb`, `storage`, `memory_floating`, `startup_order`, `startup_up_delay`) que caen a los globales del mismo nombre si se omiten.
-- `terraform.tfvars.example`: ejemplo con las 6 VMs (2 control-plane de 2 vCPU/4-8 GB, 3 workers de 4 vCPU/8-16 GB, 1 nodo de IA de 8 vCPU/16 GB). `cpu_type = "host"` por defecto (ambos nodos comparten CPU).
+- `terraform.tfvars.example`: ejemplo con las 4 VMs (1 control-plane de 2 vCPU/8 GB, 3 workers de 6 vCPU/12-24 GB). `cpu_type = "host"` por defecto (ambos nodos comparten CPU).
 - `zoro.tfvars.example` / `nami.tfvars.example`: ejemplos heredados compatibles.
 
 ## Uso rápido
@@ -39,7 +39,7 @@ Verifica salidas en `outputs.tf` para obtener `vm_ids`, `vm_names` e `ipv4_addre
 - `proxmox_endpoint`: URL de la API de Proxmox.
 - `proxmox_api_token`: token de acceso.
 - `template`: template base para clonado.
-- `vms`: mapa con las 6 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`/`memory_floating`/`startup_order`/`startup_up_delay`).
+- `vms`: mapa con las 4 VMs que se crean por defecto (cada entrada puede sobreescribir `cores`/`memory`/`disk_gb`/`storage`/`memory_floating`/`startup_order`/`startup_up_delay`).
 - `storage`, `disk_gb`, `cores`, `memory`: sizing y storage por defecto, usados por las VMs que no definen su propio override.
 - `cpu_type`: tipo de CPU global (default `host`; máximo rendimiento cuando todos los nodos comparten la misma CPU física).
 - `on_boot`: arranque automático de las VMs con el host (default `true`).
@@ -48,18 +48,16 @@ Verifica salidas en `outputs.tf` para obtener `vm_ids`, `vm_names` e `ipv4_addre
 ### Notas de RAM y rendimiento (zoro/nami)
 
 `zoro` y `nami` comparten CPU (Ryzen 5 7430U) pero no RAM (64 GB / 16 GB), así
-que `cpu_type = "host"` no compromete la migración. El nodo IA se dimensionó
-en 16 GB (antes 32, y antes 48) para liberar presupuesto en `zoro` y poder
-sumar un segundo worker (`zoro_worker2`) sin apretar al host Proxmox: con el
-reparto actual (2 control-plane + 3 workers + 1 IA, todos en `zoro` salvo
-`nami_cp`/`nami_worker`) quedan ~6 GB libres en `zoro` para el propio host —
-justo, vigilar si se satura el swap del host (ver Fase 3 del runbook de
-bootstrap).
-`memory_floating` activa ballooning solo en los workers (para que Proxmox
-pueda reclamar RAM no usada); se deja desactivado en los control-plane y en
-el nodo IA porque etcd y Ollama son sensibles a la latencia que introduce el
-balloon driver. `startup_order` asegura que el control-plane arranque antes
-que los workers y el nodo IA tras un reinicio del host.
+que `cpu_type = "host"` no compromete la migración. Reparto actual: en `zoro`
+el control-plane (8 GB) y dos workers de 24 GB (56 GB asignados, ~7 GB para el
+host); en `nami` un único worker de 12 GB (~3 GB para el host). El nodo de IA
+y el segundo control-plane (`nami_cp`) se retiraron en octubre de 2026 y su
+RAM se repartió entre los workers.
+`memory_floating` (ballooning) no se usa en ninguna VM: con el balloon activo
+`nami_worker` se quedaba sin page cache y releía continuamente del disco
+compartido con etcd. El control-plane tampoco lo usa porque etcd es sensible
+a la latencia del balloon driver. `startup_order` asegura que el control-plane
+arranque antes que los workers tras un reinicio del host.
 
 ## Salidas
 

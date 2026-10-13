@@ -1,2 +1,4 @@
 ---
 vm_tuning_swappiness: 10
+vm_tuning_root_vg: ubuntu-vg
+vm_tuning_root_lv: ubuntu-lv

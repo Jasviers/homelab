@@ -6,3 +6,13 @@
     sysctl_file: /etc/sysctl.d/99-vm-tuning.conf
     sysctl_set: true
     reload: true
+
+# El autoinstall de Ubuntu deja el LV raíz a la mitad del VG (39G de 78G).
+# Con el disco al ~80% el kubelet entra en GC de imágenes (umbral 85%) y
+# las vuelve a descargar, generando I/O innecesario en el NVMe del host.
+- name: "Extend the root LV to use the whole volume group"
+  community.general.lvol:
+    vg: "{{ vm_tuning_root_vg }}"
+    lv: "{{ vm_tuning_root_lv }}"
+    size: +100%FREE
+    resizefs: true

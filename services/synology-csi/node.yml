@@ -59,11 +59,6 @@ spec:
     spec:
       serviceAccountName: csi-node-sa
       hostNetwork: true
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: ai
-          effect: NoSchedule
       containers:
         - name: csi-driver-registrar
           securityContext:
