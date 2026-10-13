@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.0](https://github.com/Jasviers/homelab/compare/v1.23.0...v1.24.0) (2026-10-13)
+
+
+### Features
+
+* remove nami control plane for better performance and related se… ([69f7934](https://github.com/Jasviers/homelab/commit/69f79342ac33b3eb147267ebcdfe6e869e54cd8f))
+* remove nami control plane for better performance and related services. In addition remove ollama service and prepare remove of IA node ([caabd5f](https://github.com/Jasviers/homelab/commit/caabd5f2f46b784127446b6d74c4c733af30611e))
+
 ## [1.23.0](https://github.com/Jasviers/homelab/compare/v1.22.0...v1.23.0) (2026-10-12)
 
 
