@@ -19,13 +19,6 @@ spec:
       labels:
         app.kubernetes.io/name: whisper
     spec:
-      tolerations:
-        - key: dedicated
-          operator: Equal
-          value: ai
-          effect: NoSchedule
-      nodeSelector:
-        workload-type: ai
       containers:
         - name: whisper
           image: rhasspy/wyoming-whisper:latest

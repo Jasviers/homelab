@@ -13,7 +13,7 @@ spec:
     staticConfig:
       labels:
         job: blackbox-http
-      targets:
+      static:
         - https://argocd.bonchan.org
         - https://authentik.bonchan.org
         - https://bazarr.bonchan.org
@@ -25,7 +25,6 @@ spec:
         - https://hubble.bonchan.org
         - https://jellyfin.bonchan.org
         - https://jellyseerr.bonchan.org
-        - https://ollama.bonchan.org
         - https://pdf.bonchan.org
         - https://prowlarr.bonchan.org
         - https://proxmox.bonchan.org

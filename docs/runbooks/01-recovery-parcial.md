@@ -53,50 +53,46 @@ terraform apply -target=module.vms["zoro"]
 
 ---
 
-## Escenario 2 — Pérdida de quorum (mayoría de control-plane caída)
+## Escenario 2 — Caída del control-plane (etcd single-node)
 
-El clúster tiene 2 control-plane declarados (`zoro-01`, `nami-01`). Con solo
-2 miembros, el quorum de etcd (mayoría de 2) **no tolera perder ninguno** —
-a diferencia del esquema anterior de 3 miembros, que sí toleraba perder uno.
-En la práctica hoy etcd corre deliberadamente en modo single-node sobre
-`zoro-01` (`nami-01` está apagado a propósito, ver postmortem
-`docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`), así que
-cualquier caída de `zoro-01` deja al API server sin quorum de inmediato — no
-hay margen de tolerancia a fallos hasta que se decida reactivar `nami-01` o
-sumar otro control-plane.
+El clúster tiene un único control-plane (`zoro-01`) con etcd single-node
+(decisión deliberada, ver postmortem
+`docs/postmortems/2026-07-27-etcd-fsync-kubevip-crashloop.md`). No hay quorum
+que perder, pero tampoco tolerancia a fallos: si cae `zoro-01` el API server
+deja de responder hasta que vuelva. Los pods ya programados en los workers
+siguen corriendo mientras tanto; lo que no funciona es todo lo que necesita
+el API (reprogramar pods, ArgoCD, `kubectl`).
 
 ### 2.1 Diagnosticar
 
 ```bash
-# Desde un worker o vía SSH directo a un nodo:
-ssh root@zoro 'systemctl status k3s'
+ssh ubuntu@192.168.1.21 'sudo systemctl status k3s'
 # Verás "etcd cluster has no healthy member" o similar.
 ```
 
-### 2.2 Recuperar si al menos un nodo vuelve
+### 2.2 Recuperar si la VM vuelve
 
-1. Arranca el nodo que falte (o reinstálalo si está dañado).
+1. Arranca `vm-ubuntu26-zoro-01` (`qm start 210` en `zoro`) si está parada.
 
-2. En el nodo que ya estaba arrancado, reiniciar k3s:
+2. Si k3s no levanta solo, reiniciarlo:
 
    ```bash
-   ssh root@zoro 'systemctl restart k3s'
+   ssh ubuntu@192.168.1.21 'sudo systemctl restart k3s'
    ```
 
-3. Esperar ~30s y comprobar quorum:
+3. Esperar ~30s y comprobar:
 
    ```bash
    kubectl get nodes
-   kubectl -n kube-system get pods -l app.kubernetes.io/name=etcd
    ```
 
-### 2.3 Recuperar si ambos están perdidos (restauración de etcd)
+### 2.3 Recuperar si la VM está perdida (restauración de etcd)
 
-Si no queda ningún nodo con etcd funcional, hay que restaurar desde un backup:
+Si `zoro-01` no tiene un etcd funcional, hay que restaurar desde un backup:
 
 ```bash
-# En el nodo que vaya a ser el primero en arrancar:
-ssh root@zoro
+ssh ubuntu@192.168.1.21
+sudo -i
 
 # Detener k3s
 systemctl stop k3s
@@ -107,12 +103,6 @@ k3s etcd-snapshot restore --data-dir /var/lib/rancher/k3s/server/db \
 
 # Reiniciar
 systemctl start k3s
-
-# En el segundo nodo, unirse al cluster restaurado
-ssh root@nami
-systemctl stop k3s
-rm -rf /var/lib/rancher/k3s/server/db/*
-k3s agent --server https://zoro:6443 --token <token>
 ```
 
 > **Nota:** si no hay snapshots de etcd, la única opción es un `k3s-uninstall.sh`

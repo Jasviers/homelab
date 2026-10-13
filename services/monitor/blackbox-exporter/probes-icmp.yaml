@@ -13,7 +13,7 @@ spec:
     staticConfig:
       labels:
         job: blackbox-icmp
-      targets:
+      static:
         - 192.168.1.1  # nas
         - 192.168.1.2  # luffy
         - 192.168.1.3  # zoro

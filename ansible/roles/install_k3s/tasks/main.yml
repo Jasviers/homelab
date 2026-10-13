@@ -4,7 +4,7 @@
     path: /etc/systemd/system/k3s.service
   register: install_k3s_server_unit
 
-- name: Check if k3s-agent service unit exists (workers/IA)
+- name: Check if k3s-agent service unit exists (workers)
   ansible.builtin.stat:
     path: /etc/systemd/system/k3s-agent.service
   register: install_k3s_agent_unit
@@ -29,7 +29,6 @@
       --disable servicelb \
       --disable traefik \
       --disable local-storage \
-      --tls-san 192.168.1.20 \
       --etcd-arg heartbeat-interval=500 \
       --etcd-arg election-timeout=5000
   when:
@@ -63,7 +62,6 @@
       --disable servicelb \
       --disable traefik \
       --disable local-storage \
-      --tls-san 192.168.1.20 \
       --etcd-arg heartbeat-interval=500 \
       --etcd-arg election-timeout=5000 \
       --server https://{{ install_k3s_cp_address }}:6443 \
@@ -83,19 +81,6 @@
       --node-label bonchan.org/gateway-node=true
   when:
     - inventory_hostname in groups['k3s_workers']
-    - not install_k3s_agent_unit.stat.exists
-  changed_when: true
-
-- name: Install k3s on the AI node (tainted, workloads by allowlist only)
-  ansible.builtin.shell: |
-    set -o pipefail
-    curl -sfL https://get.k3s.io | sh -s - agent \
-      --server https://{{ install_k3s_cp_address }}:6443 \
-      --token "{{ install_k3s_token.stdout }}" \
-      --node-taint dedicated=ai:NoSchedule \
-      --node-label workload-type=ai
-  when:
-    - inventory_hostname in groups['k3s_ai']
     - not install_k3s_agent_unit.stat.exists
   changed_when: true
 

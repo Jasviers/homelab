@@ -173,14 +173,6 @@ configMapGenerator:
       labels:
         grafana_alert: "1"
 
-  - name: grafana-alerting-rules-kube-vip
-    files:
-      - alerting/rules-kube-vip.yaml
-    options:
-      disableNameSuffixHash: true
-      labels:
-        grafana_alert: "1"
-
   - name: grafana-alerting-rules-etcd
     files:
       - alerting/rules-etcd.yaml

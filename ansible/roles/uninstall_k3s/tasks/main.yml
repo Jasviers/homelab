@@ -6,7 +6,7 @@
   when: inventory_hostname in groups['k3s_control_plane']
   failed_when: false
 
-- name: Stop k3s-agent service (workers/IA)
+- name: Stop k3s-agent service (workers)
   ansible.builtin.systemd:
     name: k3s-agent
     state: stopped
@@ -19,7 +19,7 @@
   args:
     removes: /usr/local/bin/k3s-uninstall.sh
 
-- name: Run k3s-agent uninstall script (workers/IA)
+- name: Run k3s-agent uninstall script (workers)
   ansible.builtin.command: /usr/local/bin/k3s-agent-uninstall.sh
   when: inventory_hostname not in groups['k3s_control_plane']
   args:

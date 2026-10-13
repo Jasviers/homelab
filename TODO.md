@@ -24,7 +24,7 @@
 
 [x] SSO con Authentik
 
-[x] Endpoint HA para API de k8s (kubevip)
+[x] Endpoint HA para API de k8s (kubevip) — retirado al pasar a control-plane único (ver `old_services/`)
 
 [x] Automatizar configuración proxmox y quorum
 
@@ -56,7 +56,7 @@
 
 [x] Mejorar infraestructura de maquinas virtuales y k8s
 
-[x] Despliegue de modelo de IA local (Ollama: Qwen3-Coder para código, Qwen3 4B para Home Assistant)
+[x] Despliegue de modelo de IA local (Ollama: Qwen3-Coder para código, Qwen3 4B para Home Assistant) — retirado junto al nodo de IA (ver `old_services/`)
 
 [x] Despliegue de whisper en el cluster
 
